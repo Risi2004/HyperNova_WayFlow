@@ -1,0 +1,759 @@
+/* ========================================================
+   Deferred Orders Page Styles - WayFlow Dispatcher
+   ======================================================== */
+
+.deferred-page-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f8fafc;
+  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  color: #0f172a;
+}
+
+.deferred-main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.deferred-content {
+  padding: 24px 32px 60px;
+  max-width: 1560px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ========================================================
+   Header & Action Controls
+   ======================================================== */
+.deferred-header-container {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 2px;
+}
+
+.deferred-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.deferred-page-title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.deferred-page-subtitle {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.deferred-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.deferred-date-picker-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 7px 12px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.deferred-date-picker-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.deferred-date-icon {
+  width: 13px;
+  height: 13px;
+  opacity: 0.75;
+}
+
+.deferred-header-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.deferred-header-search-icon {
+  position: absolute;
+  left: 10px;
+  width: 14px;
+  height: 14px;
+  stroke: #64748b;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.deferred-header-search-input {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 7px 12px 7px 32px;
+  font-size: 0.76rem;
+  color: #0f172a;
+  width: 200px;
+  height: 33px;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.deferred-header-search-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.btn-deferred-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 7px 13px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-deferred-export:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.btn-review-planning-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #2563eb;
+  border: 1px solid #1d4ed8;
+  border-radius: 7px;
+  padding: 7px 16px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+  transition: background 0.15s ease;
+}
+
+.btn-review-planning-primary:hover {
+  background: #1d4ed8;
+}
+
+/* ========================================================
+   4 Stat Metric Cards Grid
+   ======================================================== */
+.deferred-stat-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.deferred-stat-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.deferred-card-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.deferred-card-value {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.deferred-card-subtext {
+  font-size: 0.7rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* ========================================================
+   Multi-Filter Container
+   ======================================================== */
+.deferred-filter-container {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.deferred-filter-row-top,
+.deferred-filter-row-bottom {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.deferred-filter-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1.2;
+  min-width: 240px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  height: 33px;
+  padding: 0 12px 0 32px;
+  transition: all 0.15s ease;
+}
+
+.deferred-filter-search-box:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.deferred-filter-search-icon {
+  position: absolute;
+  left: 10px;
+  width: 14px;
+  height: 14px;
+  stroke: #64748b;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.deferred-filter-search-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.76rem;
+  color: #0f172a;
+  padding: 0;
+  height: 100%;
+  font-family: inherit;
+}
+
+.deferred-filter-search-input::placeholder {
+  color: #94a3b8;
+}
+
+.filter-select-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-select-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.filter-select-input {
+  padding: 6px 24px 6px 10px;
+  background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 8px center;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  font-size: 0.74rem;
+  color: #334155;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+}
+
+.filter-select-input:focus {
+  border-color: #2563eb;
+}
+
+.filter-advisory-hint {
+  flex: 1;
+  padding: 6px 12px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-clear-deferred-filters {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 4px 6px;
+}
+
+.btn-clear-deferred-filters:hover {
+  text-decoration: underline;
+}
+
+/* ========================================================
+   Selection Banner (Bulk Action)
+   ======================================================== */
+.deferred-selection-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: #f0f7ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 10px 16px;
+  flex-wrap: wrap;
+}
+
+.selection-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.selection-checkbox-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.deferred-custom-checkbox {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  accent-color: #2563eb;
+  cursor: pointer;
+}
+
+.selection-text-count {
+  font-size: 0.78rem;
+  color: #1e3a8a;
+}
+
+.selection-instruction-note {
+  font-size: 0.72rem;
+  color: #475569;
+}
+
+.btn-review-selected-planner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #2563eb;
+  color: #ffffff;
+  border: 1px solid #1d4ed8;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+  transition: background 0.15s ease;
+}
+
+.btn-review-selected-planner:hover {
+  background: #1d4ed8;
+}
+
+/* ========================================================
+   Deferred Orders Table Card
+   ======================================================== */
+.deferred-table-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 20px 24px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.deferred-table-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.deferred-table-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.table-sort-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.deferred-orders-grid-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.76rem;
+  text-align: left;
+}
+
+.deferred-orders-grid-table thead {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.deferred-orders-grid-table th {
+  padding: 10px 12px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.deferred-orders-grid-table td {
+  padding: 12px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.deferred-orders-grid-table tr:hover {
+  background: #f8fafc;
+}
+
+.row-selected-highlight {
+  background: #f8fbff;
+}
+
+.th-checkbox,
+.td-checkbox {
+  width: 36px;
+  text-align: center;
+}
+
+.bold {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.blue-table-link {
+  color: #2563eb;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.blue-table-link:hover {
+  text-decoration: underline;
+}
+
+.reason-text-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reason-primary-title {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #b45309;
+}
+
+.reason-secondary-desc {
+  font-size: 0.68rem;
+  color: #64748b;
+}
+
+.status-pill-badge.pill-deferred {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border-radius: 12px;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.status-pill-badge.pill-deferred .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #b45309;
+}
+
+.table-action-view-btn {
+  color: #2563eb;
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 0.74rem;
+}
+
+.table-action-view-btn:hover {
+  text-decoration: underline;
+}
+
+/* Pagination Row */
+.deferred-table-pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pagination-count-label {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.pagination-buttons-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-pagination-control {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-pagination-control:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.btn-pagination-control:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pagination-current-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #2563eb;
+  padding: 4px 8px;
+}
+
+/* ========================================================
+   Bottom Two-Column Row (Traceable + Empty State)
+   ======================================================== */
+.deferred-bottom-two-col {
+  display: grid;
+  grid-template-columns: 1.8fr 1fr;
+  gap: 20px;
+}
+
+/* Traceable Decisions Card */
+.traceable-decisions-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.traceable-header-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.traceable-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.traceable-subtitle {
+  font-size: 0.74rem;
+  color: #64748b;
+}
+
+.traceable-pills-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.traceable-pill-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.traceable-pill-item:hover {
+  background: #f1f5f9;
+}
+
+.traceable-pill-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.traceable-pill-text {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #334155;
+  line-height: 1.3;
+}
+
+/* Associated Empty State Card */
+.deferred-empty-state-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 24px 20px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.empty-state-check-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #ecfdf5;
+  border: 1.5px solid #a7f3d0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.empty-state-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.empty-state-desc {
+  font-size: 0.72rem;
+  color: #64748b;
+  max-width: 280px;
+  line-height: 1.35;
+}
+
+.btn-view-planner-blue {
+  background: #2563eb;
+  color: #ffffff;
+  border: 1px solid #1d4ed8;
+  border-radius: 7px;
+  padding: 8px 18px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 6px;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+  transition: background 0.15s ease;
+}
+
+.btn-view-planner-blue:hover {
+  background: #1d4ed8;
+}
+
+.empty-state-footer-tag {
+  margin-top: 10px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.06em;
+}
+
+/* ========================================================
+   Responsive Breakpoints
+   ======================================================== */
+@media (max-width: 1200px) {
+  .deferred-stat-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .deferred-bottom-two-col {
+    grid-template-columns: 1fr;
+  }
+
+  .traceable-pills-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .deferred-content {
+    padding: 16px;
+  }
+
+  .deferred-stat-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .deferred-filter-row-top,
+  .deferred-filter-row-bottom {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

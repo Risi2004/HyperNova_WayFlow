@@ -1,0 +1,893 @@
+/* ==========================================
+   WayFlow Dispatcher Dashboard Page Layout
+   ========================================== */
+.dispatcher-page-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+.dispatcher-main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.dispatcher-content {
+  padding: 24px 32px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* ==========================================
+   Greeting & Action Banner
+   ========================================== */
+.greeting-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.greeting-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.greeting-title {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.greeting-subtitle {
+  font-size: 0.81rem;
+  color: #475569;
+}
+
+.banner-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #1d4ed8;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(29, 78, 216, 0.2);
+}
+
+.banner-action-btn:hover {
+  background: #1e40af;
+  box-shadow: 0 4px 12px rgba(29, 78, 216, 0.3);
+  transform: translateY(-1px);
+}
+
+.banner-btn-icon {
+  width: 15px;
+  height: 15px;
+  filter: brightness(0) invert(1);
+}
+
+/* ==========================================
+   Stat Cards Grid (8 items)
+   ========================================== */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.stat-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+}
+
+.stat-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.stat-card-label {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.stat-card-icon-wrapper {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-card-icon-wrapper.blue {
+  background: #eff6ff;
+}
+
+.stat-card-icon-wrapper.amber {
+  background: #fffbeb;
+}
+
+.stat-card-icon-wrapper.green {
+  background: #f0fdf4;
+}
+
+.stat-card-icon-wrapper.red {
+  background: #fef2f2;
+}
+
+.stat-card-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.stat-card-value {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.stat-card-subtext {
+  font-size: 0.68rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stat-card-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ==========================================
+   Shared Dashboard Card Styles
+   ========================================== */
+.dashboard-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px 22px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.card-heading {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.card-subheading {
+  font-size: 0.7rem;
+  color: #64748b;
+  display: block;
+  margin-top: 2px;
+}
+
+.card-header-link {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.card-header-link:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+/* ==========================================
+   Two-column Middle Section
+   ========================================== */
+.two-col-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 16px;
+}
+
+/* Delivery Progress Card */
+.progress-stat-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.progress-big-number {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.progress-big-number .current-count {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.progress-big-number .total-count {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.progress-percent-badge {
+  background: #f0fdf4;
+  color: #16a34a;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  border: 1px solid #bbf7d0;
+  letter-spacing: 0.5px;
+}
+
+.segmented-progress-track {
+  display: flex;
+  height: 8px;
+  border-radius: 9999px;
+  overflow: hidden;
+  background: #f1f5f9;
+  gap: 2px;
+  margin-bottom: 18px;
+}
+
+.segment-completed { background: #22c55e; }
+.segment-progress { background: #3b82f6; }
+.segment-pending { background: #f59e0b; }
+.segment-delayed { background: #ef4444; }
+
+.progress-legend-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.legend-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.legend-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.dot-completed { background: #22c55e; }
+.dot-progress { background: #3b82f6; }
+.dot-pending { background: #f59e0b; }
+.dot-delayed { background: #ef4444; }
+
+.legend-label {
+  font-size: 0.66rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.legend-value {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+/* Needs Attention Card */
+.attention-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.attention-header-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.attention-badge-count {
+  background: #fef3c7;
+  color: #b45309;
+  font-size: 0.64rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  letter-spacing: 0.5px;
+}
+
+.attention-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.attention-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.77rem;
+}
+
+.attention-item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.attention-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.attention-text {
+  color: #334155;
+  font-weight: 500;
+}
+
+.attention-action-link {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.attention-action-link:hover {
+  text-decoration: underline;
+}
+
+/* ==========================================
+   Orders Requiring Attention Table
+   ========================================== */
+.table-responsive {
+  overflow-x: auto;
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.orders-table th {
+  padding: 10px 14px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.orders-table td {
+  padding: 12px 14px;
+  font-size: 0.78rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+.orders-table tr:hover td {
+  background: #f8fafc;
+}
+
+.order-id-cell {
+  font-weight: 700;
+  color: #1d4ed8;
+}
+
+.outlet-cell {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.product-type-cell {
+  color: #475569;
+}
+
+.window-cell {
+  color: #64748b;
+}
+
+/* Table Pills */
+.pill-status {
+  display: inline-block;
+  font-size: 0.64rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  letter-spacing: 0.5px;
+}
+
+.pill-status.pill-pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.pill-status.pill-ready {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.pill-status.pill-at-risk {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.pill-status.pill-deferred {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.pill-priority {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.pill-priority.pill-high {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.pill-priority.pill-urgent {
+  background: #fecaca;
+  color: #991b1b;
+}
+
+.pill-priority.pill-normal {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.pill-priority.pill-low {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.table-action-btn {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.table-action-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.text-right {
+  text-align: right;
+}
+
+/* ==========================================
+   Two-column Bottom Section
+   ========================================== */
+.fleet-live-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 16px;
+}
+
+/* Fleet Status */
+.fleet-counts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.fleet-count-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.76rem;
+}
+
+.fleet-count-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fleet-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.fleet-label {
+  color: #475569;
+  font-weight: 500;
+}
+
+.fleet-value {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.fleet-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 14px 0;
+}
+
+.fleet-capacity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fleet-capacity-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fleet-capacity-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+}
+
+.vehicle-type-name {
+  font-weight: 600;
+  color: #334155;
+}
+
+.vehicle-availability-text {
+  color: #64748b;
+}
+
+.fleet-progress-track {
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.fleet-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* Live Deliveries */
+.live-deliveries-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.live-delivery-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  transition: background 0.15s ease;
+}
+
+.live-delivery-item:hover {
+  background: #f1f5f9;
+}
+
+.delivery-icon-box {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.delivery-icon-box.bg-normal {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.delivery-icon-box.bg-delayed {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.delivery-details-col {
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.delivery-vehicle-driver {
+  font-size: 0.77rem;
+  color: #0f172a;
+}
+
+.delivery-route-sub {
+  font-size: 0.68rem;
+  color: #64748b;
+}
+
+.delivery-progress-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.delivery-stops-text {
+  font-size: 0.68rem;
+  color: #64748b;
+}
+
+.delivery-track {
+  height: 5px;
+  background: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.delivery-fill {
+  height: 100%;
+  border-radius: 9999px;
+}
+
+.delivery-fill.fill-normal {
+  background: #2563eb;
+}
+
+.delivery-fill.fill-delayed {
+  background: #ef4444;
+}
+
+.delivery-status-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  min-width: 90px;
+}
+
+.delivery-percent-text {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.delivery-status-pill {
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.delivery-status-pill.pill-success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.delivery-status-pill.pill-danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.delivery-status-pill.pill-info {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.delivery-eta-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 44px;
+}
+
+.eta-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+}
+
+.eta-value {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+/* ==========================================
+   Quick Actions
+   ========================================== */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.action-btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #1d4ed8;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-size: 0.77rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.action-btn-primary:hover {
+  background: #1e40af;
+  box-shadow: 0 4px 12px rgba(29, 78, 216, 0.25);
+}
+
+.action-btn-outline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-size: 0.77rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.action-btn-outline:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.action-btn-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.action-btn-primary .action-btn-icon {
+  filter: brightness(0) invert(1);
+}
+
+/* ==========================================
+   Dashboard Footer
+   ========================================== */
+.dispatcher-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 4px 8px;
+  font-size: 0.7rem;
+  color: #94a3b8;
+  border-top: 1px solid #e2e8f0;
+}
+
+.footer-link {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.footer-link:hover {
+  text-decoration: underline;
+}
+
+/* ==========================================
+   Responsive Breakpoints
+   ========================================== */
+@media (max-width: 1200px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .quick-actions-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+  .two-col-grid,
+  .fleet-live-grid {
+    grid-template-columns: 1fr;
+  }
+  .quick-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .dispatcher-page-container {
+    flex-direction: column;
+  }
+  .dispatcher-sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+  }
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+  }
+  .dispatcher-content {
+    padding: 16px;
+  }
+}
