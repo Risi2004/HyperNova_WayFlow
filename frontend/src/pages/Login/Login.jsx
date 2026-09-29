@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Logo from '../../components/ui/Logo'
 import Input from '../../components/ui/Input'
 import Button from '../../components/ui/Button'
@@ -6,6 +7,7 @@ import Checkbox from '../../components/ui/Checkbox'
 import './Login.css'
 
 export default function Login() {
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -20,16 +22,10 @@ export default function Login() {
 
     setTimeout(() => {
       setIsLoading(false)
-      setStatusMessage('Signed in successfully!')
-    }, 800)
-  }
-
-  const handleSSOSignIn = () => {
-    setIsLoading(true)
-    setStatusMessage('')
-    setTimeout(() => {
-      setIsLoading(false)
-      setStatusMessage('Authenticating with WayFlow SSO...')
+      setStatusMessage('Signed in successfully! Opening Dispatcher Dashboard...')
+      setTimeout(() => {
+        navigate('/dispatcher/dashboard')
+      }, 500)
     }, 800)
   }
 
@@ -158,33 +154,6 @@ export default function Login() {
               Sign in to Console
             </Button>
           </form>
-
-          {/* Divider */}
-          <div className="divider-row">
-            <span className="divider-line" />
-            <span className="divider-text">OR CONTINUE WITH</span>
-            <span className="divider-line" />
-          </div>
-
-          {/* SSO Button */}
-          <Button
-            type="button"
-            variant="sso"
-            onClick={handleSSOSignIn}
-            disabled={isLoading}
-            leftIcon={
-              <span className="sso-icon-badge" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0284c7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="3" />
-                  <line x1="3" y1="9" x2="21" y2="9" />
-                  <path d="M9 14h6" />
-                  <path d="M9 17h3" />
-                </svg>
-              </span>
-            }
-          >
-            Sign in with WayFlow SSO (Okta / Azure AD)
-          </Button>
 
           {/* Feedback notice if any */}
           {statusMessage && (
