@@ -11,6 +11,12 @@ import DeferredOrders from './pages/dispatcher/deferredOrders'
 import LiveDeliveries from './pages/dispatcher/liveDeliveries'
 import DeliveryHistory from './pages/dispatcher/deliveryHistory'
 import DispatcherSettings from './pages/dispatcher/settings'
+import LoaderDashboard from './pages/loader/dashboard'
+import TodayLoads from './pages/loader/todayLoads'
+import TodayOrders from './pages/loader/todayOrders'
+import ReportIssue from './pages/loader/reportIssue'
+import LoadingHistory from './pages/loader/loadingHistory'
+import LoaderSettings from './pages/loader/settings'
 
 export default function App() {
   return (
@@ -36,6 +42,18 @@ export default function App() {
         <Route path="/dispatcher/deliveryHiastory" element={<Navigate to="/dispatcher/delivery-history" replace />} />
         <Route path="/dispatcher/deliveryHiastory/:delivery_id" element={<DeliveryHistory />} />
         <Route path="/dispatcher/settings" element={<DispatcherSettings />} />
+        <Route path="/loader/dashboard" element={<LoaderDashboard />} />
+        <Route path="/loader/today-loads" element={<TodayLoads />} />
+        <Route path="/loader/todayLoads" element={<Navigate to="/loader/today-loads" replace />} />
+        <Route path="/loader/today-loads/:orderId/report-issue" element={<ReportIssue />} />
+        <Route path="/loader/today-orders/:orderId/report-issue" element={<ReportIssue />} />
+        <Route path="/loader/today-loads/report-issue" element={<ReportIssue />} />
+        <Route path="/loader/today-orders/:orderId" element={<TodayOrders />} />
+        <Route path="/loader/today-orders" element={<TodayOrders />} />
+        <Route path="/loader/loading-history" element={<LoadingHistory />} />
+        <Route path="/loader/loadingHistory" element={<Navigate to="/loader/loading-history" replace />} />
+        <Route path="/loader/settings" element={<LoaderSettings />} />
+        <Route path="/loader/Settings" element={<Navigate to="/loader/settings" replace />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
