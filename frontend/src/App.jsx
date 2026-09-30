@@ -17,6 +17,10 @@ import TodayOrders from './pages/loader/todayOrders'
 import ReportIssue from './pages/loader/reportIssue'
 import LoadingHistory from './pages/loader/loadingHistory'
 import LoaderSettings from './pages/loader/settings'
+import DriverDashboard from './pages/driver/dashboard'
+import MyTrips from './pages/driver/myTrips'
+import TripDetails from './pages/driver/tripDetails'
+import DeliveryStop from './pages/driver/deliveryStop'
 
 export default function App() {
   return (
@@ -54,6 +58,16 @@ export default function App() {
         <Route path="/loader/loadingHistory" element={<Navigate to="/loader/loading-history" replace />} />
         <Route path="/loader/settings" element={<LoaderSettings />} />
         <Route path="/loader/Settings" element={<Navigate to="/loader/settings" replace />} />
+        <Route path="/driver" element={<Navigate to="/driver/dashboard" replace />} />
+        <Route path="/driver/dashboard" element={<DriverDashboard />} />
+        <Route path="/driver/my-trips" element={<MyTrips />} />
+        <Route path="/driver/my-trips/:tripId" element={<TripDetails />} />
+        <Route path="/driver/my-trips/:tripId/delivery-stop" element={<DeliveryStop />} />
+        <Route path="/driver/my-trips/:tripId/devilery-stop" element={<Navigate to="/driver/my-trips/:tripId/delivery-stop" replace />} />
+        <Route path="/driver/myTrips" element={<Navigate to="/driver/my-trips" replace />} />
+        <Route path="/driver/myTrips/:tripId" element={<TripDetails />} />
+        <Route path="/driver/myTrips/:tripId/delivery-stop" element={<Navigate to="/driver/my-trips/:tripId/delivery-stop" replace />} />
+        <Route path="/driver/myTrips/:tripId/devilery-stop" element={<Navigate to="/driver/my-trips/:tripId/delivery-stop" replace />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
