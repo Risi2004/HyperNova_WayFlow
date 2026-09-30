@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import DriverNavbar from '../../../components/driver/DriverNavbar'
 import DriverSubheader from '../../../components/driver/DriverSubheader'
 import TodayTripCard from '../../../components/driver/TodayTripCard'
@@ -8,7 +9,6 @@ import ImportantWarningsCard from '../../../components/driver/ImportantWarningsC
 import LiveRouteUpdatesCard from '../../../components/driver/LiveRouteUpdatesCard'
 import QuickDriverActionsCard from '../../../components/driver/QuickDriverActionsCard'
 import TodayStopsTimelineCard from '../../../components/driver/TodayStopsTimelineCard'
-import ReportProblemModal from '../../../components/driver/ReportProblemModal'
 import CallDispatchModal from '../../../components/driver/CallDispatchModal'
 import './DriverDashboard.css'
 
@@ -80,10 +80,10 @@ const INITIAL_STOPS = [
 ]
 
 export default function DriverDashboard() {
+  const navigate = useNavigate()
   const [stops, setStops] = useState(INITIAL_STOPS)
   const [isOffline, setIsOffline] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
-  const [showReportModal, setShowReportModal] = useState(false)
   const [showDispatchModal, setShowDispatchModal] = useState(false)
 
   // Show temporary toast feedback
@@ -110,11 +110,7 @@ export default function DriverDashboard() {
   }
 
   const handleReportProblem = () => {
-    setShowReportModal(true)
-  }
-
-  const handleSubmitProblem = (data) => {
-    triggerToast(`Incident broadcasted to Peliyagoda DC Dispatch (${data.issueType.toUpperCase()}). Support alerted.`)
+    navigate('/driver/my-trips/TR-024/report-problem')
   }
 
   const handleCallDispatch = () => {
@@ -231,12 +227,6 @@ export default function DriverDashboard() {
       </main>
 
       {/* Interactive Modals */}
-      <ReportProblemModal
-        isOpen={showReportModal}
-        onClose={() => setShowReportModal(false)}
-        onSubmit={handleSubmitProblem}
-      />
-
       <CallDispatchModal
         isOpen={showDispatchModal}
         onClose={() => setShowDispatchModal(false)}

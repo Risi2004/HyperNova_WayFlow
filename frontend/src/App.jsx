@@ -21,6 +21,9 @@ import DriverDashboard from './pages/driver/dashboard'
 import MyTrips from './pages/driver/myTrips'
 import TripDetails from './pages/driver/tripDetails'
 import DeliveryStop from './pages/driver/deliveryStop'
+import RecordDelivery from './pages/driver/recordDelivery'
+import ProofOfDelivery from './pages/driver/proofOfDelivery'
+import ReportProblem from './pages/driver/reportProblem'
 
 export default function App() {
   return (
@@ -64,10 +67,22 @@ export default function App() {
         <Route path="/driver/my-trips/:tripId" element={<TripDetails />} />
         <Route path="/driver/my-trips/:tripId/delivery-stop" element={<DeliveryStop />} />
         <Route path="/driver/my-trips/:tripId/devilery-stop" element={<Navigate to="/driver/my-trips/:tripId/delivery-stop" replace />} />
+        <Route path="/driver/my-trips/:tripId/record-delivery" element={<RecordDelivery />} />
+        <Route path="/driver/my-trips/:tripId/recordDelivery" element={<Navigate to="/driver/my-trips/:tripId/record-delivery" replace />} />
+        <Route path="/driver/my-trips/:tripId/proof-of-delivery" element={<ProofOfDelivery />} />
+        <Route path="/driver/my-trips/:tripId/proofOfDelivery" element={<Navigate to="/driver/my-trips/:tripId/proof-of-delivery" replace />} />
+        <Route path="/driver/my-trips/:tripId/report-problem" element={<ReportProblem />} />
+        <Route path="/driver/my-trips/:tripId/reportProblem" element={<Navigate to="/driver/my-trips/:tripId/report-problem" replace />} />
+        <Route path="/driver/record-delivery" element={<RecordDelivery />} />
+        <Route path="/driver/proof-of-delivery" element={<ProofOfDelivery />} />
+        <Route path="/driver/report-problem" element={<ReportProblem />} />
         <Route path="/driver/myTrips" element={<Navigate to="/driver/my-trips" replace />} />
         <Route path="/driver/myTrips/:tripId" element={<TripDetails />} />
         <Route path="/driver/myTrips/:tripId/delivery-stop" element={<Navigate to="/driver/my-trips/:tripId/delivery-stop" replace />} />
         <Route path="/driver/myTrips/:tripId/devilery-stop" element={<Navigate to="/driver/my-trips/:tripId/delivery-stop" replace />} />
+        <Route path="/driver/myTrips/:tripId/record-delivery" element={<Navigate to="/driver/my-trips/:tripId/record-delivery" replace />} />
+        <Route path="/driver/myTrips/:tripId/proof-of-delivery" element={<Navigate to="/driver/my-trips/:tripId/proof-of-delivery" replace />} />
+        <Route path="/driver/myTrips/:tripId/report-problem" element={<Navigate to="/driver/my-trips/:tripId/report-problem" replace />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

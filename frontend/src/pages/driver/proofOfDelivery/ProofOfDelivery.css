@@ -1,0 +1,740 @@
+/* ========================================================
+   WayFlow Driver - Proof of Delivery Page Styles
+   Matching exact proof confirmation screen layout
+   ======================================================== */
+
+.proof-page-container {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  color: #0f172a;
+  display: flex;
+  flex-direction: column;
+}
+
+.proof-main-content {
+  flex: 1;
+  max-width: 1240px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 32px 60px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ========================================================
+   Header Section
+   ======================================================== */
+.proof-header-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-back-stop-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #2563eb;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  width: fit-content;
+  transition: all 0.15s ease;
+}
+
+.btn-back-stop-link:hover {
+  text-decoration: underline;
+}
+
+.proof-title-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.proof-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.proof-page-title {
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.proof-page-subtitle {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.proof-right-status-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.proof-trip-stop-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.proof-trip-bold {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.proof-stop-sub {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.proof-online-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #16a34a;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.online-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #16a34a;
+}
+
+.btn-proof-bell {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-proof-bell:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* ========================================================
+   Summary Strip Card (5 Columns)
+   ======================================================== */
+.delivery-summary-strip-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+}
+
+.summary-strip-column {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.strip-col-divider {
+  width: 1px;
+  height: 32px;
+  background-color: #f1f5f9;
+  margin: 0 16px;
+  flex-shrink: 0;
+}
+
+.strip-col-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.strip-col-value {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.strip-col-value.outlet-name {
+  font-weight: 800;
+}
+
+.strip-status-badge.delivered {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #16a34a;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+/* ========================================================
+   Two-Column Grid: Left Upload & Right Confirmation
+   ======================================================== */
+.proof-content-grid {
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.proof-left-column {
+  flex: 1;
+  min-width: 0;
+}
+
+.proof-right-column {
+  width: 320px;
+  flex-shrink: 0;
+}
+
+/* ========================================================
+   Left Card: Proof of Delivery Upload Card
+   ======================================================== */
+.proof-upload-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+}
+
+.proof-upload-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.proof-section-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.proof-section-subtitle {
+  font-size: 0.74rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.hidden-file-input {
+  display: none;
+}
+
+.proof-upload-dropzone {
+  border: 1.5px dashed #3b82f6;
+  background-color: #fafcff;
+  border-radius: 10px;
+  padding: 42px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex: 1;
+}
+
+.proof-upload-dropzone:hover {
+  background-color: #eff6ff;
+  border-color: #2563eb;
+}
+
+.proof-camera-icon-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background-color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
+}
+
+.dropzone-main-title {
+  font-size: 0.94rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.dropzone-sub-instruction {
+  font-size: 0.74rem;
+  color: #64748b;
+  margin: 0 0 8px;
+}
+
+.btn-capture-upload-outline {
+  background: #ffffff;
+  border: 1.5px solid #2563eb;
+  color: #2563eb;
+  border-radius: 7px;
+  padding: 8px 18px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-capture-upload-outline:hover {
+  background: #eff6ff;
+}
+
+/* Uploaded Preview State */
+.proof-uploaded-preview-box {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border: 1px solid #bfdbfe;
+  background-color: #eff6ff;
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.preview-image-wrapper {
+  position: relative;
+  width: 120px;
+  height: 90px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-badge-verified {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.preview-details-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.preview-meta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.preview-filename {
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.preview-timestamp {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.preview-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-retake-photo {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-remove-photo {
+  background: transparent;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-remove-photo:hover {
+  background: #fef2f2;
+}
+
+/* ========================================================
+   Right Card: Delivery Confirmation Card
+   ======================================================== */
+.delivery-confirmation-status-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 22px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  height: 100%;
+  box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+}
+
+.confirmation-card-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.confirmation-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.confirmation-step-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.step-status-icon-wrap {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.step-status-icon-wrap.completed {
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+}
+
+.step-status-icon-wrap.pending {
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+}
+
+.step-pending-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #cbd5e1;
+}
+
+.step-content-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.step-title-text {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.step-status-text {
+  font-size: 0.72rem;
+}
+
+.step-status-text.completed {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.step-status-text.pending {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* ========================================================
+   Action Footer
+   ======================================================== */
+.proof-action-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 20px;
+  margin-top: 6px;
+}
+
+.btn-footer-back-link {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 10px;
+  transition: all 0.15s ease;
+}
+
+.btn-footer-back-link:hover {
+  color: #0f172a;
+  text-decoration: underline;
+}
+
+.btn-save-proof-action {
+  border-radius: 7px;
+  padding: 11px 22px;
+  font-size: 0.84rem;
+  font-weight: 800;
+  transition: all 0.15s ease;
+  border: none;
+}
+
+.btn-save-proof-action.disabled {
+  background: #94a3b8;
+  color: #ffffff;
+  cursor: pointer;
+  opacity: 0.9;
+}
+
+.btn-save-proof-action.active {
+  background: #2563eb;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+}
+
+.btn-save-proof-action.active:hover {
+  background: #1d4ed8;
+}
+
+/* ========================================================
+   Action Toast Notification
+   ======================================================== */
+.proof-action-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 12px 18px;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  z-index: 999;
+  animation: toastSlideUp 0.25s ease-out;
+}
+
+.btn-toast-dismiss {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 2px;
+}
+
+.btn-toast-dismiss:hover {
+  color: #ffffff;
+}
+
+@keyframes toastSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========================================================
+   Delivery Success Modal
+   ======================================================== */
+.delivery-success-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: modalFade 0.15s ease-out;
+}
+
+.delivery-success-modal-box {
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 440px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+}
+
+.success-modal-icon-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #f0fdf4;
+  border: 2px solid #86efac;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #16a34a;
+}
+
+.success-modal-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.success-modal-description {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.success-modal-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.btn-modal-next-stop {
+  flex: 1;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 7px;
+  padding: 11px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btn-modal-back-trips {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 11px 16px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ========================================================
+   Responsive Breakpoints
+   ======================================================== */
+@media (max-width: 960px) {
+  .delivery-summary-strip-card {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .strip-col-divider {
+    display: none;
+  }
+
+  .summary-strip-column {
+    min-width: 45%;
+  }
+
+  .proof-content-grid {
+    flex-direction: column;
+  }
+
+  .proof-right-column {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .proof-main-content {
+    padding: 16px;
+  }
+
+  .summary-strip-column {
+    min-width: 100%;
+  }
+
+  .proof-action-footer-row {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .btn-save-proof-action,
+  .btn-footer-back-link {
+    width: 100%;
+    text-align: center;
+  }
+}
