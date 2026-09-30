@@ -1,0 +1,199 @@
+/* ========================================================
+   Store Manager Sidebar Styles
+   ======================================================== */
+
+.sm-sidebar {
+  width: 220px;
+  background-color: #ffffff;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  z-index: 40;
+}
+
+.sm-sidebar-top {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 14px 10px;
+}
+
+/* Brand */
+.sm-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px 18px 6px;
+  cursor: pointer;
+}
+
+.sm-sidebar-logo {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.sm-sidebar-brand-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #0f172a;
+}
+
+/* Nav */
+.sm-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sm-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.sm-nav-item:hover {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+.sm-nav-item.active {
+  background-color: #eff6ff;
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.sm-nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.sm-nav-item.active .sm-nav-icon {
+  color: #2563eb;
+}
+
+.sm-nav-label {
+  white-space: nowrap;
+}
+
+/* Bottom Profile & Logout */
+.sm-sidebar-bottom {
+  padding: 12px 14px 18px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sm-user-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  gap: 8px;
+}
+
+.sm-user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #2563eb;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sm-user-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.sm-user-name {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sm-user-role {
+  font-size: 0.65rem;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.sm-user-badge-icon {
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+}
+
+.sm-logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 8px;
+  width: fit-content;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.sm-logout-btn:hover {
+  background-color: #fef2f2;
+}
+
+@media (max-width: 900px) {
+  .sm-sidebar {
+    width: 68px;
+  }
+  .sm-sidebar-brand-name,
+  .sm-nav-label,
+  .sm-user-meta,
+  .sm-user-badge-icon,
+  .sm-logout-btn span {
+    display: none;
+  }
+  .sm-user-card {
+    justify-content: center;
+    padding: 6px;
+  }
+  .sm-nav-item {
+    justify-content: center;
+    padding: 10px;
+  }
+}

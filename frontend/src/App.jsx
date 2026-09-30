@@ -24,6 +24,7 @@ import DeliveryStop from './pages/driver/deliveryStop'
 import RecordDelivery from './pages/driver/recordDelivery'
 import ProofOfDelivery from './pages/driver/proofOfDelivery'
 import ReportProblem from './pages/driver/reportProblem'
+import StoreManagerDashboard from './pages/storeManager/dashboard'
 
 export default function App() {
   return (
@@ -83,6 +84,10 @@ export default function App() {
         <Route path="/driver/myTrips/:tripId/record-delivery" element={<Navigate to="/driver/my-trips/:tripId/record-delivery" replace />} />
         <Route path="/driver/myTrips/:tripId/proof-of-delivery" element={<Navigate to="/driver/my-trips/:tripId/proof-of-delivery" replace />} />
         <Route path="/driver/myTrips/:tripId/report-problem" element={<Navigate to="/driver/my-trips/:tripId/report-problem" replace />} />
+        <Route path="/store-manager" element={<Navigate to="/store-manager/dashboard" replace />} />
+        <Route path="/store-manager/dashboard" element={<StoreManagerDashboard />} />
+        <Route path="/storeManager" element={<Navigate to="/store-manager/dashboard" replace />} />
+        <Route path="/storeManager/dashboard" element={<Navigate to="/store-manager/dashboard" replace />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
