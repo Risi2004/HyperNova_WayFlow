@@ -1,14 +1,14 @@
 import { useState } from 'react'
-import Sidebar from '../../../components/layout/Sidebar'
-import Header from '../../../components/layout/Header'
+import Sidebar from '../../../components/dispatcher/layout/Sidebar'
+import Header from '../../../components/dispatcher/layout/Header'
 
-import SettingsHeader from '../../../components/settings/SettingsHeader'
-import SettingsNavTabs from '../../../components/settings/SettingsNavTabs'
-import GeneralSettingsCard from '../../../components/settings/GeneralSettingsCard'
-import RoutingRulesCard from '../../../components/settings/RoutingRulesCard'
-import NotificationsCard from '../../../components/settings/NotificationsCard'
-import IntegrationsCard from '../../../components/settings/IntegrationsCard'
-import SecurityProfileCard from '../../../components/settings/SecurityProfileCard'
+import SettingsHeader from '../../../components/dispatcher/settings/SettingsHeader'
+import SettingsNavTabs from '../../../components/dispatcher/settings/SettingsNavTabs'
+import GeneralSettingsCard from '../../../components/dispatcher/settings/GeneralSettingsCard'
+import RoutingRulesCard from '../../../components/dispatcher/settings/RoutingRulesCard'
+import NotificationsCard from '../../../components/dispatcher/settings/NotificationsCard'
+import IntegrationsCard from '../../../components/dispatcher/settings/IntegrationsCard'
+import SecurityProfileCard from '../../../components/dispatcher/settings/SecurityProfileCard'
 
 import './Settings.css'
 

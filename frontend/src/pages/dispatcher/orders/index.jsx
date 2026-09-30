@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import Sidebar from '../../../components/layout/Sidebar'
-import Header from '../../../components/layout/Header'
-import OrdersStatCards from '../../../components/orders/OrdersStatCards'
-import OrdersFilterBar from '../../../components/orders/OrdersFilterBar'
-import BulkActionBanner from '../../../components/orders/BulkActionBanner'
-import OrdersTable from '../../../components/orders/OrdersTable'
-import OrdersAttentionSection from '../../../components/orders/OrdersAttentionSection'
+import Sidebar from '../../../components/dispatcher/layout/Sidebar'
+import Header from '../../../components/dispatcher/layout/Header'
+import OrdersStatCards from '../../../components/dispatcher/orders/OrdersStatCards'
+import OrdersFilterBar from '../../../components/dispatcher/orders/OrdersFilterBar'
+import BulkActionBanner from '../../../components/dispatcher/orders/BulkActionBanner'
+import OrdersTable from '../../../components/dispatcher/orders/OrdersTable'
+import OrdersAttentionSection from '../../../components/dispatcher/orders/OrdersAttentionSection'
 import './Orders.css'
 
 export default function DispatcherOrders() {
