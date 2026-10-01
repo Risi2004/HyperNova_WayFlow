@@ -993,12 +993,21 @@
 
 /* Responsive adjustments */
 @media (max-width: 900px) {
+  .cr-page-wrapper {
+    flex-direction: column !important;
+    width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
   .cr-summary-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 
   .cr-main-content {
-    padding: 20px 16px 40px;
+    padding: 16px 14px 40px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 }
 

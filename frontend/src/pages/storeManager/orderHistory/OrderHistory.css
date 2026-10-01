@@ -921,6 +921,21 @@
   }
 }
 
+@media (max-width: 900px) {
+  .oh-page-wrapper {
+    flex-direction: column !important;
+    width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .oh-main-content {
+    padding: 16px 14px 40px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
 @media (max-width: 640px) {
   .oh-metrics-grid {
     grid-template-columns: 1fr;

@@ -1163,3 +1163,60 @@
 .btn-mo-toast-close:hover {
   color: #ffffff;
 }
+
+/* Responsive Breakpoints for Tablets & Mobile */
+@media (max-width: 1024px) {
+  .mo-metrics-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .sm-my-orders-page {
+    flex-direction: column !important;
+    width: 100% !important;
+    overflow-x: hidden !important;
+  }
+  .sm-my-orders-main {
+    padding: 14px 16px 40px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .mo-top-header-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .mo-header-actions-right {
+    width: 100% !important;
+    justify-content: flex-end !important;
+  }
+  .mo-filters-bar-container {
+    padding: 12px 14px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .sm-my-orders-main {
+    padding: 12px 12px 40px !important;
+  }
+  .mo-metrics-cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .mo-filters-tabs-group {
+    overflow-x: auto !important;
+    width: 100% !important;
+  }
+  .mo-filters-bottom-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+  .mo-dropdowns-group {
+    width: 100% !important;
+  }
+  .mo-select-filter {
+    flex: 1 !important;
+  }
+}

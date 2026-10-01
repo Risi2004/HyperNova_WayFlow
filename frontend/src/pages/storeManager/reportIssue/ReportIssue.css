@@ -1009,6 +1009,21 @@
   }
 }
 
+@media (max-width: 900px) {
+  .ri-page-wrapper {
+    flex-direction: column !important;
+    width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .ri-main-content {
+    padding: 16px 14px 40px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
 @media (max-width: 680px) {
   .ri-category-grid {
     grid-template-columns: 1fr;

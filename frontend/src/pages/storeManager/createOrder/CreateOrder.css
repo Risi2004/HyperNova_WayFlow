@@ -1413,3 +1413,45 @@
 .btn-co-toast-close:hover {
   color: #ffffff;
 }
+
+/* Responsive Breakpoints for Tablets & Mobile */
+@media (max-width: 900px) {
+  .sm-create-order-page {
+    flex-direction: column !important;
+    width: 100% !important;
+    overflow-x: hidden !important;
+  }
+  .sm-create-order-main {
+    padding: 14px 16px 40px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .co-top-header-section {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .co-header-actions-right {
+    width: 100% !important;
+    justify-content: flex-end !important;
+  }
+  .co-right-column {
+    position: static !important;
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .sm-create-order-main {
+    padding: 12px 12px 40px !important;
+  }
+  .co-outlet-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .co-summary-item-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+  }
+}

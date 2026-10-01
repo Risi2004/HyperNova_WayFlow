@@ -1268,3 +1268,23 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 640px) {
+  .driver-top-navbar {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  .driver-nav-brand-text {
+    display: none;
+  }
+  .driver-meta-text {
+    display: none;
+  }
+  .driver-profile-pill {
+    padding: 4px;
+  }
+  .driver-nav-tab-btn {
+    padding: 6px 10px;
+    font-size: 0.76rem;
+  }
+}

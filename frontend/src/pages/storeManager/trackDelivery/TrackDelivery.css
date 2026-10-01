@@ -1698,3 +1698,52 @@
 .btn-td-toast-close:hover {
   color: #ffffff;
 }
+
+/* Responsive Breakpoints for Tablets & Mobile */
+@media (max-width: 1024px) {
+  .td-two-cols-layout {
+    grid-template-columns: 1fr !important;
+  }
+  .td-metrics-four-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .sm-track-delivery-page {
+    flex-direction: column !important;
+    width: 100% !important;
+    overflow-x: hidden !important;
+  }
+  .sm-track-delivery-main {
+    padding: 14px 16px 40px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .td-top-header-section {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .td-header-actions-right {
+    width: 100% !important;
+    flex-wrap: wrap !important;
+  }
+  .td-header-actions-right button {
+    flex: 1 !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .sm-track-delivery-main {
+    padding: 12px 12px 40px !important;
+  }
+  .td-metrics-four-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .td-sim-pill-group {
+    width: 100% !important;
+    overflow-x: auto !important;
+  }
+}
