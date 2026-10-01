@@ -5,6 +5,7 @@
 
 .sm-sidebar {
   width: 240px;
+  min-width: 240px;
   background-color: #ffffff;
   border-right: 1px solid #e2e8f0;
   display: flex;
@@ -25,12 +26,15 @@
   gap: 20px;
 }
 
+/* Brand header */
 .sm-sidebar-brand {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 0 4px;
   cursor: pointer;
+  user-select: none;
+  text-decoration: none;
 }
 
 .sm-sidebar-logo {
@@ -44,6 +48,7 @@
   font-weight: 800;
   letter-spacing: 0.05em;
   color: #0f172a;
+  line-height: 1;
 }
 
 /* User Card in Sidebar */
@@ -113,6 +118,7 @@
   color: #94a3b8;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 /* Nav Menu */
@@ -125,14 +131,14 @@
 .sm-nav-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   background: transparent;
   border: none;
-  border-radius: 7px;
-  padding: 8px 12px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #64748b;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: #475569;
   cursor: pointer;
   text-align: left;
   transition: all 0.15s ease;
@@ -140,16 +146,18 @@
 }
 
 .sm-nav-item:hover {
-  background: #f1f5f9;
+  background: #f8fafc;
   color: #0f172a;
 }
 
+/* Active Nav Item - Exact Dispatcher blue (#1d4ed8) and soft blue pill (#eff6ff) */
 .sm-nav-item.active {
   background: #eff6ff;
-  color: #2563eb;
-  font-weight: 700;
+  color: #1d4ed8;
+  font-weight: 600;
 }
 
+/* Nav Icons - Exact color match to Dispatcher (#6B778C inactive, #1d4ed8 active) */
 .sm-nav-icon {
   width: 16px;
   height: 16px;
@@ -157,12 +165,25 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  color: #6B778C;
   opacity: 0.75;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.sm-nav-icon svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.sm-nav-item:hover .sm-nav-icon {
+  color: #0f172a;
+  opacity: 1;
 }
 
 .sm-nav-item.active .sm-nav-icon {
+  color: #1d4ed8;
   opacity: 1;
-  color: #2563eb;
 }
 
 /* Sidebar Bottom */
@@ -261,7 +282,7 @@
 
   .sm-mobile-active-tag {
     background-color: #eff6ff;
-    color: #2563eb;
+    color: #1d4ed8;
     border: 1px solid #bfdbfe;
     padding: 3px 8px;
     border-radius: 6px;
