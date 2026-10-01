@@ -1,8 +1,14 @@
 import { useNavigate } from 'react-router-dom'
+import { authService } from '../../services/authService'
 import logoImg from '../../assets/images/logo.png'
 
 export default function DriverNavbar({ activeTab = 'Dashboard' }) {
   const navigate = useNavigate()
+
+  const handleLogout = () => {
+    authService.logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <header className="driver-top-navbar">
@@ -57,7 +63,7 @@ export default function DriverNavbar({ activeTab = 'Dashboard' }) {
           type="button"
           className="driver-logout-btn"
           title="Sign out to Login"
-          onClick={() => navigate('/login')}
+          onClick={handleLogout}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

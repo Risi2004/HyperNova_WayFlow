@@ -1,19 +1,42 @@
 /* Admin Users Management - Full Dark Theme */
 .admin-users-container {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
   background-color: #0b0f19;
   color: #f8fafc;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .admin-users-content {
   flex: 1;
   min-width: 0;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 24px 36px 64px;
   background-color: #0b0f19;
   box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.admin-users-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.admin-users-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-users-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.admin-users-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 /* Header */

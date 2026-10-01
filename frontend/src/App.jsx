@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import ProtectedRoute from './components/auth/ProtectedRoute'
 import Login from './pages/Login/Login'
 import DispatcherDashboard from './pages/dispatcher/dashboard'
 import DispatcherOrders from './pages/dispatcher/orders'
@@ -33,6 +34,7 @@ import StoreManagerReportIssue from './pages/storeManager/reportIssue'
 import OrderHistory from './pages/storeManager/orderHistory'
 import AdminDashboard from './pages/admin/dashboard'
 import AdminUsers from './pages/admin/users'
+import AdminProducts from './pages/admin/products'
 import LandingPage from './pages/Landing/LandingPage'
 
 export default function App() {
@@ -40,97 +42,67 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/dispatcher/dashboard" element={<DispatcherDashboard />} />
+        {/* Dispatcher Routes */}
+        <Route path="/dispatcher/dashboard" element={<ProtectedRoute allowedRoles={['Dispatcher']}><DispatcherDashboard /></ProtectedRoute>} />
         <Route path="/dispatcher/daashboard" element={<Navigate to="/dispatcher/dashboard" replace />} />
-        <Route path="/dispatcher/orders" element={<DispatcherOrders />} />
-        <Route path="/dispatcher/orders/:order_code" element={<OrderDetails />} />
-        <Route path="/dispatcher/delivery-planner" element={<DeliveryPlanner />} />
+        <Route path="/dispatcher/orders" element={<ProtectedRoute allowedRoles={['Dispatcher']}><DispatcherOrders /></ProtectedRoute>} />
+        <Route path="/dispatcher/orders/:order_code" element={<ProtectedRoute allowedRoles={['Dispatcher']}><OrderDetails /></ProtectedRoute>} />
+        <Route path="/dispatcher/delivery-planner" element={<ProtectedRoute allowedRoles={['Dispatcher']}><DeliveryPlanner /></ProtectedRoute>} />
         <Route path="/dispatcher/orders/delivery-planner" element={<Navigate to="/dispatcher/delivery-planner" replace />} />
-        <Route path="/dispatcher/fleet-availability" element={<FleetAvailability />} />
-        <Route path="/dispatcher/fleetAvailability" element={<FleetAvailability />} />
-        <Route path="/dispatcher/routes" element={<DispatcherRoutes />} />
-        <Route path="/dispatcher/routes/:route_id" element={<RouteDetails />} />
-        <Route path="/dispatcher/routes/route_id" element={<RouteDetails />} />
-        <Route path="/dispatcher/deferred-orders" element={<DeferredOrders />} />
-        <Route path="/dispatcher/live-deliveries" element={<LiveDeliveries />} />
-        <Route path="/dispatcher/delivery-history" element={<DeliveryHistory />} />
-        <Route path="/dispatcher/delivery-history/:delivery_id" element={<DeliveryHistory />} />
-        <Route path="/dispatcher/delivery-history/delivery_id" element={<DeliveryHistory />} />
-        <Route path="/dispatcher/deliveryHiastory" element={<Navigate to="/dispatcher/delivery-history" replace />} />
-        <Route path="/dispatcher/deliveryHiastory/:delivery_id" element={<DeliveryHistory />} />
-        <Route path="/dispatcher/settings" element={<DispatcherSettings />} />
-        <Route path="/loader/dashboard" element={<LoaderDashboard />} />
-        <Route path="/loader/today-loads" element={<TodayLoads />} />
+        <Route path="/dispatcher/fleet-availability" element={<ProtectedRoute allowedRoles={['Dispatcher']}><FleetAvailability /></ProtectedRoute>} />
+        <Route path="/dispatcher/fleetAvailability" element={<Navigate to="/dispatcher/fleet-availability" replace />} />
+        <Route path="/dispatcher/routes" element={<ProtectedRoute allowedRoles={['Dispatcher']}><DispatcherRoutes /></ProtectedRoute>} />
+        <Route path="/dispatcher/routes/:route_id" element={<ProtectedRoute allowedRoles={['Dispatcher']}><RouteDetails /></ProtectedRoute>} />
+        <Route path="/dispatcher/deferred-orders" element={<ProtectedRoute allowedRoles={['Dispatcher']}><DeferredOrders /></ProtectedRoute>} />
+        <Route path="/dispatcher/live-deliveries" element={<ProtectedRoute allowedRoles={['Dispatcher']}><LiveDeliveries /></ProtectedRoute>} />
+        <Route path="/dispatcher/delivery-history" element={<ProtectedRoute allowedRoles={['Dispatcher']}><DeliveryHistory /></ProtectedRoute>} />
+        <Route path="/dispatcher/delivery-history/:delivery_id" element={<ProtectedRoute allowedRoles={['Dispatcher']}><DeliveryHistory /></ProtectedRoute>} />
+        <Route path="/dispatcher/settings" element={<ProtectedRoute allowedRoles={['Dispatcher']}><DispatcherSettings /></ProtectedRoute>} />
+
+        {/* Loader Routes */}
+        <Route path="/loader/dashboard" element={<ProtectedRoute allowedRoles={['Loader']}><LoaderDashboard /></ProtectedRoute>} />
+        <Route path="/loader/today-loads" element={<ProtectedRoute allowedRoles={['Loader']}><TodayLoads /></ProtectedRoute>} />
         <Route path="/loader/todayLoads" element={<Navigate to="/loader/today-loads" replace />} />
-        <Route path="/loader/today-loads/:orderId/report-issue" element={<ReportIssue />} />
-        <Route path="/loader/today-orders/:orderId/report-issue" element={<ReportIssue />} />
-        <Route path="/loader/today-loads/report-issue" element={<ReportIssue />} />
-        <Route path="/loader/today-orders/:orderId" element={<TodayOrders />} />
-        <Route path="/loader/today-orders" element={<TodayOrders />} />
-        <Route path="/loader/loading-history" element={<LoadingHistory />} />
-        <Route path="/loader/loadingHistory" element={<Navigate to="/loader/loading-history" replace />} />
-        <Route path="/loader/settings" element={<LoaderSettings />} />
-        <Route path="/loader/Settings" element={<Navigate to="/loader/settings" replace />} />
+        <Route path="/loader/today-loads/:orderId/report-issue" element={<ProtectedRoute allowedRoles={['Loader']}><ReportIssue /></ProtectedRoute>} />
+        <Route path="/loader/today-orders/:orderId/report-issue" element={<ProtectedRoute allowedRoles={['Loader']}><ReportIssue /></ProtectedRoute>} />
+        <Route path="/loader/today-loads/report-issue" element={<ProtectedRoute allowedRoles={['Loader']}><ReportIssue /></ProtectedRoute>} />
+        <Route path="/loader/today-orders/:orderId" element={<ProtectedRoute allowedRoles={['Loader']}><TodayOrders /></ProtectedRoute>} />
+        <Route path="/loader/today-orders" element={<ProtectedRoute allowedRoles={['Loader']}><TodayOrders /></ProtectedRoute>} />
+        <Route path="/loader/loading-history" element={<ProtectedRoute allowedRoles={['Loader']}><LoadingHistory /></ProtectedRoute>} />
+        <Route path="/loader/settings" element={<ProtectedRoute allowedRoles={['Loader']}><LoaderSettings /></ProtectedRoute>} />
+
+        {/* Driver Routes */}
         <Route path="/driver" element={<Navigate to="/driver/dashboard" replace />} />
-        <Route path="/driver/dashboard" element={<DriverDashboard />} />
-        <Route path="/driver/my-trips" element={<MyTrips />} />
-        <Route path="/driver/my-trips/:tripId" element={<TripDetails />} />
-        <Route path="/driver/my-trips/:tripId/delivery-stop" element={<DeliveryStop />} />
-        <Route path="/driver/my-trips/:tripId/devilery-stop" element={<Navigate to="/driver/my-trips/:tripId/delivery-stop" replace />} />
-        <Route path="/driver/my-trips/:tripId/record-delivery" element={<RecordDelivery />} />
-        <Route path="/driver/my-trips/:tripId/recordDelivery" element={<Navigate to="/driver/my-trips/:tripId/record-delivery" replace />} />
-        <Route path="/driver/my-trips/:tripId/proof-of-delivery" element={<ProofOfDelivery />} />
-        <Route path="/driver/my-trips/:tripId/proofOfDelivery" element={<Navigate to="/driver/my-trips/:tripId/proof-of-delivery" replace />} />
-        <Route path="/driver/my-trips/:tripId/report-problem" element={<ReportProblem />} />
-        <Route path="/driver/my-trips/:tripId/reportProblem" element={<Navigate to="/driver/my-trips/:tripId/report-problem" replace />} />
-        <Route path="/driver/record-delivery" element={<RecordDelivery />} />
-        <Route path="/driver/proof-of-delivery" element={<ProofOfDelivery />} />
-        <Route path="/driver/report-problem" element={<ReportProblem />} />
+        <Route path="/driver/dashboard" element={<ProtectedRoute allowedRoles={['Driver']}><DriverDashboard /></ProtectedRoute>} />
+        <Route path="/driver/my-trips" element={<ProtectedRoute allowedRoles={['Driver']}><MyTrips /></ProtectedRoute>} />
+        <Route path="/driver/my-trips/:tripId" element={<ProtectedRoute allowedRoles={['Driver']}><TripDetails /></ProtectedRoute>} />
+        <Route path="/driver/my-trips/:tripId/delivery-stop" element={<ProtectedRoute allowedRoles={['Driver']}><DeliveryStop /></ProtectedRoute>} />
+        <Route path="/driver/my-trips/:tripId/record-delivery" element={<ProtectedRoute allowedRoles={['Driver']}><RecordDelivery /></ProtectedRoute>} />
+        <Route path="/driver/my-trips/:tripId/proof-of-delivery" element={<ProtectedRoute allowedRoles={['Driver']}><ProofOfDelivery /></ProtectedRoute>} />
+        <Route path="/driver/my-trips/:tripId/report-problem" element={<ProtectedRoute allowedRoles={['Driver']}><ReportProblem /></ProtectedRoute>} />
         <Route path="/driver/myTrips" element={<Navigate to="/driver/my-trips" replace />} />
-        <Route path="/driver/myTrips/:tripId" element={<TripDetails />} />
-        <Route path="/driver/myTrips/:tripId/delivery-stop" element={<Navigate to="/driver/my-trips/:tripId/delivery-stop" replace />} />
-        <Route path="/driver/myTrips/:tripId/devilery-stop" element={<Navigate to="/driver/my-trips/:tripId/delivery-stop" replace />} />
-        <Route path="/driver/myTrips/:tripId/record-delivery" element={<Navigate to="/driver/my-trips/:tripId/record-delivery" replace />} />
-        <Route path="/driver/myTrips/:tripId/proof-of-delivery" element={<Navigate to="/driver/my-trips/:tripId/proof-of-delivery" replace />} />
-        <Route path="/driver/myTrips/:tripId/report-problem" element={<Navigate to="/driver/my-trips/:tripId/report-problem" replace />} />
+        <Route path="/driver/myTrips/:tripId" element={<ProtectedRoute allowedRoles={['Driver']}><TripDetails /></ProtectedRoute>} />
+
+        {/* Store Manager Routes */}
         <Route path="/store-manager" element={<Navigate to="/store-manager/dashboard" replace />} />
-        <Route path="/store-manager/dashboard" element={<StoreManagerDashboard />} />
-        <Route path="/store-manager/create-order" element={<CreateOrder />} />
+        <Route path="/store-manager/dashboard" element={<ProtectedRoute allowedRoles={['Store Manager']}><StoreManagerDashboard /></ProtectedRoute>} />
+        <Route path="/store-manager/create-order" element={<ProtectedRoute allowedRoles={['Store Manager']}><CreateOrder /></ProtectedRoute>} />
         <Route path="/store-manager/createOrder" element={<Navigate to="/store-manager/create-order" replace />} />
-        <Route path="/store-manager/my-orders" element={<MyOrders />} />
+        <Route path="/store-manager/my-orders" element={<ProtectedRoute allowedRoles={['Store Manager']}><MyOrders /></ProtectedRoute>} />
         <Route path="/store-manager/myOrders" element={<Navigate to="/store-manager/my-orders" replace />} />
         <Route path="/store-manager/orders" element={<Navigate to="/store-manager/my-orders" replace />} />
-        <Route path="/store-manager/track-delivery" element={<TrackDelivery />} />
-        <Route path="/store-manager/track-delivery/:tripId" element={<TrackDelivery />} />
-        <Route path="/store-manager/trackDelivery" element={<Navigate to="/store-manager/track-delivery" replace />} />
-        <Route path="/store-manager/trackDelivery/:tripId" element={<TrackDelivery />} />
-        <Route path="/store-manager/confirm-receipt" element={<ConfirmReceipt />} />
-        <Route path="/store-manager/confirmReceipt" element={<Navigate to="/store-manager/confirm-receipt" replace />} />
-        <Route path="/store-manager/report-issue" element={<StoreManagerReportIssue />} />
-        <Route path="/store-manager/reportIssue" element={<Navigate to="/store-manager/report-issue" replace />} />
-        <Route path="/store-manager/order-history" element={<OrderHistory />} />
-        <Route path="/store-manager/orderHistory" element={<Navigate to="/store-manager/order-history" replace />} />
-        <Route path="/storeManager" element={<Navigate to="/store-manager/dashboard" replace />} />
-        <Route path="/storeManager/dashboard" element={<Navigate to="/store-manager/dashboard" replace />} />
-        <Route path="/storeManager/create-order" element={<Navigate to="/store-manager/create-order" replace />} />
-        <Route path="/storeManager/createOrder" element={<Navigate to="/store-manager/create-order" replace />} />
-        <Route path="/storeManager/my-orders" element={<Navigate to="/store-manager/my-orders" replace />} />
-        <Route path="/storeManager/myOrders" element={<Navigate to="/store-manager/my-orders" replace />} />
-        <Route path="/storeManager/orders" element={<Navigate to="/store-manager/my-orders" replace />} />
-        <Route path="/storeManager/track-delivery" element={<Navigate to="/store-manager/track-delivery" replace />} />
-        <Route path="/storeManager/track-delivery/:tripId" element={<Navigate to="/store-manager/track-delivery" replace />} />
-        <Route path="/storeManager/trackDelivery" element={<Navigate to="/store-manager/track-delivery" replace />} />
-        <Route path="/storeManager/trackDelivery/:tripId" element={<Navigate to="/store-manager/track-delivery" replace />} />
-        <Route path="/storeManager/confirm-receipt" element={<Navigate to="/store-manager/confirm-receipt" replace />} />
-        <Route path="/storeManager/confirmReceipt" element={<Navigate to="/store-manager/confirm-receipt" replace />} />
-        <Route path="/storeManager/report-issue" element={<Navigate to="/store-manager/report-issue" replace />} />
-        <Route path="/storeManager/reportIssue" element={<Navigate to="/store-manager/report-issue" replace />} />
-        <Route path="/storeManager/order-history" element={<Navigate to="/store-manager/order-history" replace />} />
-        <Route path="/storeManager/orderHistory" element={<Navigate to="/store-manager/order-history" replace />} />
+        <Route path="/store-manager/track-delivery" element={<ProtectedRoute allowedRoles={['Store Manager']}><TrackDelivery /></ProtectedRoute>} />
+        <Route path="/store-manager/track-delivery/:tripId" element={<ProtectedRoute allowedRoles={['Store Manager']}><TrackDelivery /></ProtectedRoute>} />
+        <Route path="/store-manager/confirm-receipt" element={<ProtectedRoute allowedRoles={['Store Manager']}><ConfirmReceipt /></ProtectedRoute>} />
+        <Route path="/store-manager/report-issue" element={<ProtectedRoute allowedRoles={['Store Manager']}><StoreManagerReportIssue /></ProtectedRoute>} />
+        <Route path="/store-manager/order-history" element={<ProtectedRoute allowedRoles={['Store Manager']}><OrderHistory /></ProtectedRoute>} />
+
         {/* Admin Portal Routes */}
         <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/users" element={<AdminUsers />} />
+        <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['Admin']}><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['Admin']}><AdminUsers /></ProtectedRoute>} />
+        <Route path="/admin/products" element={<ProtectedRoute allowedRoles={['Admin']}><AdminProducts /></ProtectedRoute>} />
+
         {/* Landing Page Route */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/landing" element={<LandingPage />} />

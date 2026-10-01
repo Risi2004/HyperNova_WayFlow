@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { authService } from '../../services/authService'
 import logoImg from '../../assets/images/logo.png'
 import './AdminSidebar.css'
 
@@ -8,11 +9,17 @@ export default function AdminSidebar({ activeItem, activeTab }) {
   const location = useLocation()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
 
+  const handleLogout = () => {
+    setIsMobileOpen(false)
+    authService.logout()
+    navigate('/login', { replace: true })
+  }
+
   // Normalize current active label
   const resolvedActive =
     activeItem ||
-    (activeTab === 'users' ? 'User Management' : 'Dashboard') ||
-    (location.pathname.includes('/users') ? 'User Management' : 'Dashboard')
+    (activeTab === 'users' ? 'User Management' : activeTab === 'products' ? 'Products Catalog' : 'Dashboard') ||
+    (location.pathname.includes('/products') ? 'Products Catalog' : location.pathname.includes('/users') ? 'User Management' : 'Dashboard')
 
   useEffect(() => {
     setIsMobileOpen(false)
@@ -45,7 +52,6 @@ export default function AdminSidebar({ activeItem, activeTab }) {
     {
       label: 'User Management',
       path: '/admin/users',
-      badge: '10 Users',
       icon: (
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
           <path d="M11 13.5v-1a2.5 2.5 0 0 0-2.5-2.5h-5A2.5 2.5 0 0 0 1 12.5v1" />
@@ -56,51 +62,13 @@ export default function AdminSidebar({ activeItem, activeTab }) {
       ),
     },
     {
-      label: 'Dispatcher Console',
-      path: '/dispatcher/dashboard',
-      isExternalRole: true,
+      label: 'Products Catalog',
+      path: '/admin/products',
       icon: (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="1.5" y="2.5" width="13" height="11" rx="2" />
-          <path d="M5 2.5V13.5" />
-          <path d="M1.5 6.5H5" />
-          <path d="M1.5 9.5H5" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Store Manager Portal',
-      path: '/store-manager/dashboard',
-      isExternalRole: true,
-      icon: (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M2 5.5L8 2.5L14 5.5V13.5H2V5.5Z" />
-          <path d="M6 13.5V9.5H10V13.5" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Loader Dashboard',
-      path: '/loader/dashboard',
-      isExternalRole: true,
-      icon: (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M8 1.5L14 4.75V11.25L8 14.5L2 11.25V4.75L8 1.5Z" />
-          <path d="M8 1.5V14.5" />
-          <path d="M14 4.75L8 8L2 4.75" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Driver Dashboard',
-      path: '/driver/dashboard',
-      isExternalRole: true,
-      icon: (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M1 3H10.5V11.5H1V3Z" rx="1" />
-          <path d="M10.5 6H13.25L15 8.5V11.5H10.5V6Z" />
-          <circle cx="4.25" cy="12.5" r="1.5" />
-          <circle cx="12.5" cy="12.5" r="1.5" />
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+          <line x1="12" y1="22.08" x2="12" y2="12" />
         </svg>
       ),
     },
@@ -180,7 +148,7 @@ export default function AdminSidebar({ activeItem, activeTab }) {
             {/* Mobile Nav Links */}
             <nav className="admin-sidebar-nav" style={{ padding: '0 10px', flex: 1, overflowY: 'auto' }}>
               <div className="admin-nav-section-label">ADMINISTRATION</div>
-              {navItems.slice(0, 2).map((item) => {
+              {navItems.map((item) => {
                 const isActive = resolvedActive === item.label || location.pathname === item.path
                 return (
                   <button
@@ -191,24 +159,9 @@ export default function AdminSidebar({ activeItem, activeTab }) {
                   >
                     <span className="admin-nav-icon">{item.icon}</span>
                     <span className="admin-nav-text">{item.label}</span>
-                    {item.badge && <span className="admin-nav-badge">{item.badge}</span>}
                   </button>
                 )
               })}
-
-              <div className="admin-nav-section-label" style={{ marginTop: '16px' }}>PORTAL PREVIEWS</div>
-              {navItems.slice(2).map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  className="admin-nav-item external-role"
-                  onClick={() => handleNavClick(item.path)}
-                >
-                  <span className="admin-nav-icon">{item.icon}</span>
-                  <span className="admin-nav-text">{item.label}</span>
-                  <span className="admin-nav-external-arrow">↗</span>
-                </button>
-              ))}
             </nav>
 
             {/* Mobile Bottom */}
@@ -216,10 +169,7 @@ export default function AdminSidebar({ activeItem, activeTab }) {
               <button
                 type="button"
                 className="admin-logout-btn"
-                onClick={() => {
-                  setIsMobileOpen(false)
-                  navigate('/login')
-                }}
+                onClick={handleLogout}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -259,7 +209,7 @@ export default function AdminSidebar({ activeItem, activeTab }) {
           {/* Navigation Links */}
           <nav className="admin-sidebar-nav">
             <div className="admin-nav-section-label">ADMINISTRATION</div>
-            {navItems.slice(0, 2).map((item) => {
+            {navItems.map((item) => {
               const isActive = resolvedActive === item.label || location.pathname === item.path
               return (
                 <button
@@ -270,25 +220,9 @@ export default function AdminSidebar({ activeItem, activeTab }) {
                 >
                   <span className="admin-nav-icon">{item.icon}</span>
                   <span className="admin-nav-text">{item.label}</span>
-                  {item.badge && <span className="admin-nav-badge">{item.badge}</span>}
                 </button>
               )
             })}
-
-            <div className="admin-nav-section-label" style={{ marginTop: '18px' }}>SWITCH TO ROLE</div>
-            {navItems.slice(2).map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                className="admin-nav-item external-role"
-                title={`Quick inspect ${item.label}`}
-                onClick={() => navigate(item.path)}
-              >
-                <span className="admin-nav-icon">{item.icon}</span>
-                <span className="admin-nav-text">{item.label}</span>
-                <span className="admin-nav-external-arrow">↗</span>
-              </button>
-            ))}
           </nav>
         </div>
 
@@ -297,7 +231,7 @@ export default function AdminSidebar({ activeItem, activeTab }) {
           <button
             type="button"
             className="admin-logout-btn"
-            onClick={() => navigate('/login')}
+            onClick={handleLogout}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

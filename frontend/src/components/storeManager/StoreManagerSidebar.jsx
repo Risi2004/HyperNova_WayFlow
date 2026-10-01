@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { authService } from '../../services/authService'
 import logoImg from '../../assets/images/logo.png'
 import './StoreManagerSidebar.css'
 
@@ -7,6 +8,12 @@ export default function StoreManagerSidebar({ activeItem = 'Dashboard' }) {
   const navigate = useNavigate()
   const location = useLocation()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
+
+  const handleLogout = () => {
+    setIsMobileOpen(false)
+    authService.logout()
+    navigate('/login', { replace: true })
+  }
 
   // Close mobile drawer when route changes
   useEffect(() => {
@@ -210,10 +217,7 @@ export default function StoreManagerSidebar({ activeItem = 'Dashboard' }) {
               <button
                 type="button"
                 className="sm-logout-btn"
-                onClick={() => {
-                  setIsMobileOpen(false)
-                  navigate('/login')
-                }}
+                onClick={handleLogout}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -282,7 +286,7 @@ export default function StoreManagerSidebar({ activeItem = 'Dashboard' }) {
           <button
             type="button"
             className="sm-logout-btn"
-            onClick={() => navigate('/login')}
+            onClick={handleLogout}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

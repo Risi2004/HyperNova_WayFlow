@@ -13,11 +13,17 @@
   padding: 20px 16px;
   flex-shrink: 0;
   height: 100vh;
-  position: sticky;
-  top: 0;
   box-sizing: border-box;
   z-index: 40;
   color: #f1f5f9;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.admin-sidebar::-webkit-scrollbar {
+  display: none;
+  width: 0px;
 }
 
 .admin-sidebar-top {
