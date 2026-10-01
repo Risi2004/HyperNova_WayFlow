@@ -11,7 +11,13 @@ export const authService = {
       body: JSON.stringify({ email, password }),
     })
 
-    const data = await res.json()
+    let data
+    try {
+      data = await res.json()
+    } catch {
+      throw new Error(`Server returned status ${res.status}. If Render is waking up from sleep, please wait ~30 seconds and try again.`)
+    }
+
     if (!res.ok) {
       throw new Error(data.error || 'Failed to authenticate. Please check your credentials.')
     }
