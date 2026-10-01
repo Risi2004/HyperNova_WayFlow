@@ -21,6 +21,18 @@ import DriverDashboard from './pages/driver/dashboard'
 import MyTrips from './pages/driver/myTrips'
 import TripDetails from './pages/driver/tripDetails'
 import DeliveryStop from './pages/driver/deliveryStop'
+import RecordDelivery from './pages/driver/recordDelivery'
+import ProofOfDelivery from './pages/driver/proofOfDelivery'
+import ReportProblem from './pages/driver/reportProblem'
+import StoreManagerDashboard from './pages/storeManager/dashboard'
+import CreateOrder from './pages/storeManager/createOrder'
+import MyOrders from './pages/storeManager/myOrders'
+import TrackDelivery from './pages/storeManager/trackDelivery'
+import ConfirmReceipt from './pages/storeManager/confirmReceipt'
+import StoreManagerReportIssue from './pages/storeManager/reportIssue'
+import OrderHistory from './pages/storeManager/orderHistory'
+import AdminDashboard from './pages/admin/dashboard'
+import AdminUsers from './pages/admin/users'
 
 export default function App() {
   return (
@@ -64,10 +76,61 @@ export default function App() {
         <Route path="/driver/my-trips/:tripId" element={<TripDetails />} />
         <Route path="/driver/my-trips/:tripId/delivery-stop" element={<DeliveryStop />} />
         <Route path="/driver/my-trips/:tripId/devilery-stop" element={<Navigate to="/driver/my-trips/:tripId/delivery-stop" replace />} />
+        <Route path="/driver/my-trips/:tripId/record-delivery" element={<RecordDelivery />} />
+        <Route path="/driver/my-trips/:tripId/recordDelivery" element={<Navigate to="/driver/my-trips/:tripId/record-delivery" replace />} />
+        <Route path="/driver/my-trips/:tripId/proof-of-delivery" element={<ProofOfDelivery />} />
+        <Route path="/driver/my-trips/:tripId/proofOfDelivery" element={<Navigate to="/driver/my-trips/:tripId/proof-of-delivery" replace />} />
+        <Route path="/driver/my-trips/:tripId/report-problem" element={<ReportProblem />} />
+        <Route path="/driver/my-trips/:tripId/reportProblem" element={<Navigate to="/driver/my-trips/:tripId/report-problem" replace />} />
+        <Route path="/driver/record-delivery" element={<RecordDelivery />} />
+        <Route path="/driver/proof-of-delivery" element={<ProofOfDelivery />} />
+        <Route path="/driver/report-problem" element={<ReportProblem />} />
         <Route path="/driver/myTrips" element={<Navigate to="/driver/my-trips" replace />} />
         <Route path="/driver/myTrips/:tripId" element={<TripDetails />} />
         <Route path="/driver/myTrips/:tripId/delivery-stop" element={<Navigate to="/driver/my-trips/:tripId/delivery-stop" replace />} />
         <Route path="/driver/myTrips/:tripId/devilery-stop" element={<Navigate to="/driver/my-trips/:tripId/delivery-stop" replace />} />
+        <Route path="/driver/myTrips/:tripId/record-delivery" element={<Navigate to="/driver/my-trips/:tripId/record-delivery" replace />} />
+        <Route path="/driver/myTrips/:tripId/proof-of-delivery" element={<Navigate to="/driver/my-trips/:tripId/proof-of-delivery" replace />} />
+        <Route path="/driver/myTrips/:tripId/report-problem" element={<Navigate to="/driver/my-trips/:tripId/report-problem" replace />} />
+        <Route path="/store-manager" element={<Navigate to="/store-manager/dashboard" replace />} />
+        <Route path="/store-manager/dashboard" element={<StoreManagerDashboard />} />
+        <Route path="/store-manager/create-order" element={<CreateOrder />} />
+        <Route path="/store-manager/createOrder" element={<Navigate to="/store-manager/create-order" replace />} />
+        <Route path="/store-manager/my-orders" element={<MyOrders />} />
+        <Route path="/store-manager/myOrders" element={<Navigate to="/store-manager/my-orders" replace />} />
+        <Route path="/store-manager/orders" element={<Navigate to="/store-manager/my-orders" replace />} />
+        <Route path="/store-manager/track-delivery" element={<TrackDelivery />} />
+        <Route path="/store-manager/track-delivery/:tripId" element={<TrackDelivery />} />
+        <Route path="/store-manager/trackDelivery" element={<Navigate to="/store-manager/track-delivery" replace />} />
+        <Route path="/store-manager/trackDelivery/:tripId" element={<TrackDelivery />} />
+        <Route path="/store-manager/confirm-receipt" element={<ConfirmReceipt />} />
+        <Route path="/store-manager/confirmReceipt" element={<Navigate to="/store-manager/confirm-receipt" replace />} />
+        <Route path="/store-manager/report-issue" element={<StoreManagerReportIssue />} />
+        <Route path="/store-manager/reportIssue" element={<Navigate to="/store-manager/report-issue" replace />} />
+        <Route path="/store-manager/order-history" element={<OrderHistory />} />
+        <Route path="/store-manager/orderHistory" element={<Navigate to="/store-manager/order-history" replace />} />
+        <Route path="/storeManager" element={<Navigate to="/store-manager/dashboard" replace />} />
+        <Route path="/storeManager/dashboard" element={<Navigate to="/store-manager/dashboard" replace />} />
+        <Route path="/storeManager/create-order" element={<Navigate to="/store-manager/create-order" replace />} />
+        <Route path="/storeManager/createOrder" element={<Navigate to="/store-manager/create-order" replace />} />
+        <Route path="/storeManager/my-orders" element={<Navigate to="/store-manager/my-orders" replace />} />
+        <Route path="/storeManager/myOrders" element={<Navigate to="/store-manager/my-orders" replace />} />
+        <Route path="/storeManager/orders" element={<Navigate to="/store-manager/my-orders" replace />} />
+        <Route path="/storeManager/track-delivery" element={<Navigate to="/store-manager/track-delivery" replace />} />
+        <Route path="/storeManager/track-delivery/:tripId" element={<Navigate to="/store-manager/track-delivery" replace />} />
+        <Route path="/storeManager/trackDelivery" element={<Navigate to="/store-manager/track-delivery" replace />} />
+        <Route path="/storeManager/trackDelivery/:tripId" element={<Navigate to="/store-manager/track-delivery" replace />} />
+        <Route path="/storeManager/confirm-receipt" element={<Navigate to="/store-manager/confirm-receipt" replace />} />
+        <Route path="/storeManager/confirmReceipt" element={<Navigate to="/store-manager/confirm-receipt" replace />} />
+        <Route path="/storeManager/report-issue" element={<Navigate to="/store-manager/report-issue" replace />} />
+        <Route path="/storeManager/reportIssue" element={<Navigate to="/store-manager/report-issue" replace />} />
+        <Route path="/storeManager/order-history" element={<Navigate to="/store-manager/order-history" replace />} />
+        <Route path="/storeManager/orderHistory" element={<Navigate to="/store-manager/order-history" replace />} />
+        {/* Admin Portal Routes */}
+        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/users" element={<AdminUsers />} />
+        <Route path="/admin/user" element={<Navigate to="/admin/users" replace />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

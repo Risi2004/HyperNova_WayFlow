@@ -1,0 +1,642 @@
+/* ========================================================
+   WayFlow Driver - Report Problem Page Styles
+   Matching exact report problem screen layout
+   ======================================================== */
+
+.report-problem-page-container {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  color: #0f172a;
+  display: flex;
+  flex-direction: column;
+}
+
+.report-problem-main-content {
+  flex: 1;
+  max-width: 1240px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 32px 60px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ========================================================
+   Header Section
+   ======================================================== */
+.report-problem-header-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-back-trip-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #2563eb;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  width: fit-content;
+  transition: all 0.15s ease;
+}
+
+.btn-back-trip-link:hover {
+  text-decoration: underline;
+}
+
+.report-problem-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.report-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.report-page-title {
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.report-page-subtitle {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.report-right-status-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.report-online-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #16a34a;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.online-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #16a34a;
+}
+
+.btn-report-bell {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-report-bell:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* ========================================================
+   Trip Info Strip Card (5 Columns)
+   ======================================================== */
+.trip-info-strip-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+}
+
+.strip-info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.strip-info-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.strip-info-val {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.strip-info-val.bold {
+  font-weight: 800;
+}
+
+.strip-info-val.outlet-bold {
+  font-weight: 800;
+}
+
+/* ========================================================
+   Two-Column Grid: Left Categories + Right Sidebars
+   ======================================================== */
+.report-content-grid {
+  display: flex;
+  gap: 22px;
+  align-items: flex-start;
+}
+
+.report-left-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.report-right-column {
+  width: 330px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ========================================================
+   Problem Category Grid (3x3)
+   ======================================================== */
+.problem-category-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.problem-section-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.problem-categories-3x3-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.problem-card-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.problem-card-item:hover {
+  border-color: #cbd5e1;
+  background-color: #fbfcfe;
+}
+
+.problem-card-item.selected {
+  border: 1.5px solid #3b82f6;
+  background-color: #eff6ff;
+  box-shadow: 0 0 0 1px #3b82f6;
+}
+
+.problem-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #f1f5f9;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.problem-icon-wrapper.selected {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+.problem-category-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #0f172a;
+  text-align: center;
+}
+
+/* ========================================================
+   Problem Description Textarea
+   ======================================================== */
+.problem-description-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.problem-description-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  color: #0f172a;
+  line-height: 1.45;
+  resize: vertical;
+  min-height: 100px;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.problem-description-textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+/* ========================================================
+   Right Column: Affected Delivery Card
+   ======================================================== */
+.report-sidebar-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sidebar-card-title {
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.affected-delivery-meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.affected-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+}
+
+.affected-meta-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.affected-meta-val {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.affected-meta-val.bold {
+  font-weight: 800;
+}
+
+.affected-badge-wrapper {
+  margin-top: 4px;
+}
+
+.stalled-outcome-badge {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #ef4444;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+/* ========================================================
+   Right Column: Impact on Trip Card
+   ======================================================== */
+.impact-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.impact-radio-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.impact-radio-row:hover {
+  background-color: #f8fafc;
+}
+
+.impact-radio-row.selected {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+}
+
+.impact-hidden-radio {
+  display: none;
+}
+
+.custom-radio-circle {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.custom-radio-circle.selected {
+  border-color: #2563eb;
+}
+
+.custom-radio-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #2563eb;
+}
+
+.impact-label-text {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* ========================================================
+   Bottom Action Buttons
+   ======================================================== */
+.report-bottom-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.btn-report-cancel {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 10px 16px;
+  transition: all 0.15s ease;
+}
+
+.btn-report-cancel:hover {
+  color: #0f172a;
+}
+
+.btn-submit-problem-primary {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 7px;
+  padding: 11px 22px;
+  font-size: 0.84rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+}
+
+.btn-submit-problem-primary:hover {
+  background: #1d4ed8;
+}
+
+/* ========================================================
+   Success Modal
+   ======================================================== */
+.report-success-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: modalFade 0.15s ease-out;
+}
+
+.report-success-modal-box {
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 440px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+}
+
+.report-success-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fef2f2;
+  border: 2px solid #fecaca;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.report-modal-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.report-modal-subtitle {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.report-modal-actions-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.btn-modal-back-stop {
+  flex: 1;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 7px;
+  padding: 11px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btn-modal-back-trip {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 11px 16px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ========================================================
+   Action Toast Notification
+   ======================================================== */
+.report-action-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 12px 18px;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  z-index: 999;
+  animation: toastSlideUp 0.25s ease-out;
+}
+
+.btn-toast-dismiss {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 2px;
+}
+
+.btn-toast-dismiss:hover {
+  color: #ffffff;
+}
+
+@keyframes toastSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========================================================
+   Responsive Breakpoints
+   ======================================================== */
+@media (max-width: 960px) {
+  .trip-info-strip-card {
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .strip-info-col {
+    min-width: 45%;
+  }
+
+  .report-content-grid {
+    flex-direction: column;
+  }
+
+  .report-right-column {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .report-problem-main-content {
+    padding: 16px;
+  }
+
+  .problem-categories-3x3-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .strip-info-col {
+    min-width: 100%;
+  }
+
+  .report-bottom-actions-row {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .btn-submit-problem-primary,
+  .btn-report-cancel {
+    width: 100%;
+    text-align: center;
+  }
+}

@@ -58,12 +58,11 @@ export default function DeliveryStop() {
       showToast('⚠️ Please verify and confirm all checklist items before recording.')
       return
     }
-    setIsRecorded(true)
-    showToast('✓ Delivery recorded successfully! Ready for Proof of Delivery.')
+    navigate(`/driver/my-trips/${activeTripId}/record-delivery`)
   }
 
   const handleContinueProof = () => {
-    showToast('Redirecting to Proof of Delivery upload / signature capture...')
+    navigate(`/driver/my-trips/${activeTripId}/proof-of-delivery`)
   }
 
   const handleOpenNavigation = () => {
@@ -127,7 +126,7 @@ export default function DeliveryStop() {
               <button
                 type="button"
                 className="btn-report-stop-problem"
-                onClick={() => setIsReportModalOpen(true)}
+                onClick={() => navigate(`/driver/my-trips/${activeTripId}/report-problem`)}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />

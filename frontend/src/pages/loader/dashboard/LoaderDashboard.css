@@ -896,16 +896,14 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .loader-layout-container {
-    flex-direction: column;
+    flex-direction: column !important;
   }
   .loader-sidebar {
-    width: 100%;
-    height: auto;
-    position: relative;
+    display: none !important;
   }
   .loader-content {
-    padding: 16px;
+    padding: 16px 14px 40px !important;
   }
 }

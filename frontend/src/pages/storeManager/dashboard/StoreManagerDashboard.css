@@ -1,0 +1,1214 @@
+/* ========================================================
+   WayFlow Store Manager - Dashboard Styles
+   ======================================================== */
+
+.sm-dashboard-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f8fafc;
+  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  color: #0f172a;
+}
+
+.sm-dashboard-main {
+  flex: 1;
+  min-width: 0;
+  padding: 20px 32px 64px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+/* ========================================================
+   1. Simulation State Bar
+   ======================================================== */
+.sm-sim-state-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sm-sim-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #475569;
+  letter-spacing: 0.05em;
+}
+
+.sm-sim-buttons-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sm-sim-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sm-sim-pill-btn:hover {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+.sm-sim-pill-btn.active {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.sm-sim-pill-btn.alert-pill {
+  color: #dc2626;
+  border-color: #fecaca;
+  background-color: #fff5f5;
+}
+
+.sm-sim-pill-btn.alert-pill:hover {
+  background-color: #fee2e2;
+}
+
+.sim-btn-icon {
+  display: flex;
+  align-items: center;
+}
+
+/* ========================================================
+   2. Four Metric KPI Cards
+   ======================================================== */
+.sm-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.sm-metric-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 18px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sm-metric-card.alert-tint {
+  background-color: #ffffff;
+}
+
+.sm-metric-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sm-metric-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sm-metric-label-with-dot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sm-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #2563eb;
+}
+
+.sm-metric-icon-wrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background-color: #eff6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sm-metric-icon-wrap.alert {
+  background-color: #eff6ff;
+}
+
+.sm-metric-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 2px 0 2px;
+}
+
+.sm-metric-value.eta-time {
+  font-size: 1.45rem;
+}
+
+.sm-metric-subtext {
+  font-size: 0.72rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ========================================================
+   3. Next Delivery Hero Card
+   ======================================================== */
+.sm-hero-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 18px 22px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sm-hero-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.sm-hero-title-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sm-hero-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sm-blue-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #2563eb;
+}
+
+.sm-hero-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.sm-status-in-transit-pill {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #2563eb;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.sm-hero-sub {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.btn-view-manifest-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 5px 10px;
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-view-manifest-link:hover {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+.sm-hero-three-cols {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+/* Col 1 */
+.sm-hero-details-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+
+.sm-detail-pair {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.76rem;
+}
+
+.sm-detail-label {
+  width: 100px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.sm-detail-value {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.sm-detail-value.order-link {
+  color: #2563eb;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.sm-detail-value.driver-name {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #0f172a;
+}
+
+/* Col 2: Arrival Box */
+.sm-hero-arrival-box {
+  background-color: #f0f7ff;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.sm-arrival-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.sm-arrival-time-big {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.sm-eta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #2563eb;
+  color: #ffffff;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.sm-arrival-location-sub {
+  font-size: 0.7rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* Col 3: Map Box */
+.sm-hero-gps-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+
+.sm-map-preview-window {
+  height: 82px;
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  background-image: radial-gradient(#93c5fd 1.2px, transparent 1.2px);
+  background-size: 12px 12px;
+}
+
+.sm-map-road-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 40%, rgba(255, 255, 255, 0.6) 45%, rgba(255, 255, 255, 0.6) 55%, transparent 60%);
+}
+
+.sm-live-gps-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(2px);
+  color: #ffffff;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.live-dot-green {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: pulse 1.5s infinite;
+}
+
+.sm-truck-marker {
+  position: absolute;
+  top: 50%;
+  left: 55%;
+  transform: translate(-50%, -50%);
+}
+
+.sm-gps-actions-row {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-track-live-gps {
+  flex: 1.2;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-track-live-gps:hover {
+  background: #1d4ed8;
+}
+
+.btn-contact-dispatch {
+  flex: 1;
+  background: #ffffff;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-contact-dispatch:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+/* Stepper Timeline */
+.sm-hero-stepper-timeline {
+  position: relative;
+  margin-top: 6px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.sm-timeline-line-track {
+  position: absolute;
+  top: 27px;
+  left: 5%;
+  right: 5%;
+  height: 3px;
+  background: #e2e8f0;
+  z-index: 1;
+}
+
+.sm-timeline-line-progress {
+  height: 100%;
+  background: #2563eb;
+}
+
+.sm-timeline-steps {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.sm-timeline-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  width: 100px;
+}
+
+.sm-step-icon-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  box-shadow: 0 0 0 2px #ffffff;
+}
+
+.sm-step-icon-circle.completed {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.sm-step-icon-circle.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.sm-step-name {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.sm-step-name.active-text {
+  color: #2563eb;
+  font-weight: 800;
+}
+
+.sm-step-time {
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.sm-step-time.active-sub {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+/* ========================================================
+   4. Current Orders Table
+   ======================================================== */
+.sm-current-orders-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sm-table-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sm-table-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sm-table-card-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.btn-view-all-orders-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-view-all-orders-link:hover {
+  text-decoration: underline;
+}
+
+.sm-orders-table-wrapper {
+  overflow-x: auto;
+}
+
+.sm-orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.sm-orders-table th {
+  text-align: left;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.sm-orders-table td {
+  padding: 12px;
+  border-bottom: 1px solid #f8fafc;
+  color: #334155;
+  font-weight: 600;
+}
+
+.sm-orders-table tr:hover td {
+  background-color: #fafcff;
+}
+
+.sm-order-id-cell {
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.sm-order-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.sm-order-status-pill.in-delivery {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #2563eb;
+}
+
+.sm-order-status-pill.confirmed {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #16a34a;
+}
+
+.sm-order-status-pill.pending {
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  color: #7c3aed;
+}
+
+.status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.sm-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.btn-action-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-action-icon:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.text-right {
+  text-align: right;
+}
+
+/* ========================================================
+   5. Lower Two-Column Grid
+   ======================================================== */
+.sm-lower-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.sm-lower-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Shared Subcard styling */
+.sm-scheduled-deliveries-card,
+.sm-deferred-orders-card,
+.sm-recently-received-card,
+.sm-quick-actions-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sm-card-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sm-card-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sm-subcard-title {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.sm-runs-count-meta {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* Scheduled Deliveries Card */
+.sm-scheduled-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sm-scheduled-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+}
+
+.sm-item-left-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sm-item-code-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sm-item-order-id {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.sm-item-status-pill {
+  font-size: 0.64rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.sm-item-status-pill.in-transit {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #2563eb;
+}
+
+.sm-item-status-pill.scheduled {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+}
+
+.sm-item-meta-sub {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.sm-item-right-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.sm-item-time-title {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.sm-item-time-title.accent-blue {
+  color: #2563eb;
+}
+
+.sm-item-time-sub {
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.sm-item-time-sub.arrival-countdown {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+/* Deferred Orders Card */
+.sm-notice-tag-red {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+  letter-spacing: 0.05em;
+}
+
+.sm-deferred-card-subtitle {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.sm-deferred-items-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sm-deferred-item-block {
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sm-deferred-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sm-deferred-order-id {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.sm-deferred-items-pill {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.sm-deferred-dates-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+}
+
+.date-orig {
+  color: #64748b;
+}
+
+.date-arrow {
+  color: #94a3b8;
+}
+
+.date-new {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.sm-deferred-reason-banner {
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+  color: #b45309;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-view-deferred-outline {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.btn-view-deferred-outline:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+/* Recently Received Card */
+.btn-log-history-link {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-log-history-link:hover {
+  text-decoration: underline;
+}
+
+.sm-recently-card-subtitle {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.sm-recently-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sm-recently-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+}
+
+.sm-recent-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sm-recent-check-circle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #eff6ff;
+  border: 1.5px solid #bfdbfe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sm-recent-text-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sm-recent-code-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sm-recent-order-id {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.sm-recent-items-badge {
+  font-size: 0.65rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.sm-recent-time-sub {
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.btn-receipt-detail-icon {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  padding: 4px;
+}
+
+.btn-receipt-detail-icon:hover {
+  color: #0f172a;
+}
+
+/* Quick Actions Card */
+.sm-quick-card-subtitle {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.btn-create-order-primary-big {
+  width: 100%;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 18px;
+  font-size: 0.84rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+}
+
+.btn-create-order-primary-big:hover {
+  background: #1d4ed8;
+}
+
+.sm-store-info-footer-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.sm-store-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: #eff6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sm-store-text-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sm-store-heading {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.sm-store-operating-sub {
+  font-size: 0.68rem;
+  color: #64748b;
+}
+
+/* ========================================================
+   Action Toast
+   ======================================================== */
+.sm-action-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 12px 18px;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  z-index: 999;
+  animation: toastSlideUp 0.25s ease-out;
+}
+
+.btn-sm-toast-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 2px;
+}
+
+.btn-sm-toast-close:hover {
+  color: #ffffff;
+}
+
+@keyframes toastSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========================================================
+   Responsive Breakpoints
+   ======================================================== */
+@media (max-width: 1200px) {
+  .sm-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .sm-hero-three-cols {
+    grid-template-columns: 1fr;
+  }
+  .sm-lower-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .sm-dashboard-container {
+    flex-direction: column !important;
+    width: 100% !important;
+    overflow-x: hidden !important;
+  }
+  .sm-dashboard-main {
+    padding: 14px 16px 40px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .sm-hero-top-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .sm-hero-actions {
+    width: 100% !important;
+    flex-wrap: wrap !important;
+  }
+  .sm-hero-actions button {
+    flex: 1 !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .sm-dashboard-main {
+    padding: 12px 12px 40px !important;
+  }
+  .sm-metrics-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .sm-sim-state-bar {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+  .sm-sim-buttons-group {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+}
