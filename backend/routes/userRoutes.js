@@ -2,7 +2,7 @@ const express = require('express')
 const bcrypt = require('bcryptjs')
 const { sql } = require('../db')
 const { verifyToken, requireRole } = require('../middleware/auth')
-const { sendWelcomeEmail } = require('../mailer')
+const { sendWelcomeEmail, sendStatusNotificationEmail } = require('../mailer')
 
 const router = express.Router()
 
@@ -154,9 +154,22 @@ router.post('/', async (req, res) => {
 // PUT /api/users/:id - Update existing user
 router.put('/:id', async (req, res) => {
   const { id } = req.params
-  const { name, role, facility, outlet_id, assigned_vehicle_id, phone, status } = req.body
+  const { name, role, facility, outlet_id, assigned_vehicle_id, phone, status, statusReason } = req.body
 
   try {
+    // 1. Fetch previous user state to compare status
+    const previous = await sql.query(
+      `SELECT user_id, email, full_name, role, facility, status FROM users WHERE user_id = $1`,
+      [id]
+    )
+
+    if (previous.length === 0) {
+      return res.status(404).json({ error: 'User not found.' })
+    }
+
+    const prevUser = previous[0]
+
+    // 2. Perform database update
     const updateQuery = `
       UPDATE users
       SET 
@@ -175,21 +188,39 @@ router.put('/:id', async (req, res) => {
       name,
       role,
       facility,
-      outlet_id || null,
-      assigned_vehicle_id || null,
+      outlet_id !== undefined ? outlet_id : null,
+      assigned_vehicle_id !== undefined ? assigned_vehicle_id : null,
       phone,
       status,
       id,
     ])
 
-    if (result.length === 0) {
-      return res.status(404).json({ error: 'User not found.' })
+    const u = result[0]
+
+    // 3. Dispatch status notification email if status changed to Active or Inactive
+    let emailNotice = null
+    const prevStatusNorm = (prevUser.status || '').toLowerCase()
+    const nextStatusNorm = (status || '').toLowerCase()
+
+    if (status && prevStatusNorm !== nextStatusNorm) {
+      try {
+        emailNotice = await sendStatusNotificationEmail({
+          toEmail: u.email,
+          fullName: u.full_name,
+          role: u.role,
+          facility: u.facility,
+          newStatus: u.status,
+          reason: statusReason || undefined,
+        })
+      } catch (mailErr) {
+        console.warn('Failed to send status update email notice:', mailErr.message)
+      }
     }
 
-    const u = result[0]
     res.json({
       status: 'success',
-      message: 'User updated successfully.',
+      message: `User updated successfully.${emailNotice?.success ? ` Email notification sent to ${u.email}.` : ''}`,
+      emailNotice,
       user: {
         id: u.user_id,
         email: u.email,

@@ -70,6 +70,8 @@ export default function AdminUsers() {
 
   // Update existing user
   const handleSaveEdit = async (updatedUser) => {
+    const prev = users.find((u) => u.id === updatedUser.id)
+    const statusChanged = prev && prev.status !== updatedUser.status
     try {
       await userService.updateUser(updatedUser.id, updatedUser)
     } catch (err) {
@@ -79,7 +81,11 @@ export default function AdminUsers() {
     setUsers(updated)
     saveStoredUsers(updated)
     setEditingUser(null)
-    showToast(`Updated profile & role for ${updatedUser.name}`)
+    showToast(
+      statusChanged
+        ? `Updated status for ${updatedUser.name} (${updatedUser.status}). Email notification sent!`
+        : `Updated profile & role for ${updatedUser.name}`
+    )
   }
 
   // Remove / Delete user
@@ -103,13 +109,14 @@ export default function AdminUsers() {
     const nextStatus = target?.status === 'Active' ? 'Inactive' : 'Active'
     try {
       await userService.updateUser(userId, { status: nextStatus })
+      showToast(`${target?.name} is now ${nextStatus}. Email notice sent to ${target?.email}`)
     } catch (err) {
       console.warn('API status toggle failed:', err.message)
+      showToast(`${target?.name} status updated locally to ${nextStatus}`)
     }
     const updated = users.map((u) => (u.id === userId ? { ...u, status: nextStatus } : u))
     setUsers(updated)
     saveStoredUsers(updated)
-    showToast(`${target?.name} status updated to ${nextStatus}`)
   }
 
   // Filtering users

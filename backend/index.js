@@ -105,7 +105,7 @@ app.get('/api/db-check', async (req, res) => {
 })
 
 // Start Server
-app.listen(PORT, async () => {
+const server = app.listen(PORT, async () => {
   console.log(`\n🚀 WayFlow Backend server running on: http://localhost:${PORT}`)
   console.log(`📡 Health Check: http://localhost:${PORT}/api/health`)
   console.log(`🗄️  Neon DB Check: http://localhost:${PORT}/api/db-check\n`)
@@ -120,4 +120,16 @@ app.listen(PORT, async () => {
   }
 })
 
-module.exports = { app, sql }
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n\x1b[31m❌ Port ${PORT} is already in use by another running Node process.\x1b[0m`)
+    console.error(`   To free it up, terminate the existing process or run:`)
+    console.error(`   Get-Process -Id (Get-NetTCPConnection -LocalPort ${PORT}).OwningProcess | Stop-Process -Force\n`)
+    process.exit(1)
+  } else {
+    console.error(`❌ Server error:`, err.message)
+    process.exit(1)
+  }
+})
+
+module.exports = { app, server, sql }
