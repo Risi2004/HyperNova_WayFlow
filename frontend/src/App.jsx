@@ -31,6 +31,8 @@ import TrackDelivery from './pages/storeManager/trackDelivery'
 import ConfirmReceipt from './pages/storeManager/confirmReceipt'
 import StoreManagerReportIssue from './pages/storeManager/reportIssue'
 import OrderHistory from './pages/storeManager/orderHistory'
+import AdminDashboard from './pages/admin/dashboard'
+import AdminUsers from './pages/admin/users'
 
 export default function App() {
   return (
@@ -124,6 +126,11 @@ export default function App() {
         <Route path="/storeManager/reportIssue" element={<Navigate to="/store-manager/report-issue" replace />} />
         <Route path="/storeManager/order-history" element={<Navigate to="/store-manager/order-history" replace />} />
         <Route path="/storeManager/orderHistory" element={<Navigate to="/store-manager/order-history" replace />} />
+        {/* Admin Portal Routes */}
+        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/users" element={<AdminUsers />} />
+        <Route path="/admin/user" element={<Navigate to="/admin/users" replace />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
