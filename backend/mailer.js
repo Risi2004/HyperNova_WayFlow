@@ -134,13 +134,19 @@ async function sendStatusNotificationEmail({ toEmail, fullName, role, facility, 
         </div>
 
         <div style="background: ${statusBg}; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid ${statusColor}; border: 1px solid ${statusBorder};">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-            <h2 style="color: #0f172a; font-size: 18px; margin: 0;">${statusTitle}</h2>
-            <span style="background: ${statusColor}; color: #ffffff; padding: 3px 12px; border-radius: 14px; font-size: 12px; font-weight: bold; text-transform: uppercase;">
-              ${newStatus}
-            </span>
-          </div>
-          <p style="color: #334155; line-height: 1.6; margin: 8px 0 0 0;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 12px; border-collapse: collapse;">
+            <tr>
+              <td align="left" style="vertical-align: middle;">
+                <h2 style="color: #0f172a; font-size: 19px; margin: 0; padding: 0; line-height: 1.3; font-weight: 700;">${statusTitle}</h2>
+              </td>
+              <td align="right" style="vertical-align: middle; padding-left: 24px;">
+                <span style="background: ${statusColor}; color: #ffffff; padding: 5px 14px; border-radius: 14px; font-size: 12px; font-weight: bold; text-transform: uppercase; display: inline-block; letter-spacing: 0.06em; white-space: nowrap; margin-left: 16px;">
+                  ${newStatus}
+                </span>
+              </td>
+            </tr>
+          </table>
+          <p style="color: #334155; line-height: 1.6; margin: 8px 0 0 0; font-size: 14px;">
             Dear <strong>${fullName}</strong>, this is an automated notification to inform you that your WayFlow operational account (${role}) has been updated to <strong>${newStatus}</strong> by the System Administrator.
           </p>
         </div>
