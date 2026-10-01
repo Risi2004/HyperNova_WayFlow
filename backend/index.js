@@ -16,11 +16,18 @@ const productRoutes = require('./routes/productRoutes')
 app.use(cors())
 app.use(express.json())
 
-// Mount API Routes
+// Mount API Routes (supporting both /api/* and root /* for flexible frontend deployment URLs)
 app.use('/api/auth', authRoutes)
+app.use('/auth', authRoutes)
+
 app.use('/api/users', userRoutes)
+app.use('/users', userRoutes)
+
 app.use('/api/reference', referenceRoutes)
+app.use('/reference', referenceRoutes)
+
 app.use('/api/products', productRoutes)
+app.use('/products', productRoutes)
 
 // Root Route
 app.get('/', (req, res) => {
@@ -101,6 +108,17 @@ app.get('/api/db-check', async (req, res) => {
     database: 'Neon PostgreSQL',
     error: check.error || check.message,
     hint: 'Ensure your DATABASE_URL in backend/.env is set to your Neon connection string.',
+  })
+// Health and Diagnostic Aliases (support without /api prefix)
+app.get('/health', (req, res) => res.redirect('/api/health'))
+app.get('/db-check', (req, res) => res.redirect('/api/db-check'))
+app.get('/db-summary', (req, res) => res.redirect('/api/db-summary'))
+
+// Fallback JSON 404 handler - prevents HTML responses from breaking JSON parsers
+app.use((req, res) => {
+  res.status(404).json({
+    error: `Route not found: ${req.method} ${req.originalUrl}`,
+    hint: 'Supported endpoints start with /api/... or /auth/..., /users/..., /products/..., /reference/...',
   })
 })
 
