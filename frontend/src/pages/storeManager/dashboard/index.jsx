@@ -35,7 +35,7 @@ export default function StoreManagerDashboard() {
   }
 
   const handleTrackGPS = () => {
-    showToast('Opening Live GPS Telemetry for Vehicle WP-REF-007 (Driver Marcus Vance)...')
+    navigate('/store-manager/track-delivery/TR-024')
   }
 
   const handleContactDispatch = () => {
@@ -113,7 +113,7 @@ export default function StoreManagerDashboard() {
             <QuickActionsCard
               storeName="Store #05 — Colombo Central"
               operatingHours="Operating Hours 07:00 - 22:00 • Cold storage ready"
-              onCreateOrder={() => showToast('Redirecting to Store Manager Order Creation form...')}
+              onCreateOrder={() => navigate('/store-manager/create-order')}
             />
           </div>
         </div>
