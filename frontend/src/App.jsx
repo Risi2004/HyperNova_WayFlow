@@ -33,6 +33,7 @@ import StoreManagerReportIssue from './pages/storeManager/reportIssue'
 import OrderHistory from './pages/storeManager/orderHistory'
 import AdminDashboard from './pages/admin/dashboard'
 import AdminUsers from './pages/admin/users'
+import LandingPage from './pages/Landing/LandingPage'
 
 export default function App() {
   return (
@@ -130,9 +131,11 @@ export default function App() {
         <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/users" element={<AdminUsers />} />
-        <Route path="/admin/user" element={<Navigate to="/admin/users" replace />} />
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* Landing Page Route */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/landing" element={<LandingPage />} />
+        <Route path="/home" element={<LandingPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   )
