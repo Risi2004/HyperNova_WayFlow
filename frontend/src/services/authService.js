@@ -1,4 +1,5 @@
-const API_BASE = 'http://localhost:5000/api'
+import { API_BASE } from './apiConfig'
+
 const TOKEN_KEY = 'wayflow_auth_token'
 const USER_KEY = 'wayflow_auth_user'
 

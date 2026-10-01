@@ -29,7 +29,15 @@ function getTransporter() {
   return transporter
 }
 
+function getFrontendUrl() {
+  const raw = process.env.FRONTEND_URL || process.env.CLIENT_URL || process.env.APP_URL || 'http://localhost:5173'
+  return raw.replace(/\/+$/, '')
+}
+
 async function sendWelcomeEmail({ toEmail, fullName, role, facility, tempPassword }) {
+  const frontendUrl = getFrontendUrl()
+  const loginUrl = `${frontendUrl}/login`
+
   const mailOptions = {
     from: process.env.EMAIL_FROM || '"WayFlow Operations" <no-reply@wayflow.internal>',
     to: toEmail,
@@ -61,9 +69,12 @@ async function sendWelcomeEmail({ toEmail, fullName, role, facility, tempPasswor
         </div>
 
         <div style="text-align: center; margin-bottom: 24px;">
-          <a href="http://localhost:5173/login" style="background: #0284c7; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">
+          <a href="${loginUrl}" style="background: #0284c7; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">
             Sign in to WayFlow Console &rarr;
           </a>
+          <div style="margin-top: 12px; font-size: 13px; color: #64748b;">
+            Deployment Portal Link: <a href="${loginUrl}" style="color: #0284c7; text-decoration: underline; word-break: break-all; font-weight: 500;">${loginUrl}</a>
+          </div>
         </div>
 
         <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
@@ -88,6 +99,7 @@ async function sendWelcomeEmail({ toEmail, fullName, role, facility, tempPasswor
       console.log(`User: ${fullName} (${role})`)
       console.log(`Facility: ${facility}`)
       console.log(`Temporary Password: ${tempPassword}`)
+      console.log(`Deployment Portal URL: ${loginUrl}`)
       console.log('============================================================\n')
       return { success: true, mode: 'simulated', tempPassword }
     }
@@ -99,6 +111,8 @@ async function sendWelcomeEmail({ toEmail, fullName, role, facility, tempPasswor
 }
 
 async function sendStatusNotificationEmail({ toEmail, fullName, role, facility, newStatus, reason }) {
+  const frontendUrl = getFrontendUrl()
+  const loginUrl = `${frontendUrl}/login`
   const isActive = newStatus.toLowerCase() === 'active'
   const statusColor = isActive ? '#10b981' : '#ef4444'
   const statusBg = isActive ? '#ecfdf5' : '#fef2f2'
@@ -149,9 +163,12 @@ async function sendStatusNotificationEmail({ toEmail, fullName, role, facility, 
             </p>
           </div>
           <div style="text-align: center; margin-bottom: 24px;">
-            <a href="http://localhost:5173/login" style="background: #10b981; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">
+            <a href="${loginUrl}" style="background: #10b981; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">
               Sign in to WayFlow Console &rarr;
             </a>
+            <div style="margin-top: 12px; font-size: 13px; color: #64748b;">
+              Deployment Portal Link: <a href="${loginUrl}" style="color: #10b981; text-decoration: underline; word-break: break-all; font-weight: 500;">${loginUrl}</a>
+            </div>
           </div>
         `
             : `
@@ -159,6 +176,9 @@ async function sendStatusNotificationEmail({ toEmail, fullName, role, facility, 
             <p style="color: #9f1239; margin: 0; font-size: 13px;">
               ⚠️ <strong>Access Suspended:</strong> While your account is inactive, login access to the WayFlow Console and mobile apps is disabled. If you require access or believe this was done in error, please contact your Operations Administrator.
             </p>
+            <div style="margin-top: 10px; font-size: 13px; color: #9f1239;">
+              System Portal: <a href="${frontendUrl}" style="color: #be123c; text-decoration: underline; word-break: break-all; font-weight: 500;">${frontendUrl}</a>
+            </div>
           </div>
         `
         }

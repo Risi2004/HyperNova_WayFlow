@@ -105,7 +105,7 @@ app.get('/api/db-check', async (req, res) => {
 })
 
 // Start Server
-const server = app.listen(PORT, async () => {
+const server = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`\n🚀 WayFlow Backend server running on: http://localhost:${PORT}`)
   console.log(`📡 Health Check: http://localhost:${PORT}/api/health`)
   console.log(`🗄️  Neon DB Check: http://localhost:${PORT}/api/db-check\n`)

@@ -1,6 +1,5 @@
 import { authService } from './authService'
-
-const API_BASE = 'http://localhost:5000/api'
+import { API_BASE } from './apiConfig'
 
 function getHeaders() {
   const token = authService.getToken()

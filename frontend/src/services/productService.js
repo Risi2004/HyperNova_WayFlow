@@ -1,6 +1,7 @@
 import { authService } from './authService'
+import { API_BASE } from './apiConfig'
 
-const API_BASE = 'http://localhost:5000/api/products'
+const PRODUCTS_API = `${API_BASE}/products`
 
 export const productService = {
   // Fetch all products with optional filters
@@ -12,7 +13,7 @@ export const productService = {
     if (filters.sortBy) params.append('sortBy', filters.sortBy)
     if (filters.sortOrder) params.append('sortOrder', filters.sortOrder)
 
-    const url = `${API_BASE}${params.toString() ? '?' + params.toString() : ''}`
+    const url = `${PRODUCTS_API}${params.toString() ? '?' + params.toString() : ''}`
     const res = await fetch(url)
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
@@ -24,7 +25,7 @@ export const productService = {
   // Create new product (Admin authenticated)
   async createProduct(productData) {
     const token = authService.getToken()
-    const res = await fetch(API_BASE, {
+    const res = await fetch(PRODUCTS_API, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -43,7 +44,7 @@ export const productService = {
   // Update existing product
   async updateProduct(id, productData) {
     const token = authService.getToken()
-    const res = await fetch(`${API_BASE}/${encodeURIComponent(id)}`, {
+    const res = await fetch(`${PRODUCTS_API}/${encodeURIComponent(id)}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -62,7 +63,7 @@ export const productService = {
   // Delete product
   async deleteProduct(id) {
     const token = authService.getToken()
-    const res = await fetch(`${API_BASE}/${encodeURIComponent(id)}`, {
+    const res = await fetch(`${PRODUCTS_API}/${encodeURIComponent(id)}`, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${token}`,
