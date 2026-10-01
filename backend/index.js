@@ -109,6 +109,8 @@ app.get('/api/db-check', async (req, res) => {
     error: check.error || check.message,
     hint: 'Ensure your DATABASE_URL in backend/.env is set to your Neon connection string.',
   })
+})
+
 // Health and Diagnostic Aliases (support without /api prefix)
 app.get('/health', (req, res) => res.redirect('/api/health'))
 app.get('/db-check', (req, res) => res.redirect('/api/db-check'))
