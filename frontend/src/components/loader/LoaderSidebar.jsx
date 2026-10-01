@@ -5,12 +5,19 @@ import dashboardIcon from '../../assets/icons/dashboard.svg'
 import loadsIcon from '../../assets/icons/load.svg'
 import historyIcon from '../../assets/icons/date.svg'
 import settingsIcon from '../../assets/icons/settings.svg'
+import { authService } from '../../services/authService'
 import './LoaderSidebar.css'
 
 export default function LoaderSidebar({ activeItem = 'Dashboard' }) {
   const navigate = useNavigate()
   const location = useLocation()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
+
+  const handleLogout = () => {
+    setIsMobileOpen(false)
+    authService.logout()
+    navigate('/login', { replace: true })
+  }
 
   useEffect(() => {
     setIsMobileOpen(false)
@@ -111,10 +118,7 @@ export default function LoaderSidebar({ activeItem = 'Dashboard' }) {
               <button
                 type="button"
                 className="loader-logout-btn"
-                onClick={() => {
-                  setIsMobileOpen(false)
-                  navigate('/login')
-                }}
+                onClick={handleLogout}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -177,7 +181,7 @@ export default function LoaderSidebar({ activeItem = 'Dashboard' }) {
           <button
             type="button"
             className="loader-logout-btn"
-            onClick={() => navigate('/login')}
+            onClick={handleLogout}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

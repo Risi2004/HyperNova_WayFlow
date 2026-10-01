@@ -4,6 +4,8 @@ import Logo from '../../components/ui/Logo'
 import Input from '../../components/ui/Input'
 import Button from '../../components/ui/Button'
 import Checkbox from '../../components/ui/Checkbox'
+import ChangePasswordModal from '../../components/auth/ChangePasswordModal'
+import { authService } from '../../services/authService'
 import './Login.css'
 
 export default function Login() {
@@ -14,19 +16,44 @@ export default function Login() {
   const [rememberDevice, setRememberDevice] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
+  const [pendingUser, setPendingUser] = useState(null)
+  const [showChangePwd, setShowChangePwd] = useState(false)
 
-  const handleSignIn = (e) => {
+  const handleSignIn = async (e) => {
     e.preventDefault()
     setIsLoading(true)
     setStatusMessage('')
+    setErrorMessage('')
 
-    setTimeout(() => {
+    try {
+      const data = await authService.login(email, password)
       setIsLoading(false)
-      setStatusMessage('Signed in successfully! Opening Dispatcher Dashboard...')
-      setTimeout(() => {
-        navigate('/dispatcher/dashboard')
-      }, 500)
-    }, 800)
+
+      if (data.user.requires_password_change) {
+        setPendingUser(data.user)
+        setShowChangePwd(true)
+      } else {
+        setStatusMessage(`Welcome back, ${data.user.name || data.user.email}! Redirecting to ${data.user.role} console...`)
+        setTimeout(() => {
+          const destination = authService.getRoleDashboardPath(data.user.role)
+          navigate(destination)
+        }, 600)
+      }
+    } catch (err) {
+      setIsLoading(false)
+      setErrorMessage(err.message || 'Authentication failed. Please verify your credentials.')
+    }
+  }
+
+  const handlePasswordChanged = () => {
+    setShowChangePwd(false)
+    setStatusMessage('Permanent password confirmed! Opening your console...')
+    setTimeout(() => {
+      const user = authService.getCurrentUser()
+      const destination = authService.getRoleDashboardPath(user?.role || 'Dispatcher')
+      navigate(destination)
+    }, 600)
   }
 
   return (
@@ -156,11 +183,23 @@ export default function Login() {
           </form>
 
           {/* Feedback notice if any */}
+          {errorMessage && (
+            <div className="toast-notice error" role="alert" style={{ background: 'rgba(239, 68, 68, 0.15)', borderColor: '#ef4444', color: '#b91c1c' }}>
+              {errorMessage}
+            </div>
+          )}
           {statusMessage && (
             <div className="toast-notice success" role="status">
               {statusMessage}
             </div>
           )}
+
+          {/* First Login Password Change Modal */}
+          <ChangePasswordModal
+            isOpen={showChangePwd}
+            user={pendingUser}
+            onSuccess={handlePasswordChanged}
+          />
 
           {/* Card Footer Help */}
           <footer className="card-footer">

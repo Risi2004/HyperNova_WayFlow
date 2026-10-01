@@ -183,14 +183,27 @@
   flex-shrink: 0;
 }
 
-.form-input {
+.form-input,
+.input-wrapper .form-input,
+.login-glass-card .form-input {
   width: 100%;
-  border: none;
-  background: transparent;
-  outline: none;
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
   font-size: 0.84rem;
   color: #0f172a;
   font-weight: 500;
+}
+
+.input-wrapper .form-input:-webkit-autofill,
+.input-wrapper .form-input:-webkit-autofill:hover,
+.input-wrapper .form-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #0f172a;
+  -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 .form-input::placeholder {

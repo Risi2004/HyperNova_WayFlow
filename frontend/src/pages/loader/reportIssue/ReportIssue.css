@@ -275,7 +275,8 @@
   pointer-events: none;
 }
 
-.form-input {
+.report-issue-form .form-input,
+.report-issue-page .form-input {
   width: 100%;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
@@ -287,12 +288,14 @@
   transition: all 0.15s ease;
 }
 
-.form-input-active:focus {
+.report-issue-form .form-input-active:focus,
+.report-issue-page .form-input-active:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
-.form-input-disabled {
+.report-issue-form .form-input-disabled,
+.report-issue-page .form-input-disabled {
   background: #f8fafc;
   color: #64748b;
   cursor: not-allowed;

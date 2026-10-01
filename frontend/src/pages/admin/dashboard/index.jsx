@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import AdminSidebar from '../../../components/admin/AdminSidebar'
 import AddUserModal from '../../../components/admin/AddUserModal'
 import { getStoredUsers, saveStoredUsers, getRoleColor } from '../../../services/adminUserData'
@@ -252,8 +251,8 @@ export default function AdminDashboard() {
                 <div className="health-item-info">
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
                   <div>
-                    <div className="health-item-name">API Gateway (REST / WebSocket)</div>
-                    <div className="health-item-desc">Colombo Edge Server &bull; 24ms avg latency</div>
+                    <div className="health-item-name">Central Operations Gateway</div>
+                    <div className="health-item-desc">Core Telematics Node &bull; 24ms avg latency</div>
                   </div>
                 </div>
                 <span className="health-status-tag">Operational</span>
@@ -264,7 +263,7 @@ export default function AdminDashboard() {
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
                   <div>
                     <div className="health-item-name">Role-Based Access Control (RBAC)</div>
-                    <div className="health-item-desc">JWT Auth Session Engine &bull; Zero breach flags</div>
+                    <div className="health-item-desc">Secure Identity Engine &bull; Zero breach flags</div>
                   </div>
                 </div>
                 <span className="health-status-tag">Secured</span>
@@ -369,78 +368,6 @@ export default function AdminDashboard() {
                   <div className="audit-time">1 hour ago &bull; Admin Console</div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Card 4: Quick Portals and Administrative Actions */}
-          <div className="admin-card">
-            <div className="admin-card-header">
-              <h2 className="admin-card-title">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
-                Quick Portals & Role Jump
-              </h2>
-              <span className="admin-card-badge">Instant Switch</span>
-            </div>
-
-            <div className="admin-quick-links-grid">
-              <Link to="/admin/users" className="admin-quick-link-btn">
-                <div className="quick-link-icon" style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="8.5" cy="7" r="4"></circle>
-                    <line x1="20" y1="8" x2="20" y2="14"></line>
-                    <line x1="23" y1="11" x2="17" y2="11"></line>
-                  </svg>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>Add / Remove Users</div>
-                  <div style={{ fontSize: '0.76rem', color: '#94a3b8' }}>Configure roles & credentials</div>
-                </div>
-              </Link>
-
-              <Link to="/dispatcher/dashboard" className="admin-quick-link-btn">
-                <div className="quick-link-icon" style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                    <line x1="8" y1="21" x2="16" y2="21"></line>
-                    <line x1="12" y1="17" x2="12" y2="21"></line>
-                  </svg>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>Dispatcher Portal</div>
-                  <div style={{ fontSize: '0.76rem', color: '#94a3b8' }}>Review active route graphs</div>
-                </div>
-              </Link>
-
-              <Link to="/driver/assigned-route" className="admin-quick-link-btn">
-                <div className="quick-link-icon" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="1" y="3" width="15" height="13"></rect>
-                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
-                    <circle cx="5.5" cy="18.5" r="2.5"></circle>
-                    <circle cx="18.5" cy="18.5" r="2.5"></circle>
-                  </svg>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>Driver Navigation</div>
-                  <div style={{ fontSize: '0.76rem', color: '#94a3b8' }}>Live turn-by-turn simulation</div>
-                </div>
-              </Link>
-
-              <Link to="/store-manager/track-delivery" className="admin-quick-link-btn">
-                <div className="quick-link-icon" style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                  </svg>
-                </div>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>Store Manager Console</div>
-                  <div style={{ fontSize: '0.76rem', color: '#94a3b8' }}>Outlet receipt & delivery status</div>
-                </div>
-              </Link>
             </div>
           </div>
         </div>

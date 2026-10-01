@@ -6,9 +6,21 @@ const { sql, testConnection } = require('./db')
 const app = express()
 const PORT = process.env.PORT || 5000
 
+// Import API Routes
+const authRoutes = require('./routes/authRoutes')
+const userRoutes = require('./routes/userRoutes')
+const referenceRoutes = require('./routes/referenceRoutes')
+const productRoutes = require('./routes/productRoutes')
+
 // Middleware
 app.use(cors())
 app.use(express.json())
+
+// Mount API Routes
+app.use('/api/auth', authRoutes)
+app.use('/api/users', userRoutes)
+app.use('/api/reference', referenceRoutes)
+app.use('/api/products', productRoutes)
 
 // Root Route
 app.get('/', (req, res) => {
@@ -20,8 +32,47 @@ app.get('/', (req, res) => {
     endpoints: {
       health: '/api/health',
       dbCheck: '/api/db-check',
+      dbSummary: '/api/db-summary',
     },
   })
+})
+
+// Database Summary Endpoint (Table Row Counts)
+app.get('/api/db-summary', async (req, res) => {
+  try {
+    const tables = [
+      'operating_calendar',
+      'district_travel',
+      'service_allowance',
+      'outlets',
+      'vehicles',
+      'traffic_speed_index',
+      'road_disruptions',
+      'users',
+      'products',
+      'catalog_products',
+      'orders',
+      'order_items',
+      'trips',
+      'trip_stops',
+      'order_deferrals',
+      'delivery_records',
+      'receipt_confirmations',
+    ]
+    const counts = await Promise.all(
+      tables.map(async (t) => {
+        const result = await sql.query(`SELECT count(*)::int as count FROM ${t}`)
+        return { table: t, count: result[0].count }
+      })
+    )
+    res.json({
+      status: 'success',
+      database: 'Neon PostgreSQL',
+      tables: counts,
+    })
+  } catch (err) {
+    res.status(500).json({ status: 'error', error: err.message })
+  }
 })
 
 // System Health Endpoint

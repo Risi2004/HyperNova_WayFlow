@@ -3,6 +3,7 @@ import AdminSidebar from '../../../components/admin/AdminSidebar'
 import AddUserModal from '../../../components/admin/AddUserModal'
 import EditUserModal from '../../../components/admin/EditUserModal'
 import DeleteUserModal from '../../../components/admin/DeleteUserModal'
+import { userService } from '../../../services/userService'
 import {
   getStoredUsers,
   saveStoredUsers,
@@ -16,6 +17,7 @@ export default function AdminUsers() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedRole, setSelectedRole] = useState('All')
   const [selectedStatus, setSelectedStatus] = useState('All')
+  const [loading, setLoading] = useState(false)
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -25,29 +27,54 @@ export default function AdminUsers() {
   // Notification Toast state
   const [toastMessage, setToastMessage] = useState('')
 
+  const fetchUsers = async () => {
+    setLoading(true)
+    try {
+      const dbUsers = await userService.getUsers()
+      if (dbUsers && dbUsers.length > 0) {
+        setUsers(dbUsers)
+        saveStoredUsers(dbUsers)
+      } else {
+        const fallback = getStoredUsers()
+        setUsers(fallback)
+      }
+    } catch (err) {
+      console.warn('Backend users not available, using cached:', err.message)
+      setUsers(getStoredUsers())
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    const loaded = getStoredUsers()
-    setUsers(loaded)
+    fetchUsers()
   }, [])
 
   const showToast = (msg) => {
     setToastMessage(msg)
     setTimeout(() => {
       setToastMessage('')
-    }, 3500)
+    }, 4500)
   }
 
   // Add new user
-  const handleAddUser = (newUser) => {
-    const updated = [newUser, ...users]
-    setUsers(updated)
-    saveStoredUsers(updated)
+  const handleAddUser = (newUser, emailDispatch) => {
+    setUsers((prev) => [newUser, ...prev])
     setIsAddModalOpen(false)
-    showToast(`Successfully created ${newUser.role} account for ${newUser.name}`)
+    const emailNotice = emailDispatch?.mode === 'simulated'
+      ? ` (Welcome email logged to server console)`
+      : ` (Welcome email sent to ${newUser.email})`
+    showToast(`✔ Successfully provisioned ${newUser.role} account for ${newUser.name}${emailNotice}`)
+    fetchUsers()
   }
 
   // Update existing user
-  const handleSaveEdit = (updatedUser) => {
+  const handleSaveEdit = async (updatedUser) => {
+    try {
+      await userService.updateUser(updatedUser.id, updatedUser)
+    } catch (err) {
+      console.warn('API update failed, updating local state:', err.message)
+    }
     const updated = users.map((u) => (u.id === updatedUser.id ? updatedUser : u))
     setUsers(updated)
     saveStoredUsers(updated)
@@ -56,8 +83,13 @@ export default function AdminUsers() {
   }
 
   // Remove / Delete user
-  const handleConfirmDelete = (userId) => {
+  const handleConfirmDelete = async (userId) => {
     const target = users.find((u) => u.id === userId)
+    try {
+      await userService.deleteUser(userId)
+    } catch (err) {
+      console.warn('API delete failed, updating local state:', err.message)
+    }
     const updated = users.filter((u) => u.id !== userId)
     setUsers(updated)
     saveStoredUsers(updated)
@@ -66,17 +98,18 @@ export default function AdminUsers() {
   }
 
   // Quick toggle status (Active <-> Inactive)
-  const handleToggleStatus = (userId) => {
-    const updated = users.map((u) => {
-      if (u.id === userId) {
-        const nextStatus = u.status === 'Active' ? 'Inactive' : 'Active'
-        showToast(`${u.name} status updated to ${nextStatus}`)
-        return { ...u, status: nextStatus }
-      }
-      return u
-    })
+  const handleToggleStatus = async (userId) => {
+    const target = users.find((u) => u.id === userId)
+    const nextStatus = target?.status === 'Active' ? 'Inactive' : 'Active'
+    try {
+      await userService.updateUser(userId, { status: nextStatus })
+    } catch (err) {
+      console.warn('API status toggle failed:', err.message)
+    }
+    const updated = users.map((u) => (u.id === userId ? { ...u, status: nextStatus } : u))
     setUsers(updated)
     saveStoredUsers(updated)
+    showToast(`${target?.name} status updated to ${nextStatus}`)
   }
 
   // Filtering users
