@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import StoreManagerSidebar from '../../../components/storeManager/StoreManagerSidebar'
+import OrderPicker from '../../../components/storeManager/OrderPicker'
 import ReportIssueHeader from '../../../components/storeManager/reportIssue/ReportIssueHeader'
-import IssueCategorySelector, { ISSUE_CATEGORIES } from '../../../components/storeManager/reportIssue/IssueCategorySelector'
+import IssueCategorySelector from '../../../components/storeManager/reportIssue/IssueCategorySelector'
+import { ISSUE_CATEGORIES } from '../../../components/storeManager/reportIssue/issueCategories'
 import AffectedProductCard from '../../../components/storeManager/reportIssue/AffectedProductCard'
 import IssueDescriptionCard from '../../../components/storeManager/reportIssue/IssueDescriptionCard'
 import PhotoProofCard from '../../../components/storeManager/reportIssue/PhotoProofCard'
@@ -10,257 +12,164 @@ import OrderContextCard from '../../../components/storeManager/reportIssue/Order
 import DiscrepancySummaryCard from '../../../components/storeManager/reportIssue/DiscrepancySummaryCard'
 import ReportIssueSuccessModal from '../../../components/storeManager/reportIssue/ReportIssueSuccessModal'
 import { orderService } from '../../../services/orderService'
+import { dispatchStatusOf, formatShortDate, formatTime } from '../../../utils/orderFormat'
 import './ReportIssue.css'
 
-const DEFAULT_PRODUCT = {
-  name: 'Fresh Highland Milk 1L',
-  sku: 'DAI-0402',
-  code: 'DAI-MLK-001',
-  category: 'Dairy & Cold Chain',
-  tempClass: 'Chilled (+4°C)',
-  orderedCrates: 24,
-  orderedUnits: 288,
-  affectedCrates: 4,
-  affectedUnits: 48,
-  receivedCrates: 20,
-  receivedUnits: 240,
-  sourceLocation: 'Peliyagoda DC Reefer',
-  destinationLocation: 'Cold Storage-Bay 02',
-}
-
-const DEFAULT_DESCRIPTION =
-  'Upon unloading pallet #01 at Dock Bay 02, crate row 4 was short by 4 crates of Fresh Farm Milk (1L). The delivery manifest indicated 24 crates loaded at Peliyagoda DC, but driver Marcus Vance confirmed only 20 crates were physically on the reefer.'
+// Issues are about goods on their way or already at the store.
+const REPORTABLE = ['loading', 'loaded', 'shortfall', 'dispatched', 'delivered', 'partial', 'failed', 'received', 'disputed']
 
 export default function ReportIssue() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const orderId = searchParams.get('orderId')
 
-  const [orderId, setOrderId] = useState(searchParams.get('orderId') || 'ORD-1042')
-  const [selectedCategory, setSelectedCategory] = useState('missing-item')
-  const [product, setProduct] = useState(DEFAULT_PRODUCT)
-  const [description, setDescription] = useState(DEFAULT_DESCRIPTION)
-  const [files, setFiles] = useState([
-    {
-      id: 1,
-      name: 'dock_manifest_photo.jpg',
-      size: '1.8 MB',
-    },
-  ])
-  const [orderContext, setOrderContext] = useState({
-    orderId: 'ORD-1042',
-    store: 'Colombo 05 (OUT043)',
-    arrivalTime: 'Today, 10:52 AM',
-    dockBay: 'Bay 02 Ramp',
-    tripId: 'TR-024',
-    driverName: 'Marcus Vance',
-    status: 'Completed',
-  })
+  const [detail, setDetail] = useState(null)
+  const [candidates, setCandidates] = useState(null)
+  const [loadError, setLoadError] = useState(null)
+  const [selectedCategory, setSelectedCategory] = useState(null)
+  const [itemId, setItemId] = useState('')
+  const [affectedQty, setAffectedQty] = useState(0)
+  const [description, setDescription] = useState('')
+  const [photo, setPhoto] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [ticketId, setTicketId] = useState('ISSUE-2026-0941')
+  const [submitError, setSubmitError] = useState(null)
+  const [ticket, setTicket] = useState(null)
 
-  // Fetch real order context if available
   useEffect(() => {
-    let isMounted = true
-    async function loadRealOrder() {
-      try {
-        let targetId = searchParams.get('orderId')
-        if (!targetId) {
-          const myOrdersRes = await orderService.getMyOrders()
-          if (myOrdersRes?.orders && myOrdersRes.orders.length > 0) {
-            targetId = myOrdersRes.orders[0]?.order_id
-          }
-        }
-
-        if (targetId) {
-          const res = await orderService.getOrder(targetId)
-          if (!isMounted || !res?.order) return
-
-          setOrderId(res.order.order_id)
-          setOrderContext({
-            orderId: res.order.order_id,
-            store: res.outlet ? `${res.outlet.district} (${res.outlet.outlet_id})` : 'Colombo 05 (OUT043)',
-            arrivalTime: res.plan?.planned_arrival_time ? `${String(res.plan.planned_arrival_time).slice(0, 5)} (Today)` : 'Today, 10:52 AM',
-            dockBay: res.outlet?.dock_type === 'rear_dock' ? 'Bay 01 Rear Dock' : 'Bay 02 Ramp',
-            tripId: res.plan?.trip_id || 'TR-024',
-            driverName: res.plan?.driver_name || 'Marcus Vance',
-            status: res.order.status ? res.order.status.charAt(0).toUpperCase() + res.order.status.slice(1) : 'Delivered',
-          })
-
-          if (Array.isArray(res.items) && res.items.length > 0) {
-            const first = res.items[0]
-            const qty = Number(first.quantity || 24)
-            setProduct({
-              name: first.product_name,
-              sku: first.product_code || 'SKU-001',
-              code: first.product_code || 'CODE-001',
-              category: first.temp_requirement === 'chilled' ? 'Dairy & Cold Chain' : 'Ambient Groceries',
-              tempClass: first.temp_requirement === 'chilled' ? 'Chilled (+4°C)' : 'Ambient',
-              orderedCrates: qty,
-              orderedUnits: qty * 12,
-              affectedCrates: 2,
-              affectedUnits: 24,
-              receivedCrates: Math.max(0, qty - 2),
-              receivedUnits: Math.max(0, qty - 2) * 12,
-              sourceLocation: `${res.order.depot || 'Peliyagoda'} DC`,
-              destinationLocation: `Cold Storage - ${res.order.outlet_id}`,
-            })
-          }
-        }
-      } catch (err) {
-        console.warn('Could not load order context for Report Issue:', err)
-      }
-    }
-    loadRealOrder()
+    let active = true
+    const request = orderId ? orderService.getOrder(orderId) : orderService.getMyOrders()
+    request
+      .then((res) => {
+        if (!active) return
+        setLoadError(null)
+        if (orderId) setDetail(res)
+        else setCandidates(res.orders.filter((o) => REPORTABLE.includes(o.status)).slice(0, 30))
+      })
+      .catch((err) => active && setLoadError(err.message))
     return () => {
-      isMounted = false
+      active = false
     }
-  }, [searchParams])
+  }, [orderId])
 
-  const currentCategory = ISSUE_CATEGORIES.find((c) => c.id === selectedCategory)
-
-  const handleAddFile = (newFile) => {
-    setFiles((prev) => [...prev, newFile])
-  }
-
-  const handleRemoveFile = (fileId) => {
-    setFiles((prev) => prev.filter((f) => f.id !== fileId))
-  }
-
-  const handleScanBarcode = () => {
-    alert('Barcode Scanner active: Point your device camera at the crate or pallet barcode label.')
-  }
-
-  const handleChangeSku = () => {
-    const newName = prompt('Enter SKU name or select from manifest:', product.name)
-    if (newName) {
-      setProduct((prev) => ({ ...prev, name: newName }))
-    }
-  }
+  const category = ISSUE_CATEGORIES.find((c) => c.id === selectedCategory)
+  const item = detail?.items.find((i) => String(i.item_id) === String(itemId))
 
   const handleSubmitIssue = async () => {
+    if (!selectedCategory) return setSubmitError('Choose what kind of issue this is.')
+    if (!description.trim()) return setSubmitError('Describe the issue so dispatch can act on it.')
     setIsSubmitting(true)
+    setSubmitError(null)
     try {
       const res = await orderService.reportIssue(orderId, {
         category: selectedCategory,
-        description,
-        severity: 'medium',
-        impact: 'medium',
-        affected_product: product.name,
-        affected_units: product.affectedUnits,
+        description: description.trim(),
+        item_id: item ? item.item_id : undefined,
+        affected_qty: item ? affectedQty : undefined,
+        photo: photo?.dataUrl,
       })
-      if (res?.issue_id) {
-        setTicketId(res.issue_id)
-      } else {
-        const randomTicket = 'ISSUE-2026-' + Math.floor(1000 + Math.random() * 9000)
-        setTicketId(randomTicket)
-      }
+      setTicket(res)
     } catch (err) {
-      console.warn('API reportIssue failed, saving locally:', err)
-      const randomTicket = 'ISSUE-2026-' + Math.floor(1000 + Math.random() * 9000)
-      setTicketId(randomTicket)
+      setSubmitError(err.message)
     } finally {
       setIsSubmitting(false)
-      setShowSuccessModal(true)
     }
   }
 
-  const handleCancel = () => {
-    navigate(`/store-manager/confirm-receipt?orderId=${encodeURIComponent(orderId)}`)
-  }
+  const order = detail?.order
+  const plan = detail?.plan
+  const delivery = detail?.delivery
 
-  const handleGoToDashboard = () => {
-    navigate('/store-manager/dashboard')
-  }
+  let body
+  if (loadError) {
+    body = <p className="sm-page-state error">{loadError}</p>
+  } else if (!orderId) {
+    body = candidates ? (
+      <OrderPicker
+        title="Report an Issue"
+        hint="Choose the order the problem is about."
+        orders={candidates}
+        path="/store-manager/report-issue"
+        emptyText="None of your orders are on the way or delivered yet, so there is nothing to report against."
+      />
+    ) : (
+      <p className="sm-page-state">Loading your orders…</p>
+    )
+  } else if (!detail) {
+    body = <p className="sm-page-state">Loading {orderId}…</p>
+  } else {
+    body = (
+      <>
+        <ReportIssueHeader orderId={order.order_id} status={dispatchStatusOf(order.status).label} onBackToOrders={() => navigate('/store-manager/my-orders')} />
 
-  const handleGoToOrders = () => {
-    navigate('/store-manager/my-orders')
-  }
+        {detail.issues?.length > 0 && (
+          <p className="sm-page-state">
+            Already reported on this order:{' '}
+            {detail.issues.map((i) => `#${i.issue_id} ${i.issue_category} (${i.resolution_status.replace('_', ' ')})`).join(' • ')}
+          </p>
+        )}
 
-
-  return (
-    <div className="ri-page-wrapper">
-      {/* Navigation Sidebar */}
-      <StoreManagerSidebar activeItem="Report Issue" />
-
-      {/* Main Container */}
-      <main className="ri-main-content">
-        {/* Top Header */}
-        <ReportIssueHeader
-          orderId="ORD-1042"
-          status="Delivery Completed"
-          onBackToOrders={handleGoToOrders}
-        />
-
-        {/* 2-Column Layout */}
         <div className="ri-layout-body">
-          {/* Main Left Column (Sections 1-4) */}
           <div className="ri-col-main">
-            {/* Step 1: Category Selector */}
-            <IssueCategorySelector
-              selectedCategory={selectedCategory}
-              onSelectCategory={setSelectedCategory}
-            />
+            <IssueCategorySelector selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
 
-            {/* Step 2: Affected Product & Quantities */}
             <AffectedProductCard
-              product={product}
-              onScanBarcode={handleScanBarcode}
-              onChangeSku={handleChangeSku}
+              items={detail.items}
+              itemId={itemId}
+              onChangeItem={(id) => {
+                setItemId(id)
+                setAffectedQty(0)
+              }}
+              affectedQty={affectedQty}
+              onChangeAffectedQty={setAffectedQty}
             />
 
-            {/* Step 3: Describe the Issue */}
-            <IssueDescriptionCard
-              description={description}
-              onChangeDescription={setDescription}
-              maxLength={500}
-            />
+            <IssueDescriptionCard description={description} onChangeDescription={setDescription} maxLength={500} />
 
-            {/* Step 4: Supporting Photo Proof */}
-            <PhotoProofCard
-              files={files}
-              onAddFile={handleAddFile}
-              onRemoveFile={handleRemoveFile}
-            />
+            <PhotoProofCard photo={photo} onChangePhoto={setPhoto} />
           </div>
 
-          {/* Right Column (Side Cards) */}
           <div className="ri-col-side">
-            {/* Card 1: Order Context */}
             <OrderContextCard
-              orderId={orderContext.orderId}
-              store={orderContext.store}
-              arrivalTime={orderContext.arrivalTime}
-              dockBay={orderContext.dockBay}
-              tripId={orderContext.tripId}
-              driverName={orderContext.driverName}
-              status={orderContext.status}
+              orderId={order.order_id}
+              store={`${order.district} (${order.outlet_id})`}
+              arrivalTime={delivery ? `${formatShortDate(order.target_delivery_date)}, ${formatTime(delivery.actual_arrival_time)}` : `${formatShortDate(order.target_delivery_date)} (planned ${formatTime(plan?.planned_arrival_time)})`}
+              arrivalLabel={delivery ? 'Arrived' : 'Delivery'}
+              receivedBy={delivery?.received_by_name || '—'}
+              tripId={plan?.trip_id || 'Not on a trip'}
+              driverName={plan?.driver_name || '—'}
+              status={dispatchStatusOf(order.status).label}
             />
 
-            {/* Card 2: Discrepancy Summary */}
             <DiscrepancySummaryCard
-              categoryLabel={currentCategory ? currentCategory.label : 'Missing Item'}
-              skuName={product.name}
-              discrepancyText={`${product.affectedCrates} Crates (${product.affectedUnits} Units)`}
-              evidenceCount={files.length}
+              categoryLabel={category ? category.label : 'Not chosen'}
+              skuName={item ? item.product_name : 'Whole order'}
+              discrepancyText={item ? `${affectedQty} of ${item.quantity} ${item.unit.toLowerCase()}${item.quantity === 1 ? '' : 's'}` : '—'}
+              evidenceCount={photo ? 1 : 0}
               onSubmit={handleSubmitIssue}
-              onCancel={handleCancel}
+              onCancel={() => navigate(-1)}
               isSubmitting={isSubmitting}
+              error={submitError}
             />
           </div>
         </div>
-      </main>
+      </>
+    )
+  }
 
-      {/* Success Modal */}
-      {showSuccessModal && (
+  return (
+    <div className="ri-page-wrapper">
+      <StoreManagerSidebar activeItem="Report Issue" />
+      <main className="ri-main-content">{body}</main>
+
+      {ticket && (
         <ReportIssueSuccessModal
           orderId={orderId}
-          ticketId={ticketId}
-          categoryLabel={currentCategory ? currentCategory.label : 'Missing Item'}
-          skuName={product.name}
-          onClose={() => setShowSuccessModal(false)}
-          onGoToDashboard={handleGoToDashboard}
-          onGoToOrders={handleGoToOrders}
+          ticketId={`#${ticket.issue_id}`}
+          categoryLabel={category?.label}
+          skuName={item ? item.product_name : 'Whole order'}
+          onClose={() => navigate(0)}
+          onGoToDashboard={() => navigate('/store-manager/dashboard')}
+          onGoToOrders={() => navigate('/store-manager/my-orders')}
         />
       )}
     </div>

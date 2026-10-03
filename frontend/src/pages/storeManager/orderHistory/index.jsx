@@ -136,7 +136,7 @@ export default function OrderHistory() {
   }
 
   const handleReportIssueFromModal = (orderId) => {
-    navigate('/store-manager/report-issue')
+    navigate(orderId ? `/store-manager/report-issue?orderId=${encodeURIComponent(orderId)}` : '/store-manager/report-issue')
   }
 
   const handleCreateOrder = () => {

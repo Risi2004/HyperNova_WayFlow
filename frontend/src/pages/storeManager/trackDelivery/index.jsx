@@ -1,249 +1,154 @@
-import { useState, useEffect } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import StoreManagerSidebar from '../../../components/storeManager/StoreManagerSidebar'
-import TelemetrySimulatorBar from '../../../components/storeManager/trackDelivery/TelemetrySimulatorBar'
+import OrderPicker from '../../../components/storeManager/OrderPicker'
 import TrackDeliveryHeroCard from '../../../components/storeManager/trackDelivery/TrackDeliveryHeroCard'
 import LifecycleSequenceCard from '../../../components/storeManager/trackDelivery/LifecycleSequenceCard'
-import RouteCorridorCard from '../../../components/storeManager/trackDelivery/RouteCorridorCard'
 import RouteStopManifestCard from '../../../components/storeManager/trackDelivery/RouteStopManifestCard'
 import DockGateActionsCard from '../../../components/storeManager/trackDelivery/DockGateActionsCard'
 import AssignedDriverCard from '../../../components/storeManager/trackDelivery/AssignedDriverCard'
 import DeliverySlaCard from '../../../components/storeManager/trackDelivery/DeliverySlaCard'
 import PayloadBreakdownCard from '../../../components/storeManager/trackDelivery/PayloadBreakdownCard'
 import ManifestModal from '../../../components/storeManager/trackDelivery/ManifestModal'
-import ReportIssueModal from '../../../components/storeManager/trackDelivery/ReportIssueModal'
 import { orderService } from '../../../services/orderService'
+import { dispatchStatusOf } from '../../../utils/orderFormat'
 import './TrackDelivery.css'
 
+// Orders worth tracking, most urgent first: on the road, being loaded, planned, then awaiting sign-off.
+const TRACK_ORDER = ['dispatched', 'loaded', 'shortfall', 'loading', 'planned', 'delivered', 'partial']
+const REFRESH_MS = 60000
+
+function pickOrder(orders, tripId) {
+  if (tripId) return orders.find((o) => o.trip_id === tripId) || null
+  return [...orders]
+    .filter((o) => TRACK_ORDER.includes(o.status))
+    .sort((a, b) => TRACK_ORDER.indexOf(a.status) - TRACK_ORDER.indexOf(b.status) || a.target_delivery_date.localeCompare(b.target_delivery_date))[0] || null
+}
+
 export default function TrackDelivery() {
-  const { tripId: routeTripId } = useParams()
+  const { tripId } = useParams()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const requestedOrder = searchParams.get('orderId')
 
-  const [currentTripId, setCurrentTripId] = useState(routeTripId || searchParams.get('tripId') || 'TR-024')
-  const [currentOrderId, setCurrentOrderId] = useState(searchParams.get('orderId') || 'ORD-1042')
-  const [destInfo, setDestInfo] = useState({ name: 'Colombo 05 Store', code: 'OUT043', cycle: 'Morning Fresh Cycle #01' })
-  const [driverInfo, setDriverInfo] = useState({ name: 'Marcus Vance', id: 'DRV-091', phone: '+94 11 234 5678' })
-  const [vehicleInfo, setVehicleInfo] = useState({ id: 'WP-REF-007', type: 'Isuzu 5T', temp: 'reefer' })
-
-  // Telemetry Simulation State (initialized from real status if available)
-  const [simState, setSimState] = useState('in_delivery')
+  const [orders, setOrders] = useState(null)
+  const [detail, setDetail] = useState(null)
+  const [error, setError] = useState(null)
+  const [tick, setTick] = useState(0)
   const [isManifestOpen, setIsManifestOpen] = useState(false)
-  const [isReportOpen, setIsReportOpen] = useState(false)
-  const [toastMessage, setToastMessage] = useState(null)
+
+  // Re-read while the page is open so arrival and sign-off show without a reload.
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), REFRESH_MS)
+    return () => clearInterval(id)
+  }, [])
 
   useEffect(() => {
-    let isMounted = true
-    async function loadRealTracking() {
-      try {
-        let orderId = searchParams.get('orderId')
-        let tripId = routeTripId || searchParams.get('tripId')
-
-        if (!orderId && !tripId) {
-          const myOrdersRes = await orderService.getMyOrders()
-          if (myOrdersRes?.orders && myOrdersRes.orders.length > 0) {
-            // Pick active in-transit / planned / delivered order
-            const active = myOrdersRes.orders.find((o) => ['dispatched', 'delivered', 'loading', 'planned'].includes(o.status)) || myOrdersRes.orders[0]
-            if (active) {
-              orderId = active.order_id
-              tripId = active.trip_id
-            }
-          }
-        }
-
-        if (orderId) {
-          const res = await orderService.getOrder(orderId)
-          if (!isMounted || !res?.order) return
-
-          setCurrentOrderId(res.order.order_id)
-          if (res.plan?.trip_id) setCurrentTripId(res.plan.trip_id)
-          if (res.outlet) {
-            setDestInfo({
-              name: res.outlet.brand ? `${res.outlet.district} ${res.outlet.brand} Store` : 'Store Outlet',
-              code: res.outlet.outlet_id,
-              cycle: `${res.order.brand || 'Morning'} Delivery Cycle`,
-            })
-          }
-          if (res.plan) {
-            setDriverInfo({
-              name: res.plan.driver_name || 'Assigned Driver',
-              id: 'DRV-091',
-              phone: '+94 11 234 5678',
-            })
-            setVehicleInfo({
-              id: res.plan.vehicle_id || 'VEH-001',
-              type: res.plan.vehicle_type || 'Truck',
-              temp: res.plan.vehicle_temp || 'ambient',
-            })
-          }
-
-          if (res.order.status === 'delivered') setSimState('delivered')
-          else if (res.order.status === 'dispatched') setSimState('in_delivery')
-          else if (res.order.status === 'loading') setSimState('arriving_soon')
-        }
-      } catch (err) {
-        console.warn('Could not load real delivery tracking, using simulation defaults:', err)
-      }
-    }
-    loadRealTracking()
+    let active = true
+    orderService
+      .getMyOrders()
+      .then(async (res) => {
+        const chosen = requestedOrder || pickOrder(res.orders, tripId)?.order_id
+        const full = chosen ? await orderService.getOrder(chosen) : null
+        if (!active) return
+        setOrders(res.orders)
+        setDetail(full)
+        setError(null)
+      })
+      .catch((err) => active && setError(err.message))
     return () => {
-      isMounted = false
+      active = false
     }
-  }, [routeTripId, searchParams])
+  }, [requestedOrder, tripId, tick])
 
-  const showToast = (msg) => {
-    setToastMessage(msg)
-    setTimeout(() => {
-      setToastMessage(null)
-    }, 3500)
-  }
+  const order = detail?.order
+  const plan = detail?.plan
+  const others = (orders || []).filter((o) => TRACK_ORDER.includes(o.status) && o.order_id !== order?.order_id)
 
-  const handleSelectSimState = (stateId) => {
-    setSimState(stateId)
-    if (stateId === 'delivered') {
-      showToast(`Vehicle ${vehicleInfo.id} arrived at dock! Confirm Receipt unlocked.`)
-    } else if (stateId === 'delayed') {
-      showToast('Simulation: Traffic delay detected (+35 min). Live ETA shifted to 11:20 AM.')
-    } else if (stateId === 'offline') {
-      showToast('Simulation: Telemetry offline. Showing last known coordinates from 8m ago.')
-    } else if (stateId === 'arriving_soon') {
-      showToast('Simulation: Vehicle 2.1 km away. Dock alarm: Arriving in ~3 mins!')
-    } else if (stateId === 'error') {
-      showToast('Simulation: Sensor alert - Cold storage telemetry re-routing.')
-    } else {
-      showToast('Simulation: Standard In-Delivery telemetry active.')
-    }
-  }
-
-  const handleConfirmReceipt = () => {
-    if (simState === 'delivered') {
-      showToast('Navigating to physical dock inspection & Confirm Receipt...')
-      setTimeout(() => {
-        navigate(`/store-manager/confirm-receipt?orderId=${encodeURIComponent(currentOrderId)}`)
-      }, 700)
-    } else {
-      showToast('Dock Sensor: Vehicle is still in transit. Switch simulator to Arrived / Delivered to confirm.')
-    }
-  }
-
-  const handleContactDriver = () => {
-    showToast(`Connecting to ${driverInfo.name} via Dispatch Radio (${driverInfo.phone})...`)
-  }
-
-  const handleSubmitIssue = (issueType, notes) => {
-    showToast(`Escalation (${issueType}) dispatched to Regional Central Control!`)
-    navigate(`/store-manager/report-issue?orderId=${encodeURIComponent(currentOrderId)}`)
-  }
-
-
-  return (
-    <div className="sm-track-delivery-page">
-      {/* Left Sidebar */}
-      <StoreManagerSidebar activeItem="Track Delivery" />
-
-      {/* Main Content */}
-      <main className="sm-track-delivery-main">
-        {/* 1. Prototype Telemetry State Simulator Bar */}
-        <TelemetrySimulatorBar
-          currentState={simState}
-          onSelectState={handleSelectSimState}
-          tripId={currentTripId}
-        />
-
-        {/* 2. Order Header Strip */}
+  let body
+  if (error) {
+    body = <p className="sm-page-state error">{error}</p>
+  } else if (!orders) {
+    body = <p className="sm-page-state">Loading deliveries…</p>
+  } else if (!order) {
+    body = (
+      <OrderPicker
+        title="Track Delivery"
+        hint={tripId ? `None of your orders are on trip ${tripId}.` : 'Nothing is on the way to your store right now.'}
+        orders={others}
+        path="/store-manager/track-delivery"
+        emptyText="Orders appear here once dispatch publishes the delivery plan."
+      />
+    )
+  } else {
+    const progress = detail.trip_progress
+    const mine = progress.find((s) => s.is_this_order)
+    const outletName = `Waypoint ${detail.outlet.brand} – ${detail.outlet.district}`
+    body = (
+      <>
         <div className="td-order-header-strip">
           <div className="td-order-header-left">
             <span>Order:</span>
-            <span className="td-order-code-bold">{currentOrderId}</span>
+            <span className="td-order-code-bold">{order.order_id}</span>
             <span>&bull; Destination:</span>
-            <span className="td-dest-name-bold">{destInfo.name}</span>
-            <span className="td-dest-pill">{destInfo.code}</span>
-            <span>&bull; Manifest:</span>
-            <span className="td-manifest-cycle">{destInfo.cycle}</span>
+            <span className="td-dest-name-bold">{outletName}</span>
+            <span className="td-dest-pill">{order.outlet_id}</span>
           </div>
-
           <div className="td-order-header-right">
             <span className="td-in-delivery-pill">
               <span className="td-status-indicator-dot" />
-              <span>
-                {simState === 'delivered'
-                  ? 'ARRIVED AT DOCK'
-                  : simState === 'delayed'
-                  ? 'DELAYED IN TRANSIT'
-                  : 'IN DELIVERY'}
-              </span>
+              <span>{dispatchStatusOf(order.status).label.toUpperCase()}</span>
             </span>
           </div>
         </div>
 
-        {/* 3. Hero Card: Estimated Arrival & Real-Time Telemetry */}
-        <TrackDeliveryHeroCard
-          tripId={currentTripId}
-          orderId={currentOrderId}
-          simState={simState}
-        />
+        {!plan && (
+          <p className="sm-page-state">
+            {order.status === 'deferred'
+              ? `Deferred: ${order.deferral_explanation || order.deferral_reason}. Next attempt ${order.next_scheduled_date || 'to be planned'}.`
+              : 'This order is not on a published trip yet. Dispatch plans deliveries after the 4 PM cutoff.'}
+          </p>
+        )}
 
-        {/* 4. Delivery Lifecycle Sequence Stepper */}
-        <LifecycleSequenceCard simState={simState} />
+        {plan && (
+          <>
+            <TrackDeliveryHeroCard order={order} plan={plan} trip={detail.trip} progress={progress} mine={mine} delivery={detail.delivery} outletName={outletName} />
+            <LifecycleSequenceCard events={detail.events} status={order.status} depot={order.depot} />
+          </>
+        )}
 
-        {/* 5. Two-Column Main Content */}
         <div className="td-main-cols-layout">
-          {/* Left Column: Schematic Corridor + Stop Manifest */}
           <div className="td-left-col">
-            <RouteCorridorCard tripId={currentTripId} />
-            <RouteStopManifestCard simState={simState} />
+            {plan && <RouteStopManifestCard stops={progress} tripId={plan.trip_id} vehicleId={plan.vehicle_id} outletName={outletName} />}
+            {others.length > 0 && (
+              <OrderPicker title="Other deliveries" orders={others} path="/store-manager/track-delivery" emptyText="" />
+            )}
           </div>
 
-          {/* Right Column: Dock Actions, Driver, SLA, Payload */}
           <div className="td-right-col">
             <DockGateActionsCard
-              orderId={currentOrderId}
-              simState={simState}
-              onConfirmReceipt={handleConfirmReceipt}
+              order={order}
+              outletName={outletName}
+              driverPhone={plan?.driver_phone}
+              onConfirmReceipt={() => navigate(`/store-manager/confirm-receipt?orderId=${encodeURIComponent(order.order_id)}`)}
               onViewManifest={() => setIsManifestOpen(true)}
-              onReportIssue={() => setIsReportOpen(true)}
-              onContactDriver={handleContactDriver}
+              onReportIssue={() => navigate(`/store-manager/report-issue?orderId=${encodeURIComponent(order.order_id)}`)}
             />
-
-            <AssignedDriverCard driver={driverInfo} vehicle={vehicleInfo} />
-
-            <DeliverySlaCard simState={simState} />
-
-
-            <PayloadBreakdownCard />
+            {plan && <AssignedDriverCard plan={plan} driverNotes={detail.delivery?.driver_notes} />}
+            <DeliverySlaCard order={order} plan={plan} trip={detail.trip} delivery={detail.delivery} />
+            <PayloadBreakdownCard items={detail.items} order={order} />
           </div>
         </div>
-      </main>
+      </>
+    )
+  }
 
-      {/* Manifest Modal */}
-      <ManifestModal
-        isOpen={isManifestOpen}
-        onClose={() => setIsManifestOpen(false)}
-        orderId={currentOrderId}
-        tripId={currentTripId}
-      />
-
-      {/* Report Issue Modal */}
-      <ReportIssueModal
-        isOpen={isReportOpen}
-        onClose={() => setIsReportOpen(false)}
-        onSubmitIssue={handleSubmitIssue}
-        orderId={currentOrderId}
-        tripId={currentTripId}
-      />
-
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="td-toast-notification">
-          <span>{toastMessage}</span>
-          <button
-            type="button"
-            className="btn-td-toast-close"
-            onClick={() => setToastMessage(null)}
-          >
-            ✕
-          </button>
-        </div>
+  return (
+    <div className="sm-track-delivery-page">
+      <StoreManagerSidebar activeItem="Track Delivery" />
+      <main className="sm-track-delivery-main">{body}</main>
+      {detail && (
+        <ManifestModal isOpen={isManifestOpen} onClose={() => setIsManifestOpen(false)} order={order} plan={plan} items={detail.items} outletName={`Waypoint ${detail.outlet.brand} – ${detail.outlet.district}`} />
       )}
     </div>
   )

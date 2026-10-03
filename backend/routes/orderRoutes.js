@@ -50,7 +50,7 @@ function httpError(status, message, extra = {}) {
 function sendError(res, err, fallback) {
   const status = err.status || (err instanceof OrderStatusError ? err.status : 500)
   if (status >= 500) console.error(fallback, err)
-  res.status(status).json({ error: status >= 500 ? `${fallback}: ${err.message}` : err.message, ...(err.extra || {}) })
+  res.status(status).json({ error: status >= 500 ? `${fallback}. Please try again.` : err.message, ...(err.extra || {}) })
 }
 
 const isRole = (req, role) => (req.user.role || '').toLowerCase() === role.toLowerCase()
@@ -256,7 +256,7 @@ const ORDER_LIST_SELECT = `
   LEFT JOIN trip_stops ts ON ts.order_id = o.order_id
   LEFT JOIN trips t ON t.trip_id = ts.trip_id
   LEFT JOIN vehicles v ON v.vehicle_id = t.vehicle_id
-  LEFT JOIN users du ON du.user_id = t.driver_user_id
+  LEFT JOIN users du ON du.user_id = COALESCE(t.driver_user_id, (SELECT dv.user_id FROM users dv WHERE dv.assigned_vehicle_id = t.vehicle_id AND dv.role = 'Driver' ORDER BY dv.created_at LIMIT 1))
   LEFT JOIN LATERAL (
     SELECT deferral_reason, explanation, next_scheduled_date, consecutive_deferral_count
     FROM order_deferrals od WHERE od.order_id = o.order_id
@@ -758,12 +758,12 @@ router.get('/:id', requireRole(STORE_MANAGER, ...PLANNING_ROLES), async (req, re
     const [plan] = await sql.query(
       `SELECT t.trip_id, t.vehicle_id, t.trip_number, t.status AS trip_status, t.planned_departure_time,
               v.type AS vehicle_type, v.temp AS vehicle_temp, v.weight_cap_kg, v.volume_cap_m3,
-              du.full_name AS driver_name, ts.stop_sequence, ts.loading_sequence,
+              du.full_name AS driver_name, du.phone AS driver_phone, t.dispatched_at, ts.stop_sequence, ts.loading_sequence,
               ts.planned_arrival_time, ts.status AS stop_status
        FROM trip_stops ts
        JOIN trips t ON t.trip_id = ts.trip_id
        JOIN vehicles v ON v.vehicle_id = t.vehicle_id
-       LEFT JOIN users du ON du.user_id = t.driver_user_id
+       LEFT JOIN users du ON du.user_id = COALESCE(t.driver_user_id, (SELECT dv.user_id FROM users dv WHERE dv.assigned_vehicle_id = t.vehicle_id AND dv.role = 'Driver' ORDER BY dv.created_at LIMIT 1))
        WHERE ts.order_id = $1`,
       [orderId]
     )
@@ -778,177 +778,174 @@ router.get('/:id', requireRole(STORE_MANAGER, ...PLANNING_ROLES), async (req, re
       )
       : []
 
-    res.json({ order, outlet, items, events, deferrals, plan: plan || null, created_by: creator || null, related_orders: related })
+    const [delivery] = await sql.query(
+      `SELECT outcome, actual_arrival_time, actual_departure_time, handling_duration_min, is_late, lateness_minutes,
+              received_by_name, driver_notes, recorded_offline, synced_at, proof_photo_data AS proof_photo
+       FROM delivery_records WHERE order_id = $1`,
+      [orderId]
+    )
+    const [receipt] = await sql.query(
+      `SELECT r.receipt_status, r.received_cases, r.damaged_cases, r.missing_cases, r.temp_check_celsius,
+              r.manager_notes, r.line_details, r.confirmed_at, u.full_name AS confirmed_by
+       FROM receipt_confirmations r LEFT JOIN users u ON u.user_id = r.manager_user_id WHERE r.order_id = $1`,
+      [orderId]
+    )
+    const [loading] = await sql.query(
+      `SELECT shortfall_flag, shortfall_units, shortfall_reason, issue_type, item_name, notes, verified_at
+       FROM loading_verifications WHERE order_id = $1 ORDER BY verified_at DESC LIMIT 1`,
+      [orderId]
+    )
+    // Progress of the trip carrying this order — sequence and status only, no other outlets' details.
+    const tripProgress = plan
+      ? await sql.query(
+        `SELECT stop_sequence, status, planned_arrival_time, actual_arrival_time, (order_id = $2) AS is_this_order
+         FROM trip_stops WHERE trip_id = $1 ORDER BY stop_sequence`,
+        [plan.trip_id, orderId]
+      )
+      : []
+    const [trip] = plan
+      ? await sql.query('SELECT status, dispatched_at, completed_at, delivery_date FROM trips WHERE trip_id = $1', [plan.trip_id])
+      : []
+    const issues = await sql.query(
+      `SELECT i.issue_id, i.reported_by_role, i.issue_category, i.severity, i.description, i.resolution_status,
+              i.resolution_notes, i.reported_at, u.full_name AS reported_by
+       FROM operational_issues i LEFT JOIN users u ON u.user_id = i.reported_by_user_id
+       WHERE i.related_order_id = $1 ORDER BY i.reported_at DESC`,
+      [orderId]
+    )
+
+    res.json({
+      order, outlet, items, events, deferrals, plan: plan || null, created_by: creator || null, related_orders: related,
+      loading: loading || null, delivery: delivery || null, receipt: receipt || null, trip: trip || null, trip_progress: tripProgress, issues,
+    })
   } catch (err) {
     sendError(res, err, 'Failed to load order')
   }
 })
 
-// POST /api/orders/:id/confirm-receipt — Store Manager inspects and confirms received delivery
-router.post('/:id/confirm-receipt', requireRole(STORE_MANAGER, ...PLANNING_ROLES), async (req, res) => {
+// POST /api/orders/:id/confirm-receipt — store manager counts what arrived and signs off.
+// Body: { lines: [{ item_id, delivered_qty, condition: 'good' | 'damaged' | 'missing' }], temp_check_celsius?, notes? }
+// Shortages or damage put the order in 'disputed' and raise an issue for dispatch; otherwise 'received'.
+router.post('/:id/confirm-receipt', requireRole(STORE_MANAGER), async (req, res) => {
   const orderId = req.params.id
-  const {
-    receipt_status = 'accepted',
-    received_cases = 0,
-    damaged_cases = 0,
-    missing_cases = 0,
-    temp_check_celsius = null,
-    manager_notes = '',
-  } = req.body || {}
+  const { lines, temp_check_celsius: tempRaw, notes } = req.body || {}
+  if (!Array.isArray(lines) || lines.length === 0) return res.status(400).json({ error: 'Count every line before signing off.' })
 
   try {
+    const ctx = await loadStoreContext(req.user.userId)
+    const temp = tempRaw === undefined || tempRaw === null || tempRaw === '' ? null : Number(tempRaw)
+    if (temp !== null && (!Number.isFinite(temp) || temp < -30 || temp > 40)) throw httpError(400, 'Enter a realistic temperature in °C, or leave it blank.')
+
     const result = await withTransaction(async (tx) => {
-      const [order] = await tx.query('SELECT * FROM orders WHERE order_id = $1 FOR UPDATE', [orderId])
+      const [order] = await tx.query('SELECT order_id, outlet_id, status FROM orders WHERE order_id = $1 FOR UPDATE', [orderId])
       if (!order) throw httpError(404, `Order ${orderId} not found.`)
-
-      if (isRole(req, STORE_MANAGER)) {
-        const ctx = await loadStoreContext(req.user.userId)
-        if (order.outlet_id !== ctx.outlet_id) throw httpError(403, 'You can only confirm receipts for your own outlet.')
+      if (order.outlet_id !== ctx.outlet_id) throw httpError(403, 'You can only confirm receipts for your own outlet.')
+      const [existing] = await tx.query('SELECT 1 FROM receipt_confirmations WHERE order_id = $1', [orderId])
+      if (existing || ['received', 'disputed'].includes(order.status)) throw httpError(409, `Receipt for ${orderId} is already confirmed.`)
+      if (!['delivered', 'partial'].includes(order.status)) {
+        throw httpError(409, `${orderId} has not been delivered yet (status: ${order.status}). Confirm receipt after the driver records the delivery.`)
       }
 
-      const isDisputed = Number(damaged_cases) > 0 || Number(missing_cases) > 0 || receipt_status === 'rejected' || receipt_status === 'accepted_with_exceptions'
-      const targetStatus = isDisputed ? 'disputed' : 'received'
+      const items = await tx.query('SELECT item_id, product_name, quantity_cases FROM order_items WHERE order_id = $1', [orderId])
+      const byId = new Map(items.map((i) => [String(i.item_id), i]))
+      let received = 0
+      let damaged = 0
+      let missing = 0
+      const details = []
+      for (const line of lines) {
+        const item = byId.get(String(line.item_id))
+        if (!item) throw httpError(400, `Item ${line.item_id} is not on ${orderId}.`)
+        const ordered = item.quantity_cases
+        const condition = ['good', 'damaged', 'missing'].includes(String(line.condition).toLowerCase()) ? String(line.condition).toLowerCase() : 'good'
+        const delivered = condition === 'missing' ? 0 : Math.max(0, Math.min(ordered, Math.floor(Number(line.delivered_qty) || 0)))
+        const lineDamaged = condition === 'damaged' ? delivered : 0
+        received += delivered
+        damaged += lineDamaged
+        missing += ordered - delivered
+        details.push({ item_id: item.item_id, product: item.product_name, ordered, delivered, damaged: lineDamaged, missing: ordered - delivered })
+      }
+      if (details.length !== items.length) throw httpError(400, 'Include every line of the order in the count.')
 
-      // Upsert into receipt_confirmations
+      const disputed = damaged > 0 || missing > 0
+      const summary = `${received} received, ${damaged} damaged, ${missing} missing${temp !== null ? `, ${temp}°C at receipt` : ''}`
       await tx.query(
-        `INSERT INTO receipt_confirmations (
-           order_id, outlet_id, manager_user_id, receipt_status, received_cases,
-           damaged_cases, missing_cases, temp_check_celsius, manager_notes, confirmed_at
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
-         ON CONFLICT (order_id) DO UPDATE SET
-           receipt_status = EXCLUDED.receipt_status,
-           received_cases = EXCLUDED.received_cases,
-           damaged_cases = EXCLUDED.damaged_cases,
-           missing_cases = EXCLUDED.missing_cases,
-           temp_check_celsius = EXCLUDED.temp_check_celsius,
-           manager_notes = EXCLUDED.manager_notes,
-           confirmed_at = CURRENT_TIMESTAMP`,
-        [
-          orderId,
-          order.outlet_id,
-          req.user.userId,
-          receipt_status,
-          Number(received_cases) || 0,
-          Number(damaged_cases) || 0,
-          Number(missing_cases) || 0,
-          temp_check_celsius !== null && temp_check_celsius !== undefined && temp_check_celsius !== '' ? Number(temp_check_celsius) : null,
-          manager_notes || null,
-        ]
+        `INSERT INTO receipt_confirmations (order_id, outlet_id, manager_user_id, receipt_status, received_cases,
+           damaged_cases, missing_cases, temp_check_celsius, manager_notes, line_details, confirmed_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())`,
+        [orderId, order.outlet_id, req.user.userId, disputed ? 'accepted_with_issues' : 'accepted_in_full',
+          received, damaged, missing, temp, notes?.trim() || null, JSON.stringify(details)]
       )
+      await transitionOrder(tx, orderId, disputed ? 'disputed' : 'received', actorOf(req),
+        `Receipt confirmed: ${summary}.${notes?.trim() ? ` ${notes.trim()}` : ''}`)
 
-      // Transition order status
-      if (['delivered', 'partial', 'dispatched'].includes(order.status)) {
-        await transitionOrder(
-          tx,
-          orderId,
-          targetStatus,
-          actorOf(req),
-          `Receipt confirmed: ${received_cases} received, ${damaged_cases} damaged, ${missing_cases} missing.${temp_check_celsius ? ` Temp: ${temp_check_celsius}°C.` : ''} ${manager_notes ? `Notes: ${manager_notes}` : ''}`.trim()
-        )
-      } else if (order.status !== targetStatus) {
-        await tx.query('UPDATE orders SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE order_id = $2', [targetStatus, orderId])
-        await recordEvent(tx, orderId, order.status, targetStatus, actorOf(req), `Receipt confirmation updated: ${targetStatus}`)
-      }
-
-      // Mark matching trip_stop completed
-      await tx.query(`UPDATE trip_stops SET status = 'completed' WHERE order_id = $1`, [orderId])
-
-      // If disputed, automatically create an operational issue for dispatchers
-      if (isDisputed) {
-        const [ts] = await tx.query('SELECT trip_id FROM trip_stops WHERE order_id = $1', [orderId])
+      if (disputed) {
+        const [stop] = await tx.query('SELECT trip_id FROM trip_stops WHERE order_id = $1', [orderId])
+        const lineText = details.filter((d) => d.damaged || d.missing)
+          .map((d) => `${d.product}: ${d.missing ? `${d.missing} missing` : ''}${d.missing && d.damaged ? ', ' : ''}${d.damaged ? `${d.damaged} damaged` : ''}`)
+          .join('; ')
         await tx.query(
-          `INSERT INTO operational_issues (
-             reported_by_role, reported_by_user_id, related_order_id, related_trip_id,
-             outlet_id, issue_category, severity, impact, description, resolution_status
-           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'open')`,
-          [
-            'Store Manager',
-            req.user.userId,
-            orderId,
-            ts?.trip_id || null,
-            order.outlet_id,
-            Number(damaged_cases) > 0 ? 'damaged_goods' : 'delivery_shortfall',
-            Number(damaged_cases) > 5 ? 'high' : 'medium',
-            'delivery',
-            `Receipt discrepancy at ${order.outlet_id}: ${damaged_cases} damaged, ${missing_cases} missing. ${manager_notes || ''}`.trim(),
-          ]
+          `INSERT INTO operational_issues (reported_by_role, reported_by_user_id, related_order_id, related_trip_id, outlet_id,
+             issue_category, severity, impact, description)
+           VALUES ('Store Manager', $1, $2, $3, $4, $5, $6, 'receipt', $7)`,
+          [req.user.userId, orderId, stop?.trip_id || null, order.outlet_id,
+            damaged > 0 ? 'receipt: damaged goods' : 'receipt: short delivery', damaged + missing > 10 ? 'high' : 'medium',
+            `Receipt discrepancy — ${lineText}.${notes?.trim() ? ` ${notes.trim()}` : ''}`]
         )
       }
-
-      return { order_id: orderId, status: targetStatus, received_cases, damaged_cases, missing_cases }
+      return { status: disputed ? 'disputed' : 'received', received, damaged, missing }
     })
 
     res.json({
       success: true,
-      message: `Receipt confirmed successfully for ${orderId}. Status: ${result.status}.`,
-      data: result,
+      ...result,
+      message: result.status === 'received'
+        ? `Receipt for ${orderId} confirmed in full.`
+        : `Receipt for ${orderId} confirmed with ${result.missing} missing and ${result.damaged} damaged. Dispatch has been notified.`,
     })
   } catch (err) {
     sendError(res, err, 'Failed to confirm receipt')
   }
 })
 
-// POST /api/orders/:id/issues — Store Manager or Dispatcher logs an operational issue
+// Matches the categories on the store manager's Report Issue screen.
+const ISSUE_CATEGORIES = ['missing-item', 'damaged-cargo', 'incorrect-item', 'quantity-count', 'delivery-delay', 'other-exception']
+
+// POST /api/orders/:id/issues — store manager reports a problem with an order.
 router.post('/:id/issues', requireRole(STORE_MANAGER, ...PLANNING_ROLES), async (req, res) => {
   const orderId = req.params.id
-  const {
-    category = 'other',
-    description = '',
-    severity = 'medium',
-    impact = 'medium',
-    photo_data = null,
-    affected_product = '',
-    affected_units = 0,
-  } = req.body || {}
+  const { category, description, item_id: itemId, affected_qty: affectedQty, photo } = req.body || {}
+  if (!ISSUE_CATEGORIES.includes(category)) return res.status(400).json({ error: 'Choose an issue category.' })
+  if (!description?.trim()) return res.status(400).json({ error: 'Describe the issue so dispatch can act on it.' })
 
   try {
-    const [order] = await sql.query('SELECT order_id, outlet_id FROM orders WHERE order_id = $1', [orderId])
-    if (!order) throw httpError(404, `Order ${orderId} not found.`)
+    const ctx = isRole(req, STORE_MANAGER) ? await loadStoreContext(req.user.userId) : null
+    const issue = await withTransaction(async (tx) => {
+      const [order] = await tx.query('SELECT order_id, outlet_id, status FROM orders WHERE order_id = $1', [orderId])
+      if (!order) throw httpError(404, `Order ${orderId} not found.`)
+      if (ctx && order.outlet_id !== ctx.outlet_id) throw httpError(403, 'You can only report issues for your own outlet.')
 
-    if (isRole(req, STORE_MANAGER)) {
-      const ctx = await loadStoreContext(req.user.userId)
-      if (order.outlet_id !== ctx.outlet_id) throw httpError(403, 'You can only report issues for your own outlet.')
-    }
-
-    const [ts] = await sql.query('SELECT trip_id FROM trip_stops WHERE order_id = $1', [orderId])
-
-    const fullDesc = `${affected_product ? `Product: ${affected_product} (${affected_units} units). ` : ''}${description}`.trim()
-
-    const [inserted] = await sql.query(
-      `INSERT INTO operational_issues (
-         reported_by_role, reported_by_user_id, related_order_id, related_trip_id,
-         outlet_id, issue_category, severity, impact, description, photo_data, resolution_status
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'open')
-       RETURNING issue_id, reported_at`,
-      [
-        req.user.role || 'Store Manager',
-        req.user.userId,
-        orderId,
-        ts?.trip_id || null,
-        order.outlet_id,
-        category,
-        severity,
-        impact,
-        fullDesc,
-        photo_data || null,
-      ]
-    )
-
-    await recordEvent(
-      sql,
-      orderId,
-      null,
-      'issue_reported',
-      actorOf(req),
-      `Issue #${inserted.issue_id} (${category}, ${severity} severity): ${description.slice(0, 100)}`
-    )
-
-    res.json({
-      success: true,
-      issue_id: `ISSUE-${inserted.issue_id}`,
-      reported_at: inserted.reported_at,
-      message: 'Issue reported to operations dispatch.',
+      let itemText = ''
+      if (itemId) {
+        const [item] = await tx.query('SELECT product_name, quantity_cases FROM order_items WHERE order_id = $1 AND item_id = $2', [orderId, itemId])
+        if (!item) throw httpError(400, `That item is not on ${orderId}.`)
+        const qty = Math.max(0, Math.min(item.quantity_cases, Math.floor(Number(affectedQty) || 0)))
+        itemText = `${item.product_name}${qty ? ` — ${qty} of ${item.quantity_cases} affected` : ''}. `
+      }
+      const [stop] = await tx.query('SELECT trip_id FROM trip_stops WHERE order_id = $1', [orderId])
+      const [row] = await tx.query(
+        `INSERT INTO operational_issues (reported_by_role, reported_by_user_id, related_order_id, related_trip_id, outlet_id,
+           issue_category, severity, impact, description, photo_data)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,'store',$8,$9) RETURNING issue_id, reported_at`,
+        [req.user.role, req.user.userId, orderId, stop?.trip_id || null, order.outlet_id, `store: ${category}`,
+          category === 'damaged-cargo' ? 'high' : 'medium', `${itemText}${description.trim()}`, photo || null]
+      )
+      await recordEvent(tx, {
+        orderId, from: order.status, to: order.status, actor: actorOf(req),
+        note: `Issue #${row.issue_id} reported (${category}): ${description.trim().slice(0, 120)}`,
+      })
+      return row
     })
+    res.status(201).json({ success: true, issue_id: issue.issue_id, reported_at: issue.reported_at, message: `Issue #${issue.issue_id} sent to dispatch.` })
   } catch (err) {
     sendError(res, err, 'Failed to report issue')
   }

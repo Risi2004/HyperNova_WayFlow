@@ -1747,3 +1747,17 @@
     overflow-x: auto !important;
   }
 }
+
+@media (max-width: 600px) {
+  .td-step-item {
+    min-width: 0;
+    flex: 1 1 0;
+  }
+
+  .td-step-name {
+    font-size: 10px;
+    line-height: 1.2;
+    text-align: center;
+    word-break: break-word;
+  }
+}

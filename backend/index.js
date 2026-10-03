@@ -14,6 +14,7 @@ const productRoutes = require('./routes/productRoutes')
 const orderRoutes = require('./routes/orderRoutes')
 const planRoutes = require('./routes/planRoutes')
 const tripRoutes = require('./routes/tripRoutes')
+const issueRoutes = require('./routes/issueRoutes')
 
 // Middleware
 app.use(cors())
@@ -40,6 +41,9 @@ app.use('/plans', planRoutes)
 
 app.use('/api/trips', tripRoutes)
 app.use('/trips', tripRoutes)
+
+app.use('/api/issues', issueRoutes)
+app.use('/issues', issueRoutes)
 
 // Root Route
 app.get('/', (req, res) => {

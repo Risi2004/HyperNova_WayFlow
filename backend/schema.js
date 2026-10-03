@@ -359,6 +359,8 @@ const MIGRATIONS = [
   `ALTER TABLE loading_verifications ADD COLUMN IF NOT EXISTS planned_units INTEGER;`,
   `ALTER TABLE loading_verifications ADD COLUMN IF NOT EXISTS notes TEXT;`,
   `CREATE INDEX IF NOT EXISTS idx_trips_driver ON trips (driver_user_id, delivery_date);`,
+  `ALTER TABLE receipt_confirmations ADD COLUMN IF NOT EXISTS line_details JSONB;`,
+  `CREATE INDEX IF NOT EXISTS idx_issues_open ON operational_issues (resolution_status, reported_at);`,
   // Repair accounts unlinked by the old user-update bug: the facility label written at creation
   // ("Store OUT101 - …", "… Fleet Hub (VEH012)") still names the outlet / vehicle.
   `UPDATE users u SET outlet_id = substring(u.facility from 'Store (OUT[0-9]{3})')

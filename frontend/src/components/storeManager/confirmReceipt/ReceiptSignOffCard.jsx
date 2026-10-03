@@ -1,6 +1,13 @@
 export default function ReceiptSignOffCard({
   notes,
   onChangeNotes,
+  temperature,
+  onChangeTemperature,
+  chilled,
+  storeName,
+  managerName,
+  outletId,
+  error,
   isConfirmed,
   onToggleConfirm,
   onBack,
@@ -42,6 +49,22 @@ export default function ReceiptSignOffCard({
         />
       </div>
 
+      <div className="cr-notes-group">
+        <label className="cr-notes-label" htmlFor="cr-temp-input">
+          Product temperature at receipt (°C) {!chilled && <span className="cr-optional-tag">(Optional)</span>}
+        </label>
+        <input
+          id="cr-temp-input"
+          className="cr-notes-textarea"
+          type="number"
+          step="0.1"
+          inputMode="decimal"
+          value={temperature}
+          onChange={(e) => onChangeTemperature(e.target.value)}
+          placeholder={chilled ? 'e.g. 3.5' : 'Leave blank for ambient goods'}
+        />
+      </div>
+
       {/* Warm Warning / Legal Confirmation Box */}
       <div
         className={`cr-certify-box ${isConfirmed ? 'is-checked' : ''}`}
@@ -61,21 +84,21 @@ export default function ReceiptSignOffCard({
             id="cr-confirm-checkbox"
             className="cr-certify-checkbox"
             checked={isConfirmed}
-            onChange={(e) => {
-              e.stopPropagation()
-              onToggleConfirm()
-            }}
+            onClick={(e) => e.stopPropagation()}
+            onChange={onToggleConfirm}
           />
         </div>
         <div className="cr-certify-text-col">
           <label htmlFor="cr-confirm-checkbox" className="cr-certify-text" onClick={(e) => e.stopPropagation()}>
-            I confirm that the above delivery has been received by <strong>Colombo 05 Store</strong> and I have reviewed the delivered items and quantities.
+            I confirm that the above delivery has been received by <strong>{storeName}</strong> and I have reviewed the delivered items and quantities.
           </label>
           <span className="cr-certify-subtext">
-            Digital signature will be timestamped under Store Manager credentials: <strong>Sarah Perera (OUT043)</strong>.
+            Digital signature will be timestamped under Store Manager credentials: <strong>{managerName || 'you'} ({outletId})</strong>.
           </span>
         </div>
       </div>
+
+      {error && <p className="sm-page-state error" role="alert">{error}</p>}
 
       {/* Bottom Action Buttons */}
       <div className="cr-signoff-actions-bar">

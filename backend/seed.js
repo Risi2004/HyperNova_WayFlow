@@ -563,7 +563,7 @@ async function seedDatabase() {
       target_delivery_date: demoDate,
       cutoff_time: cutoffTime,
       placed_before_cutoff: true,
-      status: 'delivered',
+      status: 'received',
       temp_requirement: 'chilled',
       total_units: 24,
       total_weight_kg: 656.0,
@@ -688,7 +688,7 @@ async function seedDatabase() {
   )
 
   // Activity trail for the sample orders, so Order Details shows how each reached its status
-  const LIFECYCLE = ['submitted', 'confirmed', 'planned', 'loading', 'loaded', 'dispatched', 'delivered']
+  const LIFECYCLE = ['submitted', 'confirmed', 'planned', 'loading', 'loaded', 'dispatched', 'delivered', 'received']
   // Placed the morning before, confirmed at the 4 PM cutoff, planned that evening,
   // loaded and dispatched before dawn on the delivery day.
   const EVENT_TIMES = {
@@ -700,6 +700,7 @@ async function seedDatabase() {
     loaded: (o) => `${o.target_delivery_date}T04:00:00+05:30`,
     dispatched: (o) => `${o.target_delivery_date}T04:15:00+05:30`,
     delivered: (o) => `${o.target_delivery_date}T05:08:00+05:30`,
+    received: (o) => `${o.target_delivery_date}T05:20:00+05:30`,
   }
   const sampleEvents = []
   for (const order of sampleOrders) {
@@ -709,9 +710,9 @@ async function seedDatabase() {
         order_id: order.order_id,
         from_status: i === 0 ? null : path[i - 1],
         to_status: status,
-        actor_user_id: status === 'submitted' ? order.created_by_user_id : status === 'confirmed' ? null : 'USR-102',
-        actor_role: status === 'submitted' ? 'Store Manager' : status === 'confirmed' ? 'System' : 'Dispatcher',
-        note: status === 'submitted' ? 'Order placed by store manager' : status === 'confirmed' ? 'Order intake closed — order confirmed for planning' : null,
+        actor_user_id: ['submitted', 'received'].includes(status) ? order.created_by_user_id : status === 'confirmed' ? null : 'USR-102',
+        actor_role: ['submitted', 'received'].includes(status) ? 'Store Manager' : status === 'confirmed' ? 'System' : 'Dispatcher',
+        note: status === 'submitted' ? 'Order placed by store manager' : status === 'confirmed' ? 'Order intake closed — order confirmed for planning' : status === 'received' ? 'Receipt confirmed: 24 received, 0 damaged, 0 missing, 3.8°C at receipt.' : null,
         created_at: EVENT_TIMES[status](order),
       })
     })
@@ -897,18 +898,20 @@ async function seedDatabase() {
     [sampleDeferral]
   )
 
-  // Seed Delivery Record (Proof of Delivery for stop 1)
+  // Seed Delivery Record (Proof of Delivery for stop 1). The stop id comes from the database:
+  // on an existing database the trip_stops sequence does not start at 1.
+  const [podStop] = await sql.query(`SELECT stop_id FROM trip_stops WHERE order_id = 'ORD-2026-00101'`)
   const sampleDeliveryRecord = {
     trip_id: 'TR-024',
     order_id: 'ORD-2026-00101',
-    stop_id: 1,
+    stop_id: podStop.stop_id,
     driver_user_id: 'USR-108',
     actual_arrival_time: '04:50',
     actual_departure_time: '05:08',
     handling_duration_min: 18,
     is_late: false,
     lateness_minutes: 0,
-    outcome: 'delivered_full',
+    outcome: 'delivered',
     received_by_name: 'Sarah Perera (Store Manager)',
     signature_data: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0xMCA1MCBDIDIwIDIwLCA0MCA4MCwgNjAgNTAgUyA4MCAyMCwgMTAwIDUwIiBzdHJva2U9IiMwZjE3MmEiIGZpbGw9InRyYW5zcGFyZW50Ii8+PC9zdmc+',
     proof_photo_url: null,

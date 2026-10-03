@@ -28,7 +28,7 @@ const round = (n, dp = 1) => Math.round(n * 10 ** dp) / 10 ** dp
 function sendError(res, err, fallback) {
   const status = err.status || 500
   if (status >= 500) console.error(fallback, err)
-  res.status(status).json({ error: status >= 500 ? `${fallback}: ${err.message}` : err.message, ...(err.extra || {}) })
+  res.status(status).json({ error: status >= 500 ? `${fallback}. Please try again.` : err.message, ...(err.extra || {}) })
 }
 
 router.param('date', (req, res, next, date) => {

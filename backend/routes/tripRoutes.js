@@ -30,7 +30,7 @@ function httpError(status, message) {
 function sendError(res, err, fallback) {
   const status = err.status || 500
   if (status >= 500) console.error(fallback, err)
-  res.status(status).json({ error: status >= 500 ? `${fallback}: ${err.message}` : err.message })
+  res.status(status).json({ error: status >= 500 ? `${fallback}. Please try again.` : err.message })
 }
 
 // 'HH:MM' in Colombo for an ISO timestamp (or now).
@@ -62,10 +62,6 @@ async function loadTrip(db, req, tripId, { forUpdate = false } = {}) {
     if (trip.driver_user_id !== req.user.userId && trip.vehicle_id !== u?.assigned_vehicle_id) {
       throw httpError(403, 'This trip is assigned to another driver.')
     }
-  } else if (isRole(req, 'Store Manager')) {
-    const [u] = await db.query('SELECT outlet_id FROM users WHERE user_id = $1', [req.user.userId])
-    const [stop] = await db.query('SELECT 1 FROM trip_stops WHERE trip_id = $1 AND to_outlet_id = $2', [trip.trip_id, u?.outlet_id])
-    if (!stop) throw httpError(403, 'This trip does not serve your store outlet.')
   } else if (!OPS.some((r) => isRole(req, r))) {
     throw httpError(403, 'Not allowed.')
   }
@@ -82,7 +78,7 @@ const TRIP_LIST_SELECT = `
          (SELECT COUNT(*)::int FROM loading_verifications lv WHERE lv.trip_id = t.trip_id) AS verified,
          (SELECT COUNT(*)::int FROM loading_verifications lv WHERE lv.trip_id = t.trip_id AND lv.shortfall_flag) AS shortfalls,
          (SELECT COUNT(*)::int FROM trip_stops s WHERE s.trip_id = t.trip_id AND s.status IN ('delivered','partial','failed')) AS completed_stops,
-         (SELECT COUNT(*)::int FROM operational_issues i WHERE i.related_trip_id = t.trip_id AND i.resolution_status = 'open') AS open_issues,
+         (SELECT COUNT(*)::int FROM operational_issues i WHERE i.related_trip_id = t.trip_id AND i.resolution_status <> 'resolved') AS open_issues,
          (SELECT COUNT(*)::int FROM delivery_records dr JOIN trip_stops s ON s.order_id = dr.order_id WHERE s.trip_id = t.trip_id AND dr.is_late) AS late_stops,
          (SELECT COUNT(*)::int FROM delivery_records dr JOIN trip_stops s ON s.order_id = dr.order_id WHERE s.trip_id = t.trip_id AND dr.recorded_offline) AS offline_records,
          (SELECT s.to_outlet_id FROM trip_stops s WHERE s.trip_id = t.trip_id AND s.status NOT IN ('delivered','partial','failed') ORDER BY s.stop_sequence LIMIT 1) AS next_outlet_id,
@@ -91,7 +87,7 @@ const TRIP_LIST_SELECT = `
          (SELECT MAX(s.planned_arrival_time) FROM trip_stops s WHERE s.trip_id = t.trip_id) AS last_arrival
   FROM trips t
   JOIN vehicles v ON v.vehicle_id = t.vehicle_id
-  LEFT JOIN users u ON u.user_id = t.driver_user_id`
+  LEFT JOIN users u ON u.user_id = COALESCE(t.driver_user_id, (SELECT dv.user_id FROM users dv WHERE dv.assigned_vehicle_id = t.vehicle_id AND dv.role = 'Driver' ORDER BY dv.created_at LIMIT 1))`
 
 // ---------- Lists ----------
 

@@ -10,21 +10,11 @@ export default function EmptyStateCard() {
           <polyline points="20 6 9 17 4 12" />
         </svg>
       </div>
-
       <h3 className="empty-state-title">No Deferred Orders</h3>
-      <p className="empty-state-desc">
-        All confirmed orders are currently assigned to feasible delivery routes.
-      </p>
-
-      <button
-        type="button"
-        className="btn-view-planner-blue"
-        onClick={() => navigate('/dispatcher/delivery-planner')}
-      >
+      <p className="empty-state-desc">Every confirmed order fits on a published or draft trip.</p>
+      <button type="button" className="btn-view-planner-blue" onClick={() => navigate('/dispatcher/delivery-planner')}>
         View Delivery Planner
       </button>
-
-      <span className="empty-state-footer-tag">ASSOCIATED EMPTY STATE</span>
     </div>
   )
 }

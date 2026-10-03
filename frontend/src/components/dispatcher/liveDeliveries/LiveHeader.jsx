@@ -1,49 +1,36 @@
-import { useState } from 'react'
-import dateIcon from '../../../assets/icons/date.svg'
+import { formatDate } from '../../../utils/orderFormat'
 
-export default function LiveHeader({ onRefresh }) {
-  const [isRefreshing, setIsRefreshing] = useState(false)
-
-  const handleRefreshClick = () => {
-    setIsRefreshing(true)
-    if (onRefresh) onRefresh()
-    setTimeout(() => setIsRefreshing(false), 600)
-  }
+export default function LiveHeader({ date, dates, onDateChange, updatedAt, onRefresh, connected }) {
+  const options = dates.includes(date) || !date ? dates : [...dates, date].sort()
 
   return (
     <div className="live-header-container">
-      {/* Title & Subtitle */}
       <div className="live-title-group">
         <h1 className="live-page-title">Live Deliveries</h1>
-        <p className="live-page-subtitle">
-          Monitor today's delivery progress across the Waypoint network
-        </p>
+        <p className="live-page-subtitle">Published trips, their progress and anything that needs dispatch attention.</p>
       </div>
 
-      {/* Top Actions & Connection Status */}
       <div className="live-header-actions">
-        {/* Live Data Connected Badge */}
         <div className="live-connection-badge">
           <span className="live-pulse-dot"></span>
-          <span>Live data connected</span>
+          <span>{connected ? 'Auto-refresh every 30s' : 'Cannot reach the server'}</span>
         </div>
 
-        {/* Date Selector */}
-        <div className="live-date-picker-btn">
-          <span>26 September 2026</span>
-          <img src={dateIcon} alt="" className="live-date-icon" />
-        </div>
+        <select className="live-date-picker-btn" value={date || ''} onChange={(e) => onDateChange(e.target.value)} aria-label="Delivery date">
+          {options.map((d) => (
+            <option key={d} value={d}>
+              {formatDate(d)}
+            </option>
+          ))}
+        </select>
 
-        {/* Last Updated Timestamp */}
-        <span className="live-last-updated-stamp">Last updated: 09:42 AM</span>
+        {updatedAt && (
+          <span className="live-last-updated-stamp">
+            Last updated: {updatedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </span>
+        )}
 
-        {/* Refresh Button */}
-        <button
-          type="button"
-          className={`btn-live-refresh ${isRefreshing ? 'refreshing' : ''}`}
-          onClick={handleRefreshClick}
-          title="Refresh live deliveries"
-        >
+        <button type="button" className="btn-live-refresh" onClick={onRefresh} title="Refresh live deliveries">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="refresh-icon">
             <polyline points="23 4 23 10 17 10" />
             <polyline points="1 20 1 14 7 14" />

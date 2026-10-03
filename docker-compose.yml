@@ -1,0 +1,61 @@
+# WayFlow — complete stack: PostgreSQL, API (migrates and seeds itself) and the web app.
+#
+#   1. cp .env.example .env
+#   2. put the competition CSVs in ./datasets (they are confidential, so not in the repository)
+#   3. docker compose up --build
+#
+# Web app: http://localhost:8080   API: http://localhost:5000/api/health
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-wayflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wayflow}
+      POSTGRES_DB: ${POSTGRES_DB:-wayflow}
+      TZ: Asia/Colombo
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-wayflow} -d ${POSTGRES_DB:-wayflow}']
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 5000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-wayflow}:${POSTGRES_PASSWORD:-wayflow}@db:5432/${POSTGRES_DB:-wayflow}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      DATASETS_DIR: /datasets
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+      EMAIL_SERVICE: ${EMAIL_SERVICE:-gmail}
+      EMAIL_USER: ${EMAIL_USER:-}
+      EMAIL_PASS: ${EMAIL_PASS:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      # Optional: pin the clock for a demo, e.g. 2026-10-04T10:00:00+05:30
+      WAYFLOW_NOW: ${WAYFLOW_NOW:-}
+    volumes:
+      - ./datasets:/datasets:ro
+    ports:
+      - '${API_PORT:-5000}:5000'
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5000/api}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - '${WEB_PORT:-8080}:80'
+
+volumes:
+  pgdata:

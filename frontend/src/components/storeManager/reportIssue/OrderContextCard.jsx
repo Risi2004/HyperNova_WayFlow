@@ -1,11 +1,12 @@
 export default function OrderContextCard({
-  orderId = 'ORD-1042',
-  store = 'Colombo 05 (OUT043)',
-  arrivalTime = '28 Sep, 10:52 AM',
-  dockBay = 'Bay 02 Ramp',
-  tripId = 'Trip TR-024',
-  driverName = 'Marcus Vance',
-  status = 'Completed',
+  orderId,
+  store,
+  arrivalTime,
+  arrivalLabel = 'Arrival',
+  receivedBy,
+  tripId,
+  driverName,
+  status,
 }) {
   return (
     <div className="ri-side-card">
@@ -37,13 +38,13 @@ export default function OrderContextCard({
         </div>
 
         <div className="ri-context-cell">
-          <span className="ri-context-label">Arrival Time</span>
+          <span className="ri-context-label">{arrivalLabel}</span>
           <span className="ri-context-val">{arrivalTime}</span>
         </div>
 
         <div className="ri-context-cell">
-          <span className="ri-context-label">Dock Bay</span>
-          <span className="ri-context-val">{dockBay}</span>
+          <span className="ri-context-label">Received By</span>
+          <span className="ri-context-val">{receivedBy}</span>
         </div>
       </div>
 
