@@ -62,6 +62,10 @@ async function loadTrip(db, req, tripId, { forUpdate = false } = {}) {
     if (trip.driver_user_id !== req.user.userId && trip.vehicle_id !== u?.assigned_vehicle_id) {
       throw httpError(403, 'This trip is assigned to another driver.')
     }
+  } else if (isRole(req, 'Store Manager')) {
+    const [u] = await db.query('SELECT outlet_id FROM users WHERE user_id = $1', [req.user.userId])
+    const [stop] = await db.query('SELECT 1 FROM trip_stops WHERE trip_id = $1 AND to_outlet_id = $2', [trip.trip_id, u?.outlet_id])
+    if (!stop) throw httpError(403, 'This trip does not serve your store outlet.')
   } else if (!OPS.some((r) => isRole(req, r))) {
     throw httpError(403, 'Not allowed.')
   }
@@ -79,6 +83,10 @@ const TRIP_LIST_SELECT = `
          (SELECT COUNT(*)::int FROM loading_verifications lv WHERE lv.trip_id = t.trip_id AND lv.shortfall_flag) AS shortfalls,
          (SELECT COUNT(*)::int FROM trip_stops s WHERE s.trip_id = t.trip_id AND s.status IN ('delivered','partial','failed')) AS completed_stops,
          (SELECT COUNT(*)::int FROM operational_issues i WHERE i.related_trip_id = t.trip_id AND i.resolution_status = 'open') AS open_issues,
+         (SELECT COUNT(*)::int FROM delivery_records dr JOIN trip_stops s ON s.order_id = dr.order_id WHERE s.trip_id = t.trip_id AND dr.is_late) AS late_stops,
+         (SELECT COUNT(*)::int FROM delivery_records dr JOIN trip_stops s ON s.order_id = dr.order_id WHERE s.trip_id = t.trip_id AND dr.recorded_offline) AS offline_records,
+         (SELECT s.to_outlet_id FROM trip_stops s WHERE s.trip_id = t.trip_id AND s.status NOT IN ('delivered','partial','failed') ORDER BY s.stop_sequence LIMIT 1) AS next_outlet_id,
+         (SELECT s.stop_sequence FROM trip_stops s WHERE s.trip_id = t.trip_id AND s.status NOT IN ('delivered','partial','failed') ORDER BY s.stop_sequence LIMIT 1) AS next_stop_sequence,
          (SELECT MIN(s.planned_arrival_time) FROM trip_stops s WHERE s.trip_id = t.trip_id) AS first_arrival,
          (SELECT MAX(s.planned_arrival_time) FROM trip_stops s WHERE s.trip_id = t.trip_id) AS last_arrival
   FROM trips t
@@ -106,7 +114,18 @@ router.get('/', requireRole(...OPS), async (req, res) => {
        ORDER BY t.planned_departure_time, t.vehicle_id, t.trip_number`,
       [date, depot]
     )
-    res.json({ date, depot: depot || 'all', dates: dateList, trips })
+
+    const metrics = {
+      active: trips.filter((t) => t.status === 'dispatched' || (t.completed_stops > 0 && t.completed_stops < t.stops)).length,
+      completed: trips.filter((t) => t.status === 'completed' || (t.stops > 0 && t.completed_stops === t.stops)).length,
+      delayed: trips.filter((t) => t.late_stops > 0).length,
+      problems: trips.filter((t) => t.open_issues > 0 || t.shortfalls > 0).length,
+      lateStops: trips.reduce((sum, t) => sum + (t.late_stops || 0), 0),
+      offlineRecords: trips.reduce((sum, t) => sum + (t.offline_records || 0), 0),
+      openIssues: trips.reduce((sum, t) => sum + (t.open_issues || 0), 0),
+    }
+
+    res.json({ date, depot: depot || 'all', dates: dateList, trips, metrics })
   } catch (err) {
     sendError(res, err, 'Failed to load trips')
   }

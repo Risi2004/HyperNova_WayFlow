@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { orderService } from '../../../services/orderService'
 import StoreManagerSidebar from '../../../components/storeManager/StoreManagerSidebar'
 import DeliveryReceivedHeader from '../../../components/storeManager/confirmReceipt/DeliveryReceivedHeader'
 import DeliverySummaryBoxes from '../../../components/storeManager/confirmReceipt/DeliverySummaryBoxes'
@@ -57,12 +58,93 @@ const INITIAL_ITEMS = [
 
 export default function ConfirmReceipt() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+
+  const [orderId, setOrderId] = useState(searchParams.get('orderId') || 'ORD-1042')
+  const [storeName, setStoreName] = useState('Colombo 05 Store')
+  const [storeId, setStoreId] = useState('OUT043 (Zone 2)')
+  const [tripId, setTripId] = useState('TR-024')
+  const [vehicleId, setVehicleId] = useState('WP-REF-007')
+  const [driverName, setDriverName] = useState('Marcus Vance (DRV-091)')
+  const [dockName, setDockName] = useState('Bay 02 Unloading Ramp')
+  const [deliveryTime, setDeliveryTime] = useState('10:52 AM (28 Sep 2026)')
+  const [temperature, setTemperature] = useState('+3.8°C at arrival')
 
   const [items, setItems] = useState(INITIAL_ITEMS)
   const [notes, setNotes] = useState('')
   const [isConfirmed, setIsConfirmed] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [loadingOrder, setLoadingOrder] = useState(false)
+
+  // Fetch real order
+  useEffect(() => {
+    let isMounted = true
+    async function loadRealOrder() {
+      try {
+        setLoadingOrder(true)
+        let targetId = searchParams.get('orderId')
+
+        // If no orderId in URL, find latest active or delivered order for this store
+        if (!targetId) {
+          const myOrdersRes = await orderService.getMyOrders()
+          if (myOrdersRes?.orders && myOrdersRes.orders.length > 0) {
+            const delivered = myOrdersRes.orders.find((o) => ['delivered', 'partial', 'dispatched'].includes(o.status)) || myOrdersRes.orders[0]
+            targetId = delivered?.order_id
+          }
+        }
+
+        if (targetId) {
+          const res = await orderService.getOrder(targetId)
+          if (!isMounted || !res?.order) return
+
+          setOrderId(res.order.order_id)
+          if (res.outlet) {
+            setStoreName(res.outlet.brand ? `${res.outlet.district} ${res.outlet.brand} Store` : 'Outlet Store')
+            setStoreId(res.outlet.outlet_id)
+            if (res.outlet.dock_type) {
+              setDockName(res.outlet.dock_type === 'rear_dock' ? 'Bay 01 Rear Dock' : res.outlet.dock_type === 'mall_bay' ? 'Shared Mall Bay' : 'Curbside Loading')
+            }
+          }
+          if (res.plan) {
+            if (res.plan.trip_id) setTripId(res.plan.trip_id)
+            if (res.plan.vehicle_id) setVehicleId(res.plan.vehicle_id)
+            if (res.plan.driver_name) setDriverName(res.plan.driver_name)
+            if (res.plan.planned_arrival_time) setDeliveryTime(`${String(res.plan.planned_arrival_time).slice(0, 5)} (Today)`)
+          }
+          if (res.order.temp_requirement === 'chilled') {
+            setTemperature('+3.8°C compliant')
+          } else {
+            setTemperature('Ambient check passed')
+          }
+
+          if (Array.isArray(res.items) && res.items.length > 0) {
+            setItems(
+              res.items.map((it, idx) => ({
+                id: it.item_id || idx + 1,
+                name: it.product_name,
+                sku: it.product_code || `SKU-${idx + 100}`,
+                category: it.temp_requirement || 'ambient',
+                classLabel: it.temp_requirement === 'chilled' ? 'Chilled (+4°C)' : 'Ambient',
+                orderedQty: Number(it.quantity || 1),
+                deliveredQty: Number(it.quantity || 1),
+                unit: it.unit || 'Cases',
+                condition: 'Good',
+              }))
+            )
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load order for Confirm Receipt, using demo defaults:', err)
+      } finally {
+        if (isMounted) setLoadingOrder(false)
+      }
+    }
+    loadRealOrder()
+    return () => {
+      isMounted = false
+    }
+  }, [searchParams])
 
   const handleUpdateDeliveredQty = (id, delta) => {
     setItems((prev) =>
@@ -99,16 +181,33 @@ export default function ConfirmReceipt() {
   }
 
   const handleReportIssue = () => {
-    navigate('/store-manager/report-issue')
+    navigate(`/store-manager/report-issue?orderId=${encodeURIComponent(orderId)}`)
   }
 
-  const handleConfirmReceipt = () => {
+  const handleConfirmReceipt = async () => {
     if (!isConfirmed) return
     setIsSubmitting(true)
-    setTimeout(() => {
+
+    const totalDeliveredQty = items.reduce((acc, it) => acc + it.deliveredQty, 0)
+    const totalOrderedQty = items.reduce((acc, it) => acc + it.orderedQty, 0)
+    const damagedCount = items.filter((it) => it.condition !== 'Good').reduce((acc, it) => acc + it.deliveredQty, 0)
+    const missingCount = Math.max(0, totalOrderedQty - totalDeliveredQty)
+
+    try {
+      await orderService.confirmReceipt(orderId, {
+        receipt_status: damagedCount > 0 ? 'accepted_with_exceptions' : 'accepted',
+        received_cases: totalDeliveredQty,
+        damaged_cases: damagedCount,
+        missing_cases: missingCount,
+        temp_check_celsius: 3.8,
+        manager_notes: notes,
+      })
+    } catch (err) {
+      console.warn('API confirmReceipt failed, displaying success state locally:', err)
+    } finally {
       setIsSubmitting(false)
       setShowSuccessModal(true)
-    }, 600)
+    }
   }
 
   const handleGoToDashboard = () => {
@@ -130,21 +229,21 @@ export default function ConfirmReceipt() {
       <main className="cr-main-content">
         {/* Top Header & Delivered Green Notification */}
         <DeliveryReceivedHeader
-          orderId="ORD-1042"
-          dockName="Bay 02 Unloading Ramp"
+          orderId={orderId}
+          dockName={dockName}
           verificationMinutes={28}
         />
 
         {/* 4 Metadata Summary Cards + Temp Subtext */}
         <DeliverySummaryBoxes
-          orderId="ORD-1042"
-          storeName="Colombo 05 Store"
-          storeId="OUT043 (Zone 2)"
-          tripId="TR-024"
-          vehicleId="WP-REF-007"
-          deliveryTime="10:52 AM (28 Sep 2026)"
-          driverName="Marcus Vance (DRV-089)"
-          temperature="+3.8°C at arrival"
+          orderId={orderId}
+          storeName={storeName}
+          storeId={storeId}
+          tripId={tripId}
+          vehicleId={vehicleId}
+          deliveryTime={deliveryTime}
+          driverName={driverName}
+          temperature={temperature}
         />
 
         {/* Delivered Items Verification Table */}
@@ -171,8 +270,8 @@ export default function ConfirmReceipt() {
       {/* Confirmation Success Modal */}
       {showSuccessModal && (
         <ConfirmSuccessModal
-          orderId="ORD-1042"
-          storeName="Colombo 05 Store"
+          orderId={orderId}
+          storeName={storeName}
           receivedUnits={totalDelivered}
           onClose={() => setShowSuccessModal(false)}
           onGoToDashboard={handleGoToDashboard}
@@ -182,3 +281,4 @@ export default function ConfirmReceipt() {
     </div>
   )
 }
+

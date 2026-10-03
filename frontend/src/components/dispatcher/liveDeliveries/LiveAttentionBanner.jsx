@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 
-export default function LiveAttentionBanner() {
-  const alerts = [
+export default function LiveAttentionBanner({ alerts: passedAlerts, totalCount }) {
+  const defaultAlerts = [
     {
       routeId: 'TR-027',
       outletId: 'OUT019',
@@ -16,6 +16,11 @@ export default function LiveAttentionBanner() {
     },
   ]
 
+  const alerts = passedAlerts || defaultAlerts
+  const displayCount = totalCount !== undefined ? totalCount : alerts.length
+
+  if (alerts.length === 0) return null
+
   return (
     <div className="live-attention-card">
       <div className="attention-header-strip">
@@ -27,7 +32,7 @@ export default function LiveAttentionBanner() {
           </svg>
           <span className="attention-main-title">Needs Attention</span>
         </div>
-        <span className="attention-count-tag">4 deliveries require attention</span>
+        <span className="attention-count-tag">{displayCount} deliveries require attention</span>
       </div>
 
       <div className="attention-alerts-list">

@@ -784,4 +784,175 @@ router.get('/:id', requireRole(STORE_MANAGER, ...PLANNING_ROLES), async (req, re
   }
 })
 
+// POST /api/orders/:id/confirm-receipt — Store Manager inspects and confirms received delivery
+router.post('/:id/confirm-receipt', requireRole(STORE_MANAGER, ...PLANNING_ROLES), async (req, res) => {
+  const orderId = req.params.id
+  const {
+    receipt_status = 'accepted',
+    received_cases = 0,
+    damaged_cases = 0,
+    missing_cases = 0,
+    temp_check_celsius = null,
+    manager_notes = '',
+  } = req.body || {}
+
+  try {
+    const result = await withTransaction(async (tx) => {
+      const [order] = await tx.query('SELECT * FROM orders WHERE order_id = $1 FOR UPDATE', [orderId])
+      if (!order) throw httpError(404, `Order ${orderId} not found.`)
+
+      if (isRole(req, STORE_MANAGER)) {
+        const ctx = await loadStoreContext(req.user.userId)
+        if (order.outlet_id !== ctx.outlet_id) throw httpError(403, 'You can only confirm receipts for your own outlet.')
+      }
+
+      const isDisputed = Number(damaged_cases) > 0 || Number(missing_cases) > 0 || receipt_status === 'rejected' || receipt_status === 'accepted_with_exceptions'
+      const targetStatus = isDisputed ? 'disputed' : 'received'
+
+      // Upsert into receipt_confirmations
+      await tx.query(
+        `INSERT INTO receipt_confirmations (
+           order_id, outlet_id, manager_user_id, receipt_status, received_cases,
+           damaged_cases, missing_cases, temp_check_celsius, manager_notes, confirmed_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
+         ON CONFLICT (order_id) DO UPDATE SET
+           receipt_status = EXCLUDED.receipt_status,
+           received_cases = EXCLUDED.received_cases,
+           damaged_cases = EXCLUDED.damaged_cases,
+           missing_cases = EXCLUDED.missing_cases,
+           temp_check_celsius = EXCLUDED.temp_check_celsius,
+           manager_notes = EXCLUDED.manager_notes,
+           confirmed_at = CURRENT_TIMESTAMP`,
+        [
+          orderId,
+          order.outlet_id,
+          req.user.userId,
+          receipt_status,
+          Number(received_cases) || 0,
+          Number(damaged_cases) || 0,
+          Number(missing_cases) || 0,
+          temp_check_celsius !== null && temp_check_celsius !== undefined && temp_check_celsius !== '' ? Number(temp_check_celsius) : null,
+          manager_notes || null,
+        ]
+      )
+
+      // Transition order status
+      if (['delivered', 'partial', 'dispatched'].includes(order.status)) {
+        await transitionOrder(
+          tx,
+          orderId,
+          targetStatus,
+          actorOf(req),
+          `Receipt confirmed: ${received_cases} received, ${damaged_cases} damaged, ${missing_cases} missing.${temp_check_celsius ? ` Temp: ${temp_check_celsius}°C.` : ''} ${manager_notes ? `Notes: ${manager_notes}` : ''}`.trim()
+        )
+      } else if (order.status !== targetStatus) {
+        await tx.query('UPDATE orders SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE order_id = $2', [targetStatus, orderId])
+        await recordEvent(tx, orderId, order.status, targetStatus, actorOf(req), `Receipt confirmation updated: ${targetStatus}`)
+      }
+
+      // Mark matching trip_stop completed
+      await tx.query(`UPDATE trip_stops SET status = 'completed' WHERE order_id = $1`, [orderId])
+
+      // If disputed, automatically create an operational issue for dispatchers
+      if (isDisputed) {
+        const [ts] = await tx.query('SELECT trip_id FROM trip_stops WHERE order_id = $1', [orderId])
+        await tx.query(
+          `INSERT INTO operational_issues (
+             reported_by_role, reported_by_user_id, related_order_id, related_trip_id,
+             outlet_id, issue_category, severity, impact, description, resolution_status
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'open')`,
+          [
+            'Store Manager',
+            req.user.userId,
+            orderId,
+            ts?.trip_id || null,
+            order.outlet_id,
+            Number(damaged_cases) > 0 ? 'damaged_goods' : 'delivery_shortfall',
+            Number(damaged_cases) > 5 ? 'high' : 'medium',
+            'delivery',
+            `Receipt discrepancy at ${order.outlet_id}: ${damaged_cases} damaged, ${missing_cases} missing. ${manager_notes || ''}`.trim(),
+          ]
+        )
+      }
+
+      return { order_id: orderId, status: targetStatus, received_cases, damaged_cases, missing_cases }
+    })
+
+    res.json({
+      success: true,
+      message: `Receipt confirmed successfully for ${orderId}. Status: ${result.status}.`,
+      data: result,
+    })
+  } catch (err) {
+    sendError(res, err, 'Failed to confirm receipt')
+  }
+})
+
+// POST /api/orders/:id/issues — Store Manager or Dispatcher logs an operational issue
+router.post('/:id/issues', requireRole(STORE_MANAGER, ...PLANNING_ROLES), async (req, res) => {
+  const orderId = req.params.id
+  const {
+    category = 'other',
+    description = '',
+    severity = 'medium',
+    impact = 'medium',
+    photo_data = null,
+    affected_product = '',
+    affected_units = 0,
+  } = req.body || {}
+
+  try {
+    const [order] = await sql.query('SELECT order_id, outlet_id FROM orders WHERE order_id = $1', [orderId])
+    if (!order) throw httpError(404, `Order ${orderId} not found.`)
+
+    if (isRole(req, STORE_MANAGER)) {
+      const ctx = await loadStoreContext(req.user.userId)
+      if (order.outlet_id !== ctx.outlet_id) throw httpError(403, 'You can only report issues for your own outlet.')
+    }
+
+    const [ts] = await sql.query('SELECT trip_id FROM trip_stops WHERE order_id = $1', [orderId])
+
+    const fullDesc = `${affected_product ? `Product: ${affected_product} (${affected_units} units). ` : ''}${description}`.trim()
+
+    const [inserted] = await sql.query(
+      `INSERT INTO operational_issues (
+         reported_by_role, reported_by_user_id, related_order_id, related_trip_id,
+         outlet_id, issue_category, severity, impact, description, photo_data, resolution_status
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'open')
+       RETURNING issue_id, reported_at`,
+      [
+        req.user.role || 'Store Manager',
+        req.user.userId,
+        orderId,
+        ts?.trip_id || null,
+        order.outlet_id,
+        category,
+        severity,
+        impact,
+        fullDesc,
+        photo_data || null,
+      ]
+    )
+
+    await recordEvent(
+      sql,
+      orderId,
+      null,
+      'issue_reported',
+      actorOf(req),
+      `Issue #${inserted.issue_id} (${category}, ${severity} severity): ${description.slice(0, 100)}`
+    )
+
+    res.json({
+      success: true,
+      issue_id: `ISSUE-${inserted.issue_id}`,
+      reported_at: inserted.reported_at,
+      message: 'Issue reported to operations dispatch.',
+    })
+  } catch (err) {
+    sendError(res, err, 'Failed to report issue')
+  }
+})
+
 module.exports = router
+

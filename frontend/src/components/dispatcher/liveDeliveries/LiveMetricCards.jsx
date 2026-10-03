@@ -1,5 +1,26 @@
-export default function LiveMetricCards() {
-  const cards = [
+export default function LiveMetricCards({ metrics }) {
+  const cards = metrics ? [
+    {
+      label: 'Active Deliveries',
+      value: metrics.active ?? 0,
+      subtext: 'Currently on route',
+    },
+    {
+      label: 'Completed',
+      value: metrics.completed ?? 0,
+      subtext: 'Finished today',
+    },
+    {
+      label: 'Late Stops',
+      value: metrics.lateStops ?? metrics.delayed ?? 0,
+      subtext: metrics.delayed ? `${metrics.delayed} routes affected` : 'Behind reported ETA',
+    },
+    {
+      label: 'Offline / Issues',
+      value: (metrics.openIssues || 0) + (metrics.offlineRecords || 0),
+      subtext: `${metrics.offlineRecords || 0} offline synced · ${metrics.openIssues || 0} issues`,
+    },
+  ] : [
     {
       label: 'Active Deliveries',
       value: 18,

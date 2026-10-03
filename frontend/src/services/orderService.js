@@ -19,4 +19,7 @@ export const orderService = {
   // Shared
   getOrder: (orderId) => apiRequest(`/orders/${encodeURIComponent(orderId)}`),
   cancelOrder: (orderId, reason) => apiRequest(`/orders/${encodeURIComponent(orderId)}/cancel`, { method: 'POST', body: { reason } }),
+  confirmReceipt: (orderId, payload) => apiRequest(`/orders/${encodeURIComponent(orderId)}/confirm-receipt`, { method: 'POST', body: payload }),
+  reportIssue: (orderId, payload) => apiRequest(`/orders/${encodeURIComponent(orderId)}/issues`, { method: 'POST', body: payload }),
 }
+

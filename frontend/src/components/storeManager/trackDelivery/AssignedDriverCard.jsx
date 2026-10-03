@@ -1,4 +1,11 @@
-export default function AssignedDriverCard() {
+export default function AssignedDriverCard({ driver, vehicle }) {
+  const driverName = driver?.name || 'Marcus Vance'
+  const driverId = driver?.id || 'DRV-091'
+  const driverPhone = driver?.phone || '+94 11 234 5678'
+  const vehicleId = vehicle?.id || 'WP-REF-007'
+  const vehicleType = vehicle?.type || 'Isuzu 5T'
+  const compartment = vehicle?.temp === 'reefer' ? 'Dual-Zone Reefer' : 'Ambient Cargo Dry-Box'
+
   return (
     <div className="td-driver-card">
       <div className="td-driver-header">
@@ -18,14 +25,14 @@ export default function AssignedDriverCard() {
 
       {/* Driver Identity */}
       <div className="td-driver-profile-row">
-        <div className="td-driver-avatar">MV</div>
+        <div className="td-driver-avatar">{driverName.slice(0, 2).toUpperCase()}</div>
         <div className="td-driver-meta-col">
           <div className="td-driver-name-row">
-            <span className="td-driver-name">Marcus Vance</span>
+            <span className="td-driver-name">{driverName}</span>
             <span className="td-verified-badge">Verified</span>
           </div>
           <span className="td-driver-id-sub">
-            Driver ID: DRV-091 &bull; WayFlow Dedicated Logistics
+            Driver ID: {driverId} &bull; WayFlow Dedicated Logistics
           </span>
         </div>
       </div>
@@ -34,7 +41,7 @@ export default function AssignedDriverCard() {
       <div className="td-driver-specs-list">
         <div className="td-driver-spec-row">
           <span className="td-spec-key">Vehicle:</span>
-          <span className="td-spec-val">WP-REF-007 (Isuzu 5T)</span>
+          <span className="td-spec-val">{vehicleId} ({vehicleType})</span>
         </div>
         <div className="td-driver-spec-row">
           <span className="td-spec-key">Compartment:</span>
@@ -43,12 +50,12 @@ export default function AssignedDriverCard() {
               <path d="m20 16-4-4 4-4" />
               <path d="m4 8 4 4-4 4" />
             </svg>
-            Dual-Zone Reefer
+            {compartment}
           </span>
         </div>
         <div className="td-driver-spec-row">
           <span className="td-spec-key">Direct Dispatch Radio:</span>
-          <span className="td-spec-val radio-val">+94 11 234 5678</span>
+          <span className="td-spec-val radio-val">{driverPhone}</span>
         </div>
       </div>
 
@@ -62,3 +69,4 @@ export default function AssignedDriverCard() {
     </div>
   )
 }
+

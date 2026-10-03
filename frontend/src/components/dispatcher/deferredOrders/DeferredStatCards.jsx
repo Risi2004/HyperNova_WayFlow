@@ -1,5 +1,26 @@
-export default function DeferredStatCards() {
-  const cards = [
+export default function DeferredStatCards({ stats }) {
+  const cards = stats ? [
+    {
+      label: 'Deferred Total',
+      value: stats.total ?? 0,
+      subtext: `${stats.total ?? 0} orders require rescheduling or next-run dispatch.`,
+    },
+    {
+      label: 'Consecutive Deferred',
+      value: stats.consecutive ?? 0,
+      subtext: 'Skipped more than once — top operational priority.',
+    },
+    {
+      label: 'Capacity Related',
+      value: stats.capacity ?? 0,
+      subtext: 'Weight, volume, or refrigerated space constrained.',
+    },
+    {
+      label: 'Access / Windows',
+      value: stats.vehicle ?? 0,
+      subtext: 'Van-only access or tight delivery window limits.',
+    },
+  ] : [
     {
       label: 'Deferred Today',
       value: 12,
