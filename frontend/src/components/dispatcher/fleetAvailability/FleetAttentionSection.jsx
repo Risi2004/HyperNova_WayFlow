@@ -73,7 +73,7 @@ export default function FleetAttentionSection() {
               <span className="attention-desc-text">{item.description}</span>
             </div>
 
-            <span className="attention-chevron-arrow">â€º</span>
+            <span className="attention-chevron-arrow">›</span>
           </div>
         ))}
       </div>

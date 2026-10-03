@@ -270,15 +270,18 @@ async function seedProducts() {
 
   // Count verify
   const countRes = await sql.query(`SELECT COUNT(*) as total, brand FROM products GROUP BY brand`)
-  console.log('✓ Successfully seeded products in Neon database:')
+  console.log('✓ Successfully seeded products catalog:')
   console.table(countRes)
-
-  const total = await sql.query(`SELECT COUNT(*) as total FROM products`)
-  console.log(`Total Products in Catalog: ${total[0].total}`)
-  process.exit(0)
+  return insertedCount
 }
 
-seedProducts().catch((err) => {
-  console.error('Fatal error seeding products:', err)
-  process.exit(1)
-})
+if (require.main === module) {
+  seedProducts()
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error('Fatal error seeding products:', err)
+      process.exit(1)
+    })
+}
+
+module.exports = { seedProducts }

@@ -859,3 +859,155 @@
     padding: 16px;
   }
 }
+
+/* --------------------------------------------------------
+   Live data: clickable stat cards, states, intake, defer modal
+-------------------------------------------------------- */
+button.order-mini-stat-card {
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+button.order-mini-stat-card:hover {
+  border-color: #cbd5e1;
+}
+
+button.order-mini-stat-card.stat-active {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.orders-load-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.orders-load-error button {
+  background: #ffffff;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 4px 10px;
+  color: #b91c1c;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.orders-empty-cell {
+  padding: 28px 0 !important;
+}
+
+.pagination-page-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.attention-empty {
+  padding: 16px 12px;
+  color: #64748b;
+  font-size: 0.76rem;
+}
+
+.intake-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.intake-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+}
+
+.intake-date-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.intake-date {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.intake-meta {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.intake-close-btn {
+  background: #1d4ed8;
+  border: none;
+  border-radius: 7px;
+  padding: 6px 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.intake-closed-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #475569;
+  background: #e2e8f0;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+.orders-content button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.orders-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 28px;
+  max-width: 440px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 0.78rem;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25);
+  z-index: 1100;
+}
+
+.orders-toast.tone-error {
+  background: #991b1b;
+}
+
+.orders-toast.tone-success {
+  background: #166534;
+}
+
+.orders-toast button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+}

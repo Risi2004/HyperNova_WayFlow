@@ -38,7 +38,7 @@ export default function RouteSystemStates() {
     },
     {
       title: 'Validation failed',
-      desc: 'Route exceeds refrigerated vehicle volume capacity by 2.4 mÂ³.',
+      desc: 'Route exceeds refrigerated vehicle volume capacity by 2.4 m³.',
       type: 'red',
       icon: (
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

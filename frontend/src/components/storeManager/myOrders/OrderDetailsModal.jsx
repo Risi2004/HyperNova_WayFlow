@@ -1,10 +1,44 @@
+import { useEffect, useState } from 'react'
+import { orderService } from '../../../services/orderService'
+import { productCategory } from '../../../utils/orderFormat'
+
+const RECEIPT_LABELS = {
+  accepted_in_full: 'Accepted in full',
+  accepted_with_issues: 'Accepted with issues',
+  rejected: 'Rejected',
+}
+
 export default function OrderDetailsModal({
   order,
   isOpen,
   onClose,
+  onWithdraw,
   isReceiptMode = false,
 }) {
+  // Fetched detail is stored with the order id it belongs to, so switching orders never
+  // shows the previous order's manifest.
+  const [fetched, setFetched] = useState({ id: null, detail: null, error: null })
+  const [isWithdrawing, setIsWithdrawing] = useState(false)
+  const orderId = order?.id
+
+  useEffect(() => {
+    if (!isOpen || !orderId) return
+    let active = true
+    orderService
+      .getOrder(orderId)
+      .then((res) => active && setFetched({ id: orderId, detail: res, error: null }))
+      .catch((err) => active && setFetched({ id: orderId, detail: null, error: err.message }))
+    return () => {
+      active = false
+    }
+  }, [isOpen, orderId])
+
   if (!isOpen || !order) return null
+
+  const detail = fetched.id === order.id ? fetched.detail : null
+  const loadError = fetched.id === order.id ? fetched.error : null
+
+  const lastEvent = detail?.events?.[detail.events.length - 1]
 
   return (
     <div className="mo-modal-backdrop" onClick={onClose}>
@@ -68,10 +102,10 @@ export default function OrderDetailsModal({
                   <h4>Electronic Proof of Delivery (e-POD)</h4>
                 </div>
                 <div className="mo-receipt-details">
-                  <p><strong>Store:</strong> Colombo 05 Store (OUT043)</p>
-                  <p><strong>Signed by:</strong> {order.statusSub || 'Sarah Perera (Store Manager)'}</p>
-                  <p><strong>Receipt Status:</strong> Verified &amp; Confirmed Intact</p>
-                  <p><strong>Seal Barcode:</strong> SEC-SEAL-88391-OK</p>
+                  <p><strong>Store:</strong> {order.outletLabel}</p>
+                  <p><strong>Signed by:</strong> {order.receivedBy || 'Not yet signed'}</p>
+                  <p><strong>Receipt Status:</strong> {RECEIPT_LABELS[order.receiptStatus] || 'Awaiting store confirmation'}</p>
+                  {detail?.plan && <p><strong>Delivered by:</strong> {detail.plan.driver_name} • {detail.plan.vehicle_id} ({detail.plan.trip_id})</p>}
                 </div>
               </div>
             </div>
@@ -79,21 +113,28 @@ export default function OrderDetailsModal({
 
           {/* Order Manifest items preview */}
           <div className="mo-modal-manifest-section">
-            <h4 className="mo-manifest-heading">Order Manifest (Preview)</h4>
+            <h4 className="mo-manifest-heading">Order Manifest</h4>
             <div className="mo-manifest-list">
-              <div className="mo-manifest-item">
-                <span>Premium White Rice 5kg (10 Cases)</span>
-                <span className="manifest-cat">Ambient</span>
-              </div>
-              <div className="mo-manifest-item">
-                <span>Fresh Highland Milk 1L (8 Cases)</span>
-                <span className="manifest-cat chilled">Chilled (+4°C)</span>
-              </div>
-              <div className="mo-manifest-item">
-                <span>Frozen Farm Mixed Vegetables 1kg (6 Cases)</span>
-                <span className="manifest-cat frozen">Frozen (-18°C)</span>
-              </div>
+              {!detail && !loadError && <div className="mo-manifest-item"><span>Loading items…</span></div>}
+              {loadError && <div className="mo-manifest-item"><span>{loadError}</span></div>}
+              {detail?.items.map((item) => {
+                const category = productCategory(item)
+                return (
+                  <div key={item.item_id} className="mo-manifest-item">
+                    <span>{item.product_name} ({item.quantity} × {item.unit || 'unit'})</span>
+                    <span className={`manifest-cat ${category.type === 'ambient' ? '' : category.type}`}>{category.label}</span>
+                  </div>
+                )
+              })}
             </div>
+            {detail?.related_orders?.length > 0 && (
+              <p className="mo-modal-related-note">
+                Placed together with {detail.related_orders.map((r) => `${r.order_id} (${r.temp_requirement})`).join(', ')}.
+              </p>
+            )}
+            {lastEvent?.note && (
+              <p className="mo-modal-related-note">Latest update: {lastEvent.note}</p>
+            )}
           </div>
         </div>
 
@@ -102,6 +143,20 @@ export default function OrderDetailsModal({
           <button type="button" className="btn-mo-modal-secondary" onClick={onClose}>
             Close
           </button>
+          {order.status === 'PENDING' && onWithdraw && (
+            <button
+              type="button"
+              className="btn-mo-modal-secondary btn-mo-withdraw"
+              disabled={isWithdrawing}
+              onClick={async () => {
+                setIsWithdrawing(true)
+                await onWithdraw(order)
+                setIsWithdrawing(false)
+              }}
+            >
+              {isWithdrawing ? 'Withdrawing…' : 'Withdraw Order'}
+            </button>
+          )}
           <button
             type="button"
             className="btn-mo-modal-primary"

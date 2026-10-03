@@ -1,34 +1,4 @@
-export default function UpcomingDeparturesCard() {
-  const departures = [
-    {
-      time: '05:30 AM',
-      route: 'Colombo North (LD-024)',
-      status: 'AWAITING',
-      statusType: 'awaiting',
-      dotColor: 'gray',
-    },
-    {
-      time: '06:00 AM',
-      route: 'Colombo South (LD-025)',
-      status: 'LOADING',
-      statusType: 'loading',
-      dotColor: 'blue',
-    },
-    {
-      time: '06:15 AM',
-      route: 'Mall Outlets (LD-026)',
-      status: 'READY',
-      statusType: 'ready',
-      dotColor: 'green',
-    },
-    {
-      time: '06:30 AM',
-      route: 'Negombo (LD-027)',
-      status: 'ISSUE',
-      statusType: 'issue',
-      dotColor: 'amber',
-    },
-  ]
+export default function UpcomingDeparturesCard({ departures = [] }) {
 
   return (
     <div className="loader-card upcoming-departures-card">

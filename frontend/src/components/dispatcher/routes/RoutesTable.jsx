@@ -38,7 +38,7 @@ export default function RoutesTable({ routes = [], onViewRoute }) {
                 <td className="td-route-status">
                   <div className="route-status-wrap">
                     <span className={`route-status-badge badge-${r.statusType}`}>
-                      <span className="badge-bullet">â€¢</span>
+                      <span className="badge-bullet">•</span>
                       <span>{r.status}</span>
                     </span>
                     {r.statusSub && (

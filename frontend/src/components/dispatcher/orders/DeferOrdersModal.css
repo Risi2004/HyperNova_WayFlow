@@ -1,0 +1,109 @@
+/* Defer orders dialog (Orders list and Order Details) */
+.defer-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.defer-modal {
+  background: #ffffff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 440px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
+}
+
+.defer-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.defer-modal-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.defer-modal-close {
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.defer-modal-desc {
+  margin: 0 0 6px;
+  font-size: 0.78rem;
+  color: #475569;
+}
+
+.defer-modal-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.defer-modal-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 0.78rem;
+  color: #0f172a;
+  background: #ffffff;
+}
+
+.defer-modal-textarea {
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 0.78rem;
+  resize: vertical;
+}
+
+.defer-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.defer-btn-secondary,
+.defer-btn-primary {
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.defer-btn-secondary {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+}
+
+.defer-btn-primary {
+  background: #1d4ed8;
+  border: none;
+  color: #ffffff;
+}
+
+.defer-modal button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

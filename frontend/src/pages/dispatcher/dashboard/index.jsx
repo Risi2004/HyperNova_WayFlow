@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Sidebar from '../../../components/dispatcher/layout/Sidebar'
 import Header from '../../../components/dispatcher/layout/Header'
 import StatCard from '../../../components/dispatcher/dashboard/StatCard'
@@ -18,75 +20,63 @@ import liveDeliveriesIcon from '../../../assets/icons/live-deliveries.svg'
 import delayIcon from '../../../assets/icons/delay.svg'
 import completedIcon from '../../../assets/icons/completed.svg'
 
+import { orderService } from '../../../services/orderService'
+import { userService } from '../../../services/userService'
 import './DispatcherDashboard.css'
+import { useCurrentUser, greetingFor, firstNameOf } from '../../../hooks/useCurrentUser'
 
 export default function DispatcherDashboard() {
+  const user = useCurrentUser()
+  const navigate = useNavigate()
+  const [data, setData] = useState(null)
+  const [vehicleCount, setVehicleCount] = useState(null)
+  const [nextIntake, setNextIntake] = useState(null)
+
+  useEffect(() => {
+    let active = true
+    orderService
+      .listOrders({ pageSize: 5 })
+      .then((res) => active && setData(res))
+      .catch(() => active && setData({ stats: {}, attention: [] }))
+    userService
+      .getVehicles()
+      .then((list) => active && setVehicleCount(list.length))
+      .catch(() => active && setVehicleCount(null))
+    orderService
+      .getIntake()
+      .then((res) => active && setNextIntake(res.dates.find((d) => d.open) || null))
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const st = data?.stats || {}
+  const v = (n) => (data ? String(n ?? 0) : '–')
   const stats = [
-    {
-      label: 'Total Orders',
-      value: '126',
-      subtext: '+8 from yesterday',
-      icon: ordersIcon,
-      iconBg: 'blue',
-      dotColor: '#3b82f6',
-    },
-    {
-      label: 'Pending Planning',
-      value: '18',
-      subtext: 'Needs assignment',
-      icon: deferredOrdersIcon,
-      iconBg: 'amber',
-      dotColor: '#f59e0b',
-    },
-    {
-      label: 'Planned Orders',
-      value: '92',
-      subtext: "73% of today's orders",
-      icon: deliveryPlannerIcon,
-      iconBg: 'green',
-      dotColor: '#22c55e',
-    },
-    {
-      label: 'Deferred Orders',
-      value: '16',
-      subtext: '4 moved from today',
-      icon: deferredOrdersIcon,
-      iconBg: 'blue',
-      dotColor: '#3b82f6',
-    },
-    {
-      label: 'Available Vehicles',
-      value: '24',
-      subtext: 'Capacity is sufficient',
-      icon: fleetAvailabilityIcon,
-      iconBg: 'green',
-      dotColor: '#22c55e',
-    },
-    {
-      label: 'Active Deliveries',
-      value: '14',
-      subtext: 'Across 11 routes',
-      icon: liveDeliveriesIcon,
-      iconBg: 'blue',
-      dotColor: '#3b82f6',
-    },
-    {
-      label: 'Delayed Deliveries',
-      value: '2',
-      subtext: 'Both under 20 min',
-      icon: delayIcon,
-      iconBg: 'red',
-      dotColor: '#ef4444',
-    },
-    {
-      label: 'Completed Deliveries',
-      value: '42',
-      subtext: '62% of 68 deliveries',
-      icon: completedIcon,
-      iconBg: 'green',
-      dotColor: '#22c55e',
-    },
+    { label: 'Total Orders', value: v(st.total), subtext: `${st.awaiting_cutoff ?? 0} awaiting cutoff`, icon: ordersIcon, iconBg: 'blue', dotColor: '#3b82f6' },
+    { label: 'Pending Planning', value: v(st.pending), subtext: 'Confirmed, not yet on a trip', icon: deferredOrdersIcon, iconBg: 'amber', dotColor: '#f59e0b' },
+    { label: 'Planned Orders', value: v(st.planned), subtext: 'Assigned to vehicles', icon: deliveryPlannerIcon, iconBg: 'green', dotColor: '#22c55e' },
+    { label: 'Deferred Orders', value: v(st.deferred), subtext: 'Waiting for a later run', icon: deferredOrdersIcon, iconBg: 'blue', dotColor: '#3b82f6' },
+    { label: 'Fleet Vehicles', value: vehicleCount === null ? '–' : String(vehicleCount), subtext: 'Peliyagoda & Kandy depots', icon: fleetAvailabilityIcon, iconBg: 'green', dotColor: '#22c55e' },
+    { label: 'Active Deliveries', value: v(st.in_transit), subtext: 'Orders on the road', icon: liveDeliveriesIcon, iconBg: 'blue', dotColor: '#3b82f6' },
+    { label: 'Exceptions', value: v(st.exception), subtext: 'Shortfalls, failures, disputes', icon: delayIcon, iconBg: 'red', dotColor: '#ef4444' },
+    { label: 'Completed Deliveries', value: v(st.completed), subtext: 'Delivered or received', icon: completedIcon, iconBg: 'green', dotColor: '#22c55e' },
   ]
+
+  const attention = data?.attention || []
+  const repeatDeferrals = attention.filter((o) => o.status === 'deferred' && o.consecutive_deferral_count > 1).length
+  const issues = [
+    st.pending > 0 && { id: 'pending', text: `${st.pending} confirmed order${st.pending === 1 ? '' : 's'} need planning`, action: 'Open planner', to: '/dispatcher/delivery-planner', dotColor: '#f59e0b' },
+    repeatDeferrals > 0 && { id: 'repeat', text: `${repeatDeferrals} outlet order${repeatDeferrals === 1 ? ' has' : 's have'} been deferred more than once`, action: 'Review', to: '/dispatcher/orders', dotColor: '#ef4444' },
+    st.deferred > 0 && { id: 'deferred', text: `${st.deferred} deferred order${st.deferred === 1 ? '' : 's'} waiting for a run`, action: 'View deferred', to: '/dispatcher/orders', dotColor: '#f59e0b' },
+    st.exception > 0 && { id: 'exception', text: `${st.exception} order exception${st.exception === 1 ? '' : 's'} to resolve`, action: 'Review', to: '/dispatcher/orders', dotColor: '#ef4444' },
+    nextIntake && { id: 'intake', text: `${nextIntake.submitted} order${nextIntake.submitted === 1 ? '' : 's'} awaiting the ${new Date(nextIntake.cutoff_at).toLocaleString('en-GB', { timeZone: 'Asia/Colombo', weekday: 'short', hour: '2-digit', minute: '2-digit' })} cutoff`, action: 'Order intake', to: '/dispatcher/orders', dotColor: '#3b82f6' },
+  ].filter(Boolean)
+
+  const summary = data
+    ? `${st.pending || 0} order${st.pending === 1 ? '' : 's'} need planning and ${st.deferred || 0} ${st.deferred === 1 ? 'is' : 'are'} deferred.${repeatDeferrals ? ` ${repeatDeferrals} ${repeatDeferrals === 1 ? 'has' : 'have'} been skipped more than once.` : ''}`
+    : 'Loading today’s order position…'
 
   return (
     <div className="dispatcher-page-container">
@@ -101,12 +91,12 @@ export default function DispatcherDashboard() {
           {/* Greeting & Action Banner */}
           <section className="greeting-banner">
             <div className="greeting-text-group">
-              <h1 className="greeting-title">Good morning, Jordan</h1>
+              <h1 className="greeting-title">{greetingFor()}, {firstNameOf(user?.name)}</h1>
               <p className="greeting-subtitle">
-                18 orders still need planning. Vehicle capacity is sufficient, but reefer space is tight.
+                {summary}
               </p>
             </div>
-            <button type="button" className="banner-action-btn">
+            <button type="button" className="banner-action-btn" onClick={() => navigate('/dispatcher/delivery-planner')}>
               <img src={planIcon} alt="" className="banner-btn-icon" aria-hidden="true" />
               <span>Plan Today's Deliveries &rarr;</span>
             </button>
@@ -130,12 +120,12 @@ export default function DispatcherDashboard() {
           {/* Delivery Progress & Needs Attention */}
           <section className="two-col-grid">
             <DeliveryProgressCard />
-            <NeedsAttentionCard />
+            <NeedsAttentionCard issues={issues} />
           </section>
 
           {/* Orders Requiring Attention Table */}
           <section>
-            <OrdersAttentionTable />
+            <OrdersAttentionTable orders={attention} />
           </section>
 
           {/* Fleet Status & Live Deliveries */}
@@ -151,7 +141,7 @@ export default function DispatcherDashboard() {
 
           {/* Footer */}
           <footer className="dispatcher-footer">
-            <span>Operational data synced at 09:26 • West Hub timezone</span>
+            <span>All times in Asia/Colombo (UTC+05:30)</span>
             <a href="#help" className="footer-link">
               Help & operational support
             </a>

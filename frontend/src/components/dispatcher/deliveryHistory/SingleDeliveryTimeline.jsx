@@ -3,7 +3,7 @@ export default function SingleDeliveryTimeline() {
     {
       time: '08:15 AM',
       title: 'Order Loaded at Peliyagoda DC',
-      desc: 'Reefer temperature verified at 3.8Â°C prior to hub departure.',
+      desc: 'Reefer temperature verified at 3.8°C prior to hub departure.',
       status: 'completed',
     },
     {

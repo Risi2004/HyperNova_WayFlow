@@ -1,32 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 
 export default function CurrentOrdersTable({
-  orders = [
-    {
-      id: 'ORD-1041',
-      date: 'Sep 28, 2026',
-      items: '12 Items',
-      deliveryDate: 'Today (02:30 PM)',
-      status: 'In Delivery',
-      statusType: 'in-delivery',
-    },
-    {
-      id: 'ORD-1038',
-      date: 'Sep 28, 2026',
-      items: '24 Items',
-      deliveryDate: 'Sep 29, 2026',
-      status: 'Confirmed',
-      statusType: 'confirmed',
-    },
-    {
-      id: 'ORD-1035',
-      date: 'Sep 27, 2026',
-      items: '08 Items',
-      deliveryDate: 'Sep 29, 2026',
-      status: 'Pending',
-      statusType: 'pending',
-    },
-  ],
+  orders = [],
+  totalCount = 0,
   onViewOrder,
   onAssignDriver,
 }) {
@@ -46,9 +22,9 @@ export default function CurrentOrdersTable({
         <button
           type="button"
           className="btn-view-all-orders-link"
-          onClick={() => navigate('/store-manager/orders')}
+          onClick={() => navigate('/store-manager/my-orders')}
         >
-          <span>View All Orders (6)</span>
+          <span>View All Orders ({totalCount})</span>
           <span className="arrow-right">&rarr;</span>
         </button>
       </div>
@@ -106,6 +82,11 @@ export default function CurrentOrdersTable({
                 </td>
               </tr>
             ))}
+            {orders.length === 0 && (
+              <tr>
+                <td colSpan="6" className="sm-empty-row">No open orders. Orders you place appear here until they are delivered.</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

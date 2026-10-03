@@ -153,7 +153,7 @@ export default function StopSequenceSection() {
       <div className="route-card-header flex-between">
         <div>
           <h2 className="route-card-title">Stop Sequence</h2>
-          <p className="route-card-subtitle">8 ordered delivery stops Â· drag order is locked after confirmation</p>
+          <p className="route-card-subtitle">8 ordered delivery stops · drag order is locked after confirmation</p>
         </div>
         <span className="stops-count-pill">8 stops</span>
       </div>
@@ -215,10 +215,10 @@ export default function StopSequenceSection() {
           <div className="expanded-card-top-row">
             <div className="expanded-title-group">
               <h3 className="expanded-outlet-title">
-                {stops.find((s) => s.stop === expandedStop)?.outlet} â€” {stops.find((s) => s.stop === expandedStop)?.brand}
+                {stops.find((s) => s.stop === expandedStop)?.outlet} — {stops.find((s) => s.stop === expandedStop)?.brand}
               </h3>
               <p className="expanded-subtitle">
-                Stop {expandedStop} Â· expanded delivery detail
+                Stop {expandedStop} · expanded delivery detail
               </p>
             </div>
             <span className={`status-pill-badge pill-${stops.find((s) => s.stop === expandedStop)?.statusType}`}>

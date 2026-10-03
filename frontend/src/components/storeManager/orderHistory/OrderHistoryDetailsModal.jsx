@@ -54,7 +54,7 @@ export default function OrderHistoryDetailsModal({
             </div>
             <div className="oh-modal-info-item">
               <span className="info-label">Carrier &amp; Driver</span>
-              <span className="info-val">TR-024 • Marcus Vance</span>
+              <span className="info-val">{order.tripId ? `${order.tripId} • ${order.driverName || 'Driver not recorded'}` : 'Not dispatched'}</span>
             </div>
           </div>
 
@@ -69,7 +69,8 @@ export default function OrderHistoryDetailsModal({
                 <span className="oh-epod-title">Certified Electronic Proof of Delivery (e-POD)</span>
               </div>
               <p className="oh-epod-sub">
-                Sign-off certified by Store Manager: Sarah Perera (OUT043). Ledger verification token: <code>EPOD-WF-829104</code>
+                Received by {order.receivedBy || 'outlet staff'} for {order.outletId}.
+                {order.receivedAtLabel && <> Confirmed {order.receivedAtLabel}.</>}
               </p>
             </div>
           )}
@@ -91,7 +92,7 @@ export default function OrderHistoryDetailsModal({
             <button
               type="button"
               className="btn-oh-modal-download"
-              onClick={() => alert(`Downloading Delivery Receipt PDF for ${order.id}...`)}
+              onClick={() => window.print()}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />

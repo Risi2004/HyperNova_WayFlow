@@ -1,112 +1,24 @@
-import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import DriverNavbar from '../../../components/driver/DriverNavbar'
+import DriverSyncBanner from '../../../components/driver/DriverSyncBanner'
 import TripDetailsHeader from '../../../components/driver/tripDetails/TripDetailsHeader'
 import TripOverviewCard from '../../../components/driver/tripDetails/TripOverviewCard'
 import RouteStopsListCard from '../../../components/driver/tripDetails/RouteStopsListCard'
+import { currentStopOf, DONE, useDriverTrip } from '../../../hooks/useDriverTrip'
+import { formatDate, formatTime } from '../../../utils/orderFormat'
+import { driverStatusOf, vehicleTypeLabel } from '../../../utils/tripFormat'
 import './TripDetails.css'
-
-const DEFAULT_TRIP_DETAILS = {
-  tripId: 'TR-024',
-  status: 'In Progress',
-  vehicle: 'WP-REF-007 (Refrigerated Truck)',
-  routePathway: 'Peliyagoda HQ → Colombo South',
-  departureTime: 'Today, 06:00 AM',
-  stopsSummary: '8 Stops (4 Completed, 4 Remaining)',
-  completedStops: 4,
-  totalStops: 8,
-}
-
-const DEFAULT_STOPS_LIST = [
-  {
-    id: 1,
-    stopNumber: '01',
-    name: 'WayFlow Fresh',
-    orderCode: 'OUT039',
-    location: 'Colombo 01',
-    deliveryWindow: '08:00 AM - 08:30 AM',
-    status: 'completed',
-  },
-  {
-    id: 2,
-    stopNumber: '02',
-    name: 'City Market',
-    orderCode: 'OUT040',
-    location: 'Colombo 02',
-    deliveryWindow: '08:45 AM - 09:15 AM',
-    status: 'completed',
-  },
-  {
-    id: 3,
-    stopNumber: '03',
-    name: 'Green Basket',
-    orderCode: 'OUT041',
-    location: 'Colombo 03',
-    deliveryWindow: '09:30 AM - 10:00 AM',
-    status: 'completed',
-  },
-  {
-    id: 4,
-    stopNumber: '04',
-    name: 'WayFlow Fresh',
-    orderCode: 'OUT042',
-    location: 'Colombo 04',
-    deliveryWindow: '10:15 AM - 10:45 AM',
-    status: 'completed',
-  },
-  {
-    id: 5,
-    stopNumber: '05',
-    name: 'Metro Grocers',
-    orderCode: 'OUT043',
-    location: 'Colombo 05',
-    deliveryWindow: '11:00 AM - 11:30 AM',
-    status: 'current',
-  },
-  {
-    id: 6,
-    stopNumber: '06',
-    name: 'Fresh Corner',
-    orderCode: 'OUT044',
-    location: 'Colombo 06',
-    deliveryWindow: '11:45 AM - 12:15 PM',
-    status: 'scheduled',
-  },
-  {
-    id: 7,
-    stopNumber: '07',
-    name: 'Daily Mart',
-    orderCode: 'OUT045',
-    location: 'Colombo 07',
-    deliveryWindow: '12:30 PM - 01:00 PM',
-    status: 'scheduled',
-  },
-  {
-    id: 8,
-    stopNumber: '08',
-    name: 'City Grocers',
-    orderCode: 'OUT046',
-    location: 'Colombo 08',
-    deliveryWindow: '01:15 PM - 01:45 PM',
-    status: 'scheduled',
-  },
-]
 
 export default function TripDetails() {
   const { tripId } = useParams()
   const navigate = useNavigate()
-  const activeTripId = tripId || 'TR-024'
+  const { data, error } = useDriverTrip(tripId)
 
-  const [tripData] = useState({
-    ...DEFAULT_TRIP_DETAILS,
-    tripId: activeTripId,
-  })
-
-  const [stops] = useState(DEFAULT_STOPS_LIST)
-
-  const handleViewStopDetails = (stop) => {
-    navigate(`/driver/my-trips/${activeTripId}/delivery-stop`)
-  }
+  const trip = data?.trip
+  const stops = data?.stops || []
+  const done = stops.filter((s) => DONE.includes(s.stop_status)).length
+  const current = currentStopOf(stops)
+  const onRoad = trip && ['dispatched', 'in_progress'].includes(trip.status)
 
   return (
     <div className="trip-details-page-container">
@@ -115,20 +27,50 @@ export default function TripDetails() {
 
       {/* Main Page Body */}
       <main className="trip-details-main-content">
+        <DriverSyncBanner compact cachedAt={data?.fromCache ? data.cachedAt : null} />
+
         {/* Breadcrumb Header Row */}
-        <TripDetailsHeader
-          tripId={activeTripId}
-          status={tripData.status}
-        />
+        <TripDetailsHeader tripId={tripId} status={trip ? driverStatusOf(trip) : '…'} />
 
-        {/* Overview Specifications & Progress Bar */}
-        <TripOverviewCard trip={tripData} />
+        {error && !trip && <p className="driver-page-state error">{error}</p>}
+        {!trip && !error && <p className="driver-page-state">Loading trip…</p>}
 
-        {/* 8-Stop Route Details List */}
-        <RouteStopsListCard
-          stops={stops}
-          onViewStopDetails={handleViewStopDetails}
-        />
+        {trip && (
+          <>
+            {/* Overview Specifications & Progress Bar */}
+            <TripOverviewCard
+              trip={{
+                tripId: trip.trip_id,
+                status: driverStatusOf(trip),
+                vehicle: `${trip.vehicle_id} (${vehicleTypeLabel(trip)})`,
+                routePathway: `${trip.depot} depot → ${trip.district} (${trip.brand})`,
+                departureTime: `${formatDate(trip.delivery_date)}, ${formatTime(trip.planned_departure_time)}`,
+                stopsSummary: `${stops.length} Stops (${done} Completed, ${stops.length - done} Remaining)`,
+                completedStops: done,
+                totalStops: stops.length,
+              }}
+            />
+            {!onRoad && trip.status !== 'completed' && (
+              <p className="driver-page-state">
+                {trip.status === 'loaded' ? 'Loading is complete — start the trip from your dashboard when you leave.' : 'This trip has not left the depot yet.'}
+              </p>
+            )}
+
+            {/* Route Stops List */}
+            <RouteStopsListCard
+              stops={stops.map((s) => ({
+                id: s.order_id,
+                stopNumber: String(s.stop_sequence).padStart(2, '0'),
+                name: `Waypoint ${s.brand}${s.pending_sync ? ' • waiting to sync' : ''}`,
+                orderCode: `${s.outlet_id} • ${s.order_id}`,
+                location: s.district,
+                deliveryWindow: `${formatTime(s.requested_window_open)} - ${formatTime(s.requested_window_close)} • plan ${formatTime(s.planned_arrival_time)}`,
+                status: DONE.includes(s.stop_status) ? 'completed' : current?.order_id === s.order_id && onRoad ? 'current' : 'scheduled',
+              }))}
+              onViewStopDetails={(s) => navigate(`/driver/my-trips/${tripId}/delivery-stop?order=${s.id}`)}
+            />
+          </>
+        )}
       </main>
     </div>
   )

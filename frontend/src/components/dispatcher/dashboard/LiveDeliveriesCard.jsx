@@ -3,7 +3,7 @@ export default function LiveDeliveriesCard() {
     {
       id: 'WP-204',
       driver: 'Maya Chen',
-      route: 'North Loop Â· R-16',
+      route: 'North Loop · R-16',
       stops: '8 / 11 stops',
       percent: 74,
       status: 'ON SCHEDULE',
@@ -14,7 +14,7 @@ export default function LiveDeliveriesCard() {
     {
       id: 'WP-118',
       driver: 'Jon Bell',
-      route: 'Harbor Â· R-07',
+      route: 'Harbor · R-07',
       stops: '5 / 9 stops',
       percent: 56,
       status: '+16 MIN DELAYED',
@@ -25,7 +25,7 @@ export default function LiveDeliveriesCard() {
     {
       id: 'RF-031',
       driver: 'Amira Patel',
-      route: 'East Cold Â· R-22',
+      route: 'East Cold · R-22',
       stops: '6 / 9 stops',
       percent: 68,
       status: 'AT STOP 6',
@@ -36,7 +36,7 @@ export default function LiveDeliveriesCard() {
     {
       id: 'WP-087',
       driver: 'Luis Ortega',
-      route: 'Central Â· R-12',
+      route: 'Central · R-12',
       stops: '4 / 10 stops',
       percent: 45,
       status: 'ON SCHEDULE',
@@ -51,7 +51,7 @@ export default function LiveDeliveriesCard() {
       <div className="card-header-row">
         <div>
           <h2 className="card-heading">Live Deliveries</h2>
-          <span className="card-subheading">14 active deliveries â€¢ 2 delayed</span>
+          <span className="card-subheading">14 active deliveries • 2 delayed</span>
         </div>
         <a href="#view-live-deliveries" className="card-header-link">
           View Live Deliveries &rarr;
@@ -75,7 +75,7 @@ export default function LiveDeliveriesCard() {
             <div className="delivery-details-col">
               <div className="delivery-title-line">
                 <span className="delivery-vehicle-driver">
-                  <strong>{del.id}</strong> Â· {del.driver}
+                  <strong>{del.id}</strong> · {del.driver}
                 </span>
               </div>
               <span className="delivery-route-sub">{del.route}</span>

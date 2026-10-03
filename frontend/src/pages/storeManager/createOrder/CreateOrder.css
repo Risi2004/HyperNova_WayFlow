@@ -1455,3 +1455,91 @@
     gap: 6px !important;
   }
 }
+
+/* --------------------------------------------------------
+   Live data states (loading, errors, editable quantities)
+-------------------------------------------------------- */
+.co-page-state {
+  margin: 48px auto;
+  max-width: 520px;
+  padding: 18px 22px;
+  border-radius: 10px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.co-page-state.error {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.co-form-error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.co-form-error-banner button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+input.co-stepper-count {
+  width: 52px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  -moz-appearance: textfield;
+}
+
+input.co-stepper-count::-webkit-outer-spin-button,
+input.co-stepper-count::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.co-modal-qty-input {
+  width: 64px;
+  height: 32px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0 8px;
+  font-size: 0.8rem;
+  margin-right: 8px;
+}
+
+.co-modal-state {
+  padding: 24px;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.co-modal-retry {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sm-create-order-main button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

@@ -1,13 +1,36 @@
-import { useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useParams, useSearchParams } from 'react-router-dom'
 import LoaderSidebar from '../../../components/loader/LoaderSidebar'
 import ReportIssueHeader from '../../../components/loader/reportIssue/ReportIssueHeader'
 import ReportIssueMetaBar from '../../../components/loader/reportIssue/ReportIssueMetaBar'
 import ReportIssueForm from '../../../components/loader/reportIssue/ReportIssueForm'
+import { tripService } from '../../../services/tripService'
+import { formatDate, formatTime } from '../../../utils/orderFormat'
+import { loadStatusOf, vehicleTypeLabel } from '../../../utils/tripFormat'
 import './ReportIssue.css'
 
 export default function ReportIssue() {
   const { orderId, loadId } = useParams()
-  const activeId = orderId || loadId || 'LD-025'
+  const tripId = orderId || loadId
+  const [searchParams] = useSearchParams()
+  const [data, setData] = useState(null)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!tripId) return
+    let active = true
+    tripService
+      .getTrip(tripId)
+      .then((res) => active && setData(res))
+      .catch((err) => active && setError(err.message))
+    return () => {
+      active = false
+    }
+  }, [tripId])
+
+  const trip = data?.trip
+  const stops = data?.stops || []
+  const checked = stops.filter((s) => s.verified_at).length
 
   return (
     <div className="report-issue-layout-container">
@@ -18,23 +41,30 @@ export default function ReportIssue() {
       <div className="report-issue-main-wrapper">
         <main className="report-issue-content">
           {/* Header */}
-          <ReportIssueHeader
-            loadId={activeId}
-            vehicleId="WP-REF-007"
-          />
+          <ReportIssueHeader loadId={tripId || '—'} vehicleId={trip?.vehicle_id || ''} />
 
-          {/* Top Meta Strip */}
-          <ReportIssueMetaBar
-            loadId={activeId}
-            vehicle="WP-REF-007 (Refrigerated Truck)"
-            route="Peliyagoda → Colombo South (5 Stops)"
-            departure="06:00 AM Today"
-            progress="15 / 25 Items Loaded (60%)"
-            status="LOADING"
-          />
+          {!tripId && <p className="record-issue-error">Open a load from Today's Loads to report an issue for it.</p>}
+          {error && <p className="record-issue-error">Unable to open {tripId}: {error}</p>}
 
-          {/* Main Record Loading Issue Form */}
-          <ReportIssueForm loadId={activeId} />
+          {trip && (
+            <>
+              {/* Top Meta Strip */}
+              <ReportIssueMetaBar
+                loadId={trip.trip_id}
+                vehicle={`${trip.vehicle_id} (${vehicleTypeLabel(trip)})`}
+                route={`${trip.depot} → ${trip.district} (${stops.length} Stops)`}
+                departure={`${formatTime(trip.planned_departure_time)} ${formatDate(trip.delivery_date)}`}
+                progress={`${checked} / ${stops.length} Orders Checked`}
+                status={loadStatusOf({ ...trip, shortfalls: stops.filter((s) => s.shortfall_flag).length }).status}
+              />
+
+              {['planned', 'loading'].includes(trip.status) ? (
+                <ReportIssueForm trip={trip} stops={stops} initialOrderId={searchParams.get('order')} />
+              ) : (
+                <p className="record-issue-error">Loading for {trip.trip_id} is complete; report problems on the road through the driver app.</p>
+              )}
+            </>
+          )}
         </main>
       </div>
     </div>

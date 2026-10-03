@@ -907,3 +907,4 @@
     padding: 16px 14px 40px !important;
   }
 }
+.loader-dashboard-error { color: #b91c1c; font-size: 0.8rem; font-weight: 600; }

@@ -26,7 +26,7 @@ export default function FleetCapacityOverview() {
             <img src={volumeIcon} alt="" className="cap-icon-blue" />
             <span className="cap-item-label">Available Volume</span>
           </div>
-          <span className="cap-item-large-val">218 mÂ³</span>
+          <span className="cap-item-large-val">218 m³</span>
         </div>
 
         {/* Metric 3 */}

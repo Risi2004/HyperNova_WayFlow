@@ -1,26 +1,4 @@
-export default function LoaderStatCards() {
-  const stats = [
-    {
-      value: '8',
-      label: 'Loads to Prepare',
-      dotColor: 'gray',
-    },
-    {
-      value: '2',
-      label: 'Loading Now',
-      dotColor: 'blue',
-    },
-    {
-      value: '3',
-      label: 'Ready for Departure',
-      dotColor: 'green',
-    },
-    {
-      value: '1',
-      label: 'Issues',
-      dotColor: 'amber',
-    },
-  ]
+export default function LoaderStatCards({ stats = [] }) {
 
   return (
     <div className="loader-stats-grid">

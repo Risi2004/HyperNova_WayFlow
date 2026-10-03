@@ -1,26 +1,26 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { MapContainer, TileLayer, Marker, Polyline, Circle, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import './DeliveryMap.css'
 
-// Depot Marker: Peliyagoda Logistics Depot (Clean blue dot with white stroke & text pill)
-const depotIcon = L.divIcon({
+// Depot Marker (Clean blue dot with white stroke & text pill)
+const depotIcon = (label) => L.divIcon({
   className: 'wf-leaflet-marker-depot',
   html: `
     <div class="depot-pin-node">
       <div class="depot-pin-circle">
         <div class="depot-pin-dot"></div>
       </div>
-      <div class="depot-pin-label">Peliyagoda Depot</div>
+      <div class="depot-pin-label">${label}</div>
     </div>
   `,
   iconSize: [130, 24],
   iconAnchor: [8, 12],
 })
 
-// Outlet Destination Marker: Colombo 03 Store (Crisp red pin with halo & text pill)
-const outletIcon = L.divIcon({
+// Outlet Destination Marker (Crisp red pin with halo & text pill)
+const outletIcon = (label) => L.divIcon({
   className: 'wf-leaflet-marker-outlet',
   html: `
     <div class="outlet-pin-node">
@@ -31,15 +31,40 @@ const outletIcon = L.divIcon({
           <circle cx="12" cy="10" r="4" fill="#ffffff"/>
         </svg>
       </div>
-      <div class="outlet-pin-label">Colombo 03 Outlet</div>
+      <div class="outlet-pin-label">${label}</div>
     </div>
   `,
   iconSize: [140, 48],
   iconAnchor: [11, 26],
 })
 
-// Realistic delivery route from Peliyagoda Depot through Colombo road network to Colombo 03
-const routeCoordinates = [
+const DEPOTS = {
+  Peliyagoda: [6.9695, 79.8895],
+  Kandy: [7.2906, 80.6337],
+}
+
+// Approximate district centres. The dataset has no outlet coordinates, so the map shows the
+// depot-to-district corridor the planner uses for travel time.
+const DISTRICTS = {
+  Colombo: [6.9040, 79.8515],
+  Gampaha: [7.0873, 79.9990],
+  Kalutara: [6.5854, 79.9607],
+  Negombo: [7.2083, 79.8358],
+  Kurunegala: [7.4863, 80.3647],
+  Puttalam: [8.0362, 79.8283],
+  Galle: [6.0535, 80.2210],
+  Matara: [5.9549, 80.5550],
+  Ratnapura: [6.6828, 80.3992],
+  Kegalle: [7.2513, 80.3464],
+  Kandy: [7.2906, 80.6337],
+  Matale: [7.4675, 80.6234],
+  'Nuwara Eliya': [6.9497, 80.7891],
+  Badulla: [6.9934, 81.0550],
+  Anuradhapura: [8.3114, 80.4037],
+}
+
+// Road-following corridor from Peliyagoda Depot through the Colombo network to Kollupitiya
+const colomboRoute = [
   [6.9695, 79.8895], // Peliyagoda Depot
   [6.9650, 79.8820],
   [6.9585, 79.8735],
@@ -53,42 +78,48 @@ const routeCoordinates = [
 ]
 
 // Controller to auto-fit view to show both points, the route, and surroundings
-function MapFitController() {
+function MapFitController({ bounds }) {
   const map = useMap()
 
   useEffect(() => {
     map.invalidateSize()
-    map.fitBounds(
-      [
-        [6.8980, 79.8400],
-        [6.9740, 79.8960],
-      ],
-      { padding: [28, 28], maxZoom: 13 }
-    )
+    map.fitBounds(bounds, { padding: [36, 36], maxZoom: 13 })
 
     const timer = setTimeout(() => {
       map.invalidateSize()
     }, 200)
 
     return () => clearTimeout(timer)
-  }, [map])
+  }, [map, bounds])
 
   return null
 }
 
-export default function DeliveryMap() {
-  const depotPosition = [6.9695, 79.8895]
-  const outletPosition = [6.9040, 79.8515]
+export default function DeliveryMap({ depot = 'Peliyagoda', district = 'Colombo', outletLabel = 'Outlet' }) {
+  const { depotPosition, outletPosition, routeCoordinates, bounds } = useMemo(() => {
+    const from = DEPOTS[depot] || DEPOTS.Peliyagoda
+    const to = DISTRICTS[district] || [from[0] - 0.05, from[1] - 0.03]
+    return {
+      depotPosition: from,
+      outletPosition: to,
+      routeCoordinates: depot === 'Peliyagoda' && district === 'Colombo' ? colomboRoute : [from, to],
+      bounds: [from, to],
+    }
+  }, [depot, district])
+  const icons = useMemo(
+    () => ({ depot: depotIcon(`${depot} Depot`), outlet: outletIcon(outletLabel) }),
+    [depot, outletLabel]
+  )
 
   return (
     <div className="delivery-leaflet-wrapper">
       <MapContainer
-        center={[6.9360, 79.8680]}
+        center={outletPosition}
         zoom={12}
         scrollWheelZoom={false}
         className="leaflet-map-element"
       >
-        <MapFitController />
+        <MapFitController bounds={bounds} />
 
         {/* Standard OpenStreetMap Tile Server with all surroundings, streets, terrain, landmarks */}
         <TileLayer
@@ -100,7 +131,7 @@ export default function DeliveryMap() {
 
         {/* Operational delivery buffer zones */}
         <Circle
-          center={[6.9620, 79.8810]}
+          center={depotPosition}
           radius={750}
           pathOptions={{
             color: 'transparent',
@@ -109,7 +140,7 @@ export default function DeliveryMap() {
           }}
         />
         <Circle
-          center={[6.9140, 79.8580]}
+          center={outletPosition}
           radius={800}
           pathOptions={{
             color: 'transparent',
@@ -143,10 +174,10 @@ export default function DeliveryMap() {
         />
 
         {/* Origin Depot Pin */}
-        <Marker position={depotPosition} icon={depotIcon} />
+        <Marker position={depotPosition} icon={icons.depot} />
 
         {/* Destination Outlet Pin */}
-        <Marker position={outletPosition} icon={outletIcon} />
+        <Marker position={outletPosition} icon={icons.outlet} />
       </MapContainer>
     </div>
   )

@@ -1,3 +1,4 @@
+import { useCurrentUser } from '../../../hooks/useCurrentUser'
 export default function MyOrdersFiltersBar({
   searchQuery,
   setSearchQuery,
@@ -18,6 +19,7 @@ export default function MyOrdersFiltersBar({
   },
   onRefresh,
 }) {
+  const user = useCurrentUser()
   const statusTabs = [
     { id: 'ALL', label: 'All', count: statusCounts.all },
     { id: 'PENDING', label: 'Pending', count: statusCounts.pending },
@@ -35,8 +37,8 @@ export default function MyOrdersFiltersBar({
         <div className="mo-sub-info-left">
           <div className="mo-outlet-pill-group">
             <span className="mo-live-dot blue" />
-            <span className="mo-store-name">Colombo 05 Store</span>
-            <span className="mo-store-code-pill">OUT043</span>
+            <span className="mo-store-name">{user?.outlet ? `Waypoint ${user.outlet.brand} – ${user.outlet.district}` : user?.facility}</span>
+            <span className="mo-store-code-pill">{user?.outlet_id || 'No outlet'}</span>
           </div>
 
           <span className="mo-sub-sep">•</span>
@@ -121,8 +123,8 @@ export default function MyOrdersFiltersBar({
             onChange={(e) => setDateFilter(e.target.value)}
           >
             <option value="ALL">All Delivery Dates</option>
-            <option value="TODAY">Today (Sep 28)</option>
-            <option value="TOMORROW">Tomorrow (Sep 29)</option>
+            <option value="TODAY">Today</option>
+            <option value="TOMORROW">Tomorrow</option>
             <option value="NEXT_7_DAYS">Next 7 Days</option>
             <option value="PAST_30_DAYS">Past 30 Days</option>
           </select>

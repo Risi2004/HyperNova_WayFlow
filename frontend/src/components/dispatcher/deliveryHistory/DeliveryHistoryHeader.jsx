@@ -15,7 +15,7 @@ export default function DeliveryHistoryHeader({ onExport }) {
       <div className="history-header-actions">
         {/* Date Range Picker Button */}
         <div className="history-date-picker-btn">
-          <span>1 Sep â€“ 26 Sep 2026</span>
+          <span>1 Sep – 26 Sep 2026</span>
           <img src={dateIcon} alt="" className="history-date-icon" />
         </div>
 

@@ -1,63 +1,26 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { dispatchStatusOf, formatWindow, outletLabel } from '../../../utils/orderFormat'
 
-export default function OrdersAttentionTable() {
-  const orders = [
-    {
-      id: 'ORD-8241',
-      outlet: 'FreshMart - Riverside',
-      productType: 'Frozen / Reefer',
-      window: '10:00â€“11:30',
-      status: 'PENDING PLANNING',
-      statusType: 'pending',
-      priority: 'HIGH',
-      priorityType: 'high',
-      action: 'Assign',
-    },
-    {
-      id: 'ORD-8238',
-      outlet: 'Metro Grocer - Central',
-      productType: 'Ambient',
-      window: '11:00â€“12:00',
-      status: 'READY',
-      statusType: 'ready',
-      priority: 'NORMAL',
-      priorityType: 'normal',
-      action: 'Plan',
-    },
-    {
-      id: 'ORD-8226',
-      outlet: 'Green Basket - North',
-      productType: 'Fresh Produce',
-      window: '09:45â€“10:30',
-      status: 'AT RISK',
-      statusType: 'at-risk',
-      priority: 'URGENT',
-      priorityType: 'urgent',
-      action: 'Resolve',
-    },
-    {
-      id: 'ORD-8219',
-      outlet: 'QuickStop - Harbor',
-      productType: 'Beverages',
-      window: '13:00â€“15:00',
-      status: 'DEFERRED',
-      statusType: 'deferred',
-      priority: 'LOW',
-      priorityType: 'low',
-      action: 'Review',
-    },
-    {
-      id: 'ORD-8214',
-      outlet: 'Market Lane - East',
-      productType: 'Chilled',
-      window: '10:30â€“11:15',
-      status: 'PENDING PLANNING',
-      statusType: 'pending',
-      priority: 'HIGH',
-      priorityType: 'high',
-      action: 'Assign',
-    },
-  ]
+// Rows come from the orders API `attention` list (repeat deferrals, exceptions, urgent orders).
+function toRow(o) {
+  const exception = ['shortfall', 'failed', 'disputed'].includes(o.status)
+  const deferredAgain = o.status === 'deferred' && o.consecutive_deferral_count > 1
+  return {
+    id: o.order_id,
+    outlet: outletLabel(o),
+    productType: o.temp_requirement === 'chilled' ? 'Chilled / Reefer' : 'Ambient',
+    window: formatWindow(o.requested_window_open, o.requested_window_close),
+    status: (o.status === 'deferred' ? `Deferred ${o.consecutive_deferral_count || 1}×` : dispatchStatusOf(o.status).label).toUpperCase(),
+    statusType: exception || deferredAgain ? 'at-risk' : o.status === 'deferred' ? 'deferred' : 'pending',
+    priority: (o.priority || 'normal').toUpperCase(),
+    priorityType: o.priority === 'urgent' ? 'urgent' : 'normal',
+    action: exception ? 'Resolve' : o.status === 'deferred' ? 'Review' : 'Plan',
+  }
+}
+
+export default function OrdersAttentionTable({ orders: source = [] }) {
+  const navigate = useNavigate()
+  const orders = source.map(toRow)
 
   return (
     <div className="dashboard-card orders-table-card">
@@ -102,12 +65,17 @@ export default function OrdersAttentionTable() {
                   </span>
                 </td>
                 <td className="text-right">
-                  <button type="button" className="table-action-btn">
+                  <button type="button" className="table-action-btn" onClick={() => navigate(`/dispatcher/orders/${ord.id}`)}>
                     {ord.action}
                   </button>
                 </td>
               </tr>
             ))}
+            {orders.length === 0 && (
+              <tr>
+                <td colSpan="7" className="outlet-cell">No orders need attention right now.</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

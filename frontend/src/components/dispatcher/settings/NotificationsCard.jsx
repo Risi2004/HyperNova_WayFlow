@@ -93,7 +93,7 @@ export default function NotificationsCard({ settings, onChange }) {
           <div className="toggle-text-col">
             <span className="toggle-title">Cold-Chain Temperature Excursion Siren</span>
             <p className="toggle-subtitle">
-              Emergency priority alert if reefer truck internal sensor rises above 6.0Â°C for longer than 4 minutes.
+              Emergency priority alert if reefer truck internal sensor rises above 6.0°C for longer than 4 minutes.
             </p>
           </div>
           <label className="switch-toggle" htmlFor="temperatureAlarm">

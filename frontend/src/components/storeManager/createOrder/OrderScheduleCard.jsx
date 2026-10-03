@@ -1,4 +1,43 @@
+import { useEffect, useState } from 'react'
+import {
+  colomboToday,
+  formatCountdown,
+  formatDate,
+  formatDayLabel,
+  formatWindow,
+} from '../../../utils/orderFormat'
+
+const toMinutes = (t) => {
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
+}
+const toTime = (mins) => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`
+
+// The outlet's full receiving window plus earlier / later halves so staff can be rostered.
+function windowOptions(outlet) {
+  const open = outlet.window_open
+  const close = outlet.window_close
+  const options = [{ value: `${open}-${close}`, label: `Full outlet window (${formatWindow(open, close)}) - Recommended` }]
+  const span = toMinutes(close) - toMinutes(open)
+  if (span >= 60) {
+    const mid = toTime(toMinutes(open) + Math.round(span / 2 / 15) * 15)
+    options.push({ value: `${open}-${mid}`, label: `Earlier slot (${formatWindow(open, mid)})` })
+    options.push({ value: `${mid}-${close}`, label: `Later slot (${formatWindow(mid, close)})` })
+  }
+  return options
+}
+
+const ACCESS_HINTS = {
+  van_only: 'Van-only access: the dispatcher will assign a van to this outlet.',
+  mall_dock: 'Mall outlet: delivery must fit the mall access window.',
+  normal: 'Any vehicle type can unload at this outlet.',
+}
+
 export default function OrderScheduleCard({
+  outlet,
+  deliveryOptions = [],
+  deliveryOption,
+  isBusy = false,
   deliveryDate,
   setDeliveryDate,
   deliveryWindow,
@@ -13,11 +52,20 @@ export default function OrderScheduleCard({
   onSaveDraft,
   onSubmitOrder,
 }) {
-  const quickDates = [
-    { label: 'Tomorrow (Sep 29)', value: 'Sep 29, 2026' },
-    { label: 'Wed (Sep 30)', value: 'Sep 30, 2026' },
-    { label: 'Thu (Oct 01)', value: 'Oct 01, 2026' },
-  ]
+  // Re-render every 30s so the cutoff countdown stays current.
+  const [nowMs, setNowMs] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = setInterval(() => setNowMs(Date.now()), 30000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const tomorrow = new Date(Date.parse(`${colomboToday()}T00:00:00Z`) + 86400000).toISOString().slice(0, 10)
+  const quickDates = deliveryOptions.slice(0, 3).map((o) => ({
+    value: o.date,
+    label: o.date === tomorrow ? `Tomorrow ${formatDayLabel(o.date).slice(4)}` : formatDayLabel(o.date),
+  }))
+  const windows = windowOptions(outlet)
+  const cutoffAt = deliveryOption?.cutoffAt
 
   return (
     <div className="co-card co-schedule-card">
@@ -34,7 +82,7 @@ export default function OrderScheduleCard({
           </div>
           <h2 className="co-card-title">Order Details &amp; Delivery Schedule</h2>
         </div>
-        <span className="co-dispatch-tag">WayFlow Dispatch #04</span>
+        <span className="co-dispatch-tag">{outlet.depot} Dispatch</span>
       </div>
 
       {/* Form Grid */}
@@ -46,11 +94,11 @@ export default function OrderScheduleCard({
           </label>
           <div className="co-input-with-icon">
             <input
-              type="text"
+              type="date"
               className="co-text-input"
               value={deliveryDate}
+              min={deliveryOptions[0]?.date}
               onChange={(e) => setDeliveryDate(e.target.value)}
-              placeholder="e.g. Sep 29, 2026"
             />
             <div className="co-input-icon-btn" title="Select Date">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -87,18 +135,11 @@ export default function OrderScheduleCard({
               value={deliveryWindow}
               onChange={(e) => setDeliveryWindow(e.target.value)}
             >
-              <option value="Morning (10:30 AM - 11:00 AM - Recommended Standard)">
-                Morning (10:30 AM - 11:00 AM - Recommended Standard)
-              </option>
-              <option value="Early Morning (06:30 AM - 08:00 AM)">
-                Early Morning (06:30 AM - 08:00 AM)
-              </option>
-              <option value="Midday (12:00 PM - 01:30 PM)">
-                Midday (12:00 PM - 01:30 PM)
-              </option>
-              <option value="Afternoon (03:00 PM - 04:30 PM)">
-                Afternoon (03:00 PM - 04:30 PM)
-              </option>
+              {windows.map((w) => (
+                <option key={w.value} value={w.value}>
+                  {w.label}
+                </option>
+              ))}
             </select>
             <div className="co-select-arrow">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -107,7 +148,7 @@ export default function OrderScheduleCard({
             </div>
           </div>
           <span className="co-input-hint">
-            Colombo 05 unloading dock has dedicated bay priority during morning slot.
+            {ACCESS_HINTS[outlet.parking_constraint] || ACCESS_HINTS.normal}
           </span>
         </div>
 
@@ -177,21 +218,27 @@ export default function OrderScheduleCard({
             </svg>
           </div>
           <div className="co-cutoff-text-col">
-            <span className="co-cutoff-title">Peliyagoda Cut-off in 4h 15m</span>
+            <span className="co-cutoff-title">
+              {cutoffAt
+                ? `${outlet.depot} cut-off for ${formatDayLabel(deliveryDate)} in ${formatCountdown(cutoffAt, nowMs)}`
+                : 'No delivery available on the selected date'}
+            </span>
             <span className="co-cutoff-desc">
-              Orders submitted by 18:00 PM will depart on tomorrow morning&apos;s Run #04.
+              {cutoffAt
+                ? `Submit before ${new Date(cutoffAt).toLocaleString('en-GB', { timeZone: 'Asia/Colombo', weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })} to be planned for ${formatDate(deliveryDate)} delivery.`
+                : `Choose one of the available dates${quickDates[0] ? ` — the next is ${quickDates[0].label}` : ''}.`}
             </span>
           </div>
         </div>
 
         <div className="co-cutoff-actions-right">
-          <button type="button" className="btn-co-discard" onClick={onDiscard}>
+          <button type="button" className="btn-co-discard" onClick={onDiscard} disabled={isBusy}>
             Discard
           </button>
-          <button type="button" className="btn-co-save-draft" onClick={onSaveDraft}>
+          <button type="button" className="btn-co-save-draft" onClick={onSaveDraft} disabled={isBusy}>
             Save Draft
           </button>
-          <button type="button" className="btn-co-submit-primary" onClick={onSubmitOrder}>
+          <button type="button" className="btn-co-submit-primary" onClick={onSubmitOrder} disabled={isBusy || !cutoffAt}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="22" y1="2" x2="11" y2="13" />
               <polygon points="22 2 15 22 11 13 2 9 22 2" />

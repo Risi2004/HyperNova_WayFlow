@@ -3,30 +3,85 @@ import { useNavigate } from 'react-router-dom'
 import ReportIssueUpload from './ReportIssueUpload'
 import ReportIssueSummaryCard from './ReportIssueSummaryCard'
 import IssueSuccessModal from './IssueSuccessModal'
+import { tripService } from '../../../services/tripService'
+import { compressImage } from '../../../utils/tripFormat'
+import { formatTimestamp } from '../../../utils/orderFormat'
 
-export default function ReportIssueForm({ loadId = 'LD-025' }) {
+const readAsDataUrl = (file) =>
+  new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = (e) => resolve(e.target.result)
+    reader.readAsDataURL(file)
+  })
+
+// Records a loading shortfall / damage for one order on a load. The order is marked short,
+// the dispatcher gets an issue, and the store manager sees it on the order's history.
+export default function ReportIssueForm({ trip, stops = [], initialOrderId }) {
   const navigate = useNavigate()
-
+  const firstStop = stops.find((s) => s.order_id === initialOrderId) || stops[0]
+  const [orderId, setOrderId] = useState(firstStop?.order_id || '')
+  const stop = stops.find((s) => s.order_id === orderId) || firstStop
   const [issueType, setIssueType] = useState('Quantity Mismatch')
-  const [affectedStop, setAffectedStop] = useState('02 — Bambalapitiya · Waypoint Style')
-  const [affectedOrder, setAffectedOrder] = useState('ORD-1048')
-  const [affectedItem, setAffectedItem] = useState('Rice 5kg')
-  const [plannedQty] = useState(60)
-  const [actualQty, setActualQty] = useState(52)
-  const [description, setDescription] = useState(
-    'Only 52 units of Rice 5kg were available at the loading bay. The planned quantity was 60 units. 8 units appear to be missing from the warehouse stock.'
-  )
-  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false)
+  const [itemId, setItemId] = useState(firstStop?.items[0]?.item_id ? String(firstStop.items[0].item_id) : '')
+  const item = stop?.items.find((i) => String(i.item_id) === itemId) || stop?.items[0]
+  const plannedQty = item?.quantity ?? 0
+  const [actualQty, setActualQty] = useState(plannedQty)
+  const [description, setDescription] = useState('')
+  const [photo, setPhoto] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState(null)
+  const [result, setResult] = useState(null)
 
   const diff = Number(actualQty) - plannedQty
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    setIsSuccessModalOpen(true)
+  const handleOrderChange = (id) => {
+    const next = stops.find((s) => s.order_id === id)
+    setOrderId(id)
+    setItemId(next?.items[0] ? String(next.items[0].item_id) : '')
+    setActualQty(next?.items[0]?.quantity ?? 0)
   }
 
-  const handleCancel = () => {
-    navigate(`/loader/today-loads`)
+  const handleItemChange = (id) => {
+    setItemId(id)
+    setActualQty(stop?.items.find((i) => String(i.item_id) === id)?.quantity ?? 0)
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!description.trim()) {
+      setError('Describe what is missing or damaged.')
+      return
+    }
+    setIsSubmitting(true)
+    setError(null)
+    try {
+      const photoData = photo ? await compressImage(await readAsDataUrl(photo)) : null
+      await tripService.verifyOrder(trip.trip_id, {
+        order_id: orderId,
+        result: 'shortfall',
+        issue_type: issueType,
+        item_name: item?.product_name,
+        planned_units: plannedQty,
+        actual_units: Number(actualQty),
+        description,
+        photo: photoData,
+      })
+      const t = formatTimestamp(new Date().toISOString())
+      setResult({
+        issueId: orderId,
+        associatedLoad: `${trip.trip_id} (${trip.vehicle_id})`,
+        issueClass: issueType,
+        affectedProduct: `${item?.product_name || 'Order'} (${orderId})`,
+        discrepancy: `${diff > 0 ? '+' : ''}${diff} units`,
+        status: 'Reported to dispatch',
+        loggedTime: `${t.time}, ${t.date}`,
+        loadId: trip.trip_id,
+      })
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -35,7 +90,7 @@ export default function ReportIssueForm({ loadId = 'LD-025' }) {
       <div className="record-issue-card-header">
         <h2 className="record-issue-title">Record Loading Issue</h2>
         <p className="record-issue-subtitle">
-          Report physical discrepancies or quality issues found at the warehouse dispatch bay.
+          Report missing or damaged goods before the vehicle leaves. Dispatch and the store manager are notified.
         </p>
       </div>
 
@@ -43,19 +98,14 @@ export default function ReportIssueForm({ loadId = 'LD-025' }) {
       <div className="record-issue-grid">
         {/* Left Column: Form Fields */}
         <div className="record-issue-fields-col">
-          {/* Row 1: Issue Type & Affected Stop */}
+          {/* Row 1: Issue Type & Affected Order (stop) */}
           <div className="form-fields-two-col">
             <div className="form-field-group">
               <label className="form-label">
                 Issue Type <span className="req-star">*</span>
               </label>
               <div className="form-select-wrapper">
-                <select
-                  className="form-select"
-                  value={issueType}
-                  onChange={(e) => setIssueType(e.target.value)}
-                  required
-                >
+                <select className="form-select" value={issueType} onChange={(e) => setIssueType(e.target.value)} required>
                   <option value="Quantity Mismatch">Quantity Mismatch</option>
                   <option value="Damaged Goods">Damaged Goods</option>
                   <option value="Missing Carton / Box">Missing Carton / Box</option>
@@ -63,82 +113,38 @@ export default function ReportIssueForm({ loadId = 'LD-025' }) {
                   <option value="Packaging Defect">Packaging Defect</option>
                   <option value="Other">Other</option>
                 </select>
-                <svg className="form-select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
               </div>
             </div>
 
             <div className="form-field-group">
               <label className="form-label">
-                Affected Stop <span className="req-star">*</span>
+                Affected Stop / Order <span className="req-star">*</span>
               </label>
               <div className="form-select-wrapper">
-                <select
-                  className="form-select"
-                  value={affectedStop}
-                  onChange={(e) => setAffectedStop(e.target.value)}
-                  required
-                >
-                  <option value="01 — Colombo 03 · Waypoint Fresh">01 — Colombo 03 · Waypoint Fresh</option>
-                  <option value="02 — Bambalapitiya · Waypoint Style">02 — Bambalapitiya · Waypoint Style</option>
-                  <option value="03 — Wellawatte · Waypoint Tech">03 — Wellawatte · Waypoint Tech</option>
-                  <option value="04 — Dehiwala · Waypoint Fresh">04 — Dehiwala · Waypoint Fresh</option>
-                  <option value="05 — Mount Lavinia · Waypoint Fresh">05 — Mount Lavinia · Waypoint Fresh</option>
+                <select className="form-select" value={orderId} onChange={(e) => handleOrderChange(e.target.value)} required>
+                  {stops.map((s) => (
+                    <option key={s.order_id} value={s.order_id}>
+                      {String(s.stop_sequence).padStart(2, '0')} — {s.outlet_id} · {s.order_id}
+                    </option>
+                  ))}
                 </select>
-                <svg className="form-select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
               </div>
             </div>
           </div>
 
-          {/* Row 2: Affected Order & Affected Item */}
-          <div className="form-fields-two-col">
-            <div className="form-field-group">
-              <label className="form-label">
-                Affected Order <span className="req-star">*</span>
-              </label>
-              <div className="form-select-wrapper">
-                <select
-                  className="form-select"
-                  value={affectedOrder}
-                  onChange={(e) => setAffectedOrder(e.target.value)}
-                  required
-                >
-                  <option value="ORD-1048">ORD-1048</option>
-                  <option value="ORD-1042">ORD-1042</option>
-                  <option value="ORD-1043">ORD-1043</option>
-                  <option value="ORD-1051">ORD-1051</option>
-                  <option value="ORD-1057">ORD-1057</option>
-                </select>
-                <svg className="form-select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
-              </div>
-            </div>
-
-            <div className="form-field-group">
-              <label className="form-label">
-                Affected Item <span className="req-star">*</span>
-              </label>
-              <div className="form-select-wrapper">
-                <select
-                  className="form-select"
-                  value={affectedItem}
-                  onChange={(e) => setAffectedItem(e.target.value)}
-                  required
-                >
-                  <option value="Rice 5kg">Rice 5kg</option>
-                  <option value="Cooking Oil 1L">Cooking Oil 1L</option>
-                  <option value="Sugar 1kg">Sugar 1kg</option>
-                  <option value="Flour 1kg">Flour 1kg</option>
-                  <option value="Fresh Milk 1L">Fresh Milk 1L</option>
-                </select>
-                <svg className="form-select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
-              </div>
+          {/* Row 2: Affected Item */}
+          <div className="form-field-group">
+            <label className="form-label">
+              Affected Item <span className="req-star">*</span>
+            </label>
+            <div className="form-select-wrapper">
+              <select className="form-select" value={item ? String(item.item_id) : ''} onChange={(e) => handleItemChange(e.target.value)} required>
+                {(stop?.items || []).map((i) => (
+                  <option key={i.item_id} value={String(i.item_id)}>
+                    {i.product_name} ({i.quantity} × {i.unit})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -146,20 +152,15 @@ export default function ReportIssueForm({ loadId = 'LD-025' }) {
           <div className="form-fields-two-col">
             <div className="form-field-group">
               <label className="form-label">Planned Quantity</label>
-              <input
-                type="text"
-                className="form-input form-input-disabled"
-                value={`${plannedQty} units`}
-                disabled
-              />
+              <input type="text" className="form-input form-input-disabled" value={`${plannedQty} units`} disabled />
             </div>
-
             <div className="form-field-group">
               <label className="form-label">
                 Actual Quantity Loaded <span className="req-star">*</span>
               </label>
               <input
                 type="number"
+                min="0"
                 className="form-input form-input-active"
                 value={actualQty}
                 onChange={(e) => setActualQty(e.target.value)}
@@ -171,21 +172,6 @@ export default function ReportIssueForm({ loadId = 'LD-025' }) {
           {/* Difference Warning Tag */}
           <div className="difference-tag-container">
             <div className="difference-tag">
-              <svg
-                className="difference-icon"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                <line x1="12" y1="9" x2="12" y2="13"></line>
-                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-              </svg>
               <span>
                 Difference: {diff > 0 ? `+${diff}` : diff} units
               </span>
@@ -202,20 +188,21 @@ export default function ReportIssueForm({ loadId = 'LD-025' }) {
               rows={4}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Provide specific details about the issue observed..."
+              placeholder="e.g. Only 34 bottles in the chiller bay; 6 missing from stock."
               required
             />
           </div>
+          {error && <p className="record-issue-error">{error}</p>}
         </div>
 
         {/* Right Column: Upload Box + Summary Preview */}
         <div className="record-issue-side-col">
-          <ReportIssueUpload />
+          <ReportIssueUpload onPhotoChange={setPhoto} />
           <ReportIssueSummaryCard
             issueType={issueType}
-            stop={affectedStop.split(' · ')[0]}
-            item={affectedItem}
-            order={affectedOrder}
+            stop={stop ? `Stop ${String(stop.stop_sequence).padStart(2, '0')} — ${stop.outlet_id}` : '—'}
+            item={item?.product_name || '—'}
+            order={orderId}
             discrepancy={diff}
           />
         </div>
@@ -223,33 +210,16 @@ export default function ReportIssueForm({ loadId = 'LD-025' }) {
 
       {/* Card Footer Actions */}
       <div className="record-issue-footer">
-        <button
-          type="button"
-          className="btn-cancel-issue"
-          onClick={handleCancel}
-        >
+        <button type="button" className="btn-cancel-issue" onClick={() => navigate(`/loader/today-orders/${trip.trip_id}`)}>
           Cancel
         </button>
-        <button type="submit" className="btn-submit-issue">
-          Submit Issue
+        <button type="submit" className="btn-submit-issue" disabled={isSubmitting || !orderId}>
+          {isSubmitting ? 'Submitting…' : 'Submit Issue'}
         </button>
       </div>
 
       {/* Success Modal Popup */}
-      <IssueSuccessModal
-        isOpen={isSuccessModalOpen}
-        onClose={() => setIsSuccessModalOpen(false)}
-        issueData={{
-          issueId: 'ISS-0042',
-          associatedLoad: `${loadId} (WP-REF-007)`,
-          issueClass: issueType,
-          affectedProduct: `${affectedItem} (${affectedOrder})`,
-          discrepancy: diff > 0 ? `+${diff} units` : `${diff} units`,
-          status: 'Reported',
-          loggedTime: '09:42 AM, 27 Sep 2026',
-          loadId: loadId,
-        }}
-      />
+      <IssueSuccessModal isOpen={Boolean(result)} onClose={() => setResult(null)} issueData={result || undefined} />
     </form>
   )
 }

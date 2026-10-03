@@ -1,5 +1,15 @@
 import { useState, useEffect } from 'react'
+import { userService } from '../../services/userService'
 import './AdminModal.css'
+
+// Same facility choices as Add User. Store managers are linked to an outlet and drivers to a
+// vehicle from the master data, because ordering and trip assignment depend on those links.
+const LOADER_BAYS = ['Bay 01 (Ambient Dry-Box)', 'Bay 02 (Chilled / Reefer)', 'Bay 03 (Heavy Freight & Tech)', 'Bay 04 (Express Van Staging)']
+const HUB_FACILITIES = {
+  Dispatcher: ['Peliyagoda Central Planning Hub', 'Kandy Regional Planning Hub', 'Central Network Control Center'],
+  Loader: ['Peliyagoda DC', 'Kandy Hub'].flatMap((depot) => LOADER_BAYS.map((bay) => `${depot} - ${bay}`)),
+  Admin: ['Regional HQ - Colombo', 'Central Network Operations', 'Enterprise Cloud Operations'],
+}
 
 export default function EditUserModal({ isOpen, onClose, user, onUpdateUser }) {
   const [name, setName] = useState('')
@@ -8,15 +18,26 @@ export default function EditUserModal({ isOpen, onClose, user, onUpdateUser }) {
   const [facility, setFacility] = useState('')
   const [phone, setPhone] = useState('')
   const [status, setStatus] = useState('Active')
+  const [outletId, setOutletId] = useState('')
+  const [vehicleId, setVehicleId] = useState('')
   const [errors, setErrors] = useState({})
+  const [dbOutlets, setDbOutlets] = useState([])
+  const [dbVehicles, setDbVehicles] = useState([])
 
-  const roleFacilities = {
-    Dispatcher: ['Central Planning Hub', 'Peliyagoda DC', 'Kandy Logistics Hub', 'Galle Regional Hub'],
-    'Store Manager': ['Colombo 05 Store', 'Kandy Central Outlet', 'Galle Fort Outlet', 'Negombo Superstore', 'Jaffna City Center'],
-    Loader: ['Peliyagoda DC - Bay 02', 'Colombo Central DC', 'Kandy Sorting Facility', 'Galle Transfer Depot'],
-    Driver: ['West Hub Fleet (Heavy Refrigerated)', 'Colombo Logistics Fleet (14T Dry)', 'South Coastal Hub (Frozen)', 'Central Express Delivery'],
-    Admin: ['Regional HQ - Colombo', 'Global Logistics Operations', 'Enterprise Cloud Admin'],
-  }
+  useEffect(() => {
+    if (!isOpen) return
+    let active = true
+    Promise.all([userService.getOutlets(), userService.getVehicles()])
+      .then(([outlets, vehicles]) => {
+        if (!active) return
+        setDbOutlets(outlets || [])
+        setDbVehicles(vehicles || [])
+      })
+      .catch((err) => console.error('Failed to load outlets / vehicles:', err))
+    return () => {
+      active = false
+    }
+  }, [isOpen])
 
   useEffect(() => {
     if (user) {
@@ -24,6 +45,8 @@ export default function EditUserModal({ isOpen, onClose, user, onUpdateUser }) {
       setEmail(user.email || '')
       setRole(user.role || 'Dispatcher')
       setFacility(user.facility || '')
+      setOutletId(user.outlet_id || '')
+      setVehicleId(user.assigned_vehicle_id || '')
       setPhone(user.phone || '')
       setStatus(user.status || 'Active')
       setErrors({})
@@ -34,14 +57,21 @@ export default function EditUserModal({ isOpen, onClose, user, onUpdateUser }) {
 
   const handleRoleChange = (newRole) => {
     setRole(newRole)
-    if (roleFacilities[newRole] && roleFacilities[newRole][0]) {
-      setFacility(roleFacilities[newRole][0])
-    }
+    if (HUB_FACILITIES[newRole]) setFacility(HUB_FACILITIES[newRole][0])
+    if (newRole === 'Store Manager' && !outletId && dbOutlets[0]) setOutletId(dbOutlets[0].outlet_id)
+    if (newRole === 'Driver' && !vehicleId && dbVehicles[0]) setVehicleId(dbVehicles[0].vehicle_id)
   }
+
+  // Keep the user's current facility selectable even if it is not one of the standard labels.
+  const hubOptions = HUB_FACILITIES[role]
+    ? [...new Set([...(HUB_FACILITIES[role].includes(facility) || !facility ? [] : [facility]), ...HUB_FACILITIES[role]])]
+    : []
 
   const validate = () => {
     const err = {}
     if (!name.trim()) err.name = 'Full name is required'
+    if (role === 'Store Manager' && !outletId) err.facility = 'Select the outlet this store manager runs'
+    if (role === 'Driver' && !vehicleId) err.facility = 'Select the vehicle this driver is assigned to'
     if (!email.trim()) {
       err.email = 'Email address is required'
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -55,12 +85,28 @@ export default function EditUserModal({ isOpen, onClose, user, onUpdateUser }) {
     e.preventDefault()
     if (!validate()) return
 
+    // Facility label and outlet / vehicle links follow the same format as Add User.
+    let finalFacility = facility
+    let finalOutletId = null
+    let finalVehicleId = null
+    if (role === 'Store Manager') {
+      const outlet = dbOutlets.find((o) => o.outlet_id === outletId)
+      finalOutletId = outletId
+      finalFacility = outlet ? `Store ${outlet.outlet_id} - ${outlet.district} (${outlet.brand})` : `Store ${outletId}`
+    } else if (role === 'Driver') {
+      const vehicle = dbVehicles.find((v) => v.vehicle_id === vehicleId)
+      finalVehicleId = vehicleId
+      finalFacility = `${vehicle?.depot || 'Peliyagoda'} Fleet Hub (${vehicleId})`
+    }
+
     const updatedUser = {
       ...user,
       name: name.trim(),
       email: email.trim().toLowerCase(),
       role,
-      facility,
+      facility: finalFacility,
+      outlet_id: finalOutletId,
+      assigned_vehicle_id: finalVehicleId,
       phone: phone.trim() || user.phone,
       status,
     }
@@ -133,18 +179,37 @@ export default function EditUserModal({ isOpen, onClose, user, onUpdateUser }) {
 
             {/* Facility */}
             <div className="admin-form-group">
-              <label className="admin-form-label">ASSIGNED FACILITY / OUTLET</label>
-              <select
-                className="admin-form-select"
-                value={facility}
-                onChange={(e) => setFacility(e.target.value)}
-              >
-                {(roleFacilities[role] || [facility]).map((fac) => (
-                  <option key={fac} value={fac}>
-                    {fac}
-                  </option>
-                ))}
-              </select>
+              <label className="admin-form-label">
+                {role === 'Store Manager' ? 'ASSIGNED OUTLET' : role === 'Driver' ? 'ASSIGNED VEHICLE' : 'ASSIGNED FACILITY'}
+              </label>
+              {role === 'Store Manager' ? (
+                <select className="admin-form-select" value={outletId} onChange={(e) => setOutletId(e.target.value)}>
+                  {!outletId && <option value="">Select an outlet…</option>}
+                  {dbOutlets.map((o) => (
+                    <option key={o.outlet_id} value={o.outlet_id}>
+                      {o.outlet_id} — {o.district} ({o.brand} • {o.dock_type})
+                    </option>
+                  ))}
+                </select>
+              ) : role === 'Driver' ? (
+                <select className="admin-form-select" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
+                  {!vehicleId && <option value="">Select a vehicle…</option>}
+                  {dbVehicles.map((v) => (
+                    <option key={v.vehicle_id} value={v.vehicle_id}>
+                      {v.vehicle_id} ({v.type.toUpperCase()} • {v.temp.toUpperCase()}) — {v.depot}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <select className="admin-form-select" value={facility} onChange={(e) => setFacility(e.target.value)}>
+                  {hubOptions.map((fac) => (
+                    <option key={fac} value={fac}>
+                      {fac}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {errors.facility && <span className="admin-form-error">{errors.facility}</span>}
             </div>
 
             {/* Contact Phone */}

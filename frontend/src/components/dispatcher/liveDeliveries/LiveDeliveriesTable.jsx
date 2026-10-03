@@ -12,7 +12,7 @@ export default function LiveDeliveriesTable({
         <div className="table-header-left">
           <h2 className="live-table-title">Today's Deliveries</h2>
           <p className="live-table-subtitle">
-            56 deliveries Â· Sorted by operational priority
+            56 deliveries · Sorted by operational priority
           </p>
         </div>
         <div className="table-refreshed-badge">

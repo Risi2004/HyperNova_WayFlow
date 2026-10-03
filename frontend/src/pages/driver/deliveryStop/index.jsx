@@ -1,6 +1,7 @@
-import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import DriverNavbar from '../../../components/driver/DriverNavbar'
+import DriverSyncBanner from '../../../components/driver/DriverSyncBanner'
 import StopHeaderBanner from '../../../components/driver/deliveryStop/StopHeaderBanner'
 import StopOrderInfoCard from '../../../components/driver/deliveryStop/StopOrderInfoCard'
 import StopInstructionsCard from '../../../components/driver/deliveryStop/StopInstructionsCard'
@@ -9,69 +10,80 @@ import OutletDetailsCard from '../../../components/driver/deliveryStop/OutletDet
 import DeliveryWindowCard from '../../../components/driver/deliveryStop/DeliveryWindowCard'
 import TripContextCard from '../../../components/driver/deliveryStop/TripContextCard'
 import ProofOfDeliveryCard from '../../../components/driver/deliveryStop/ProofOfDeliveryCard'
-import ReportProblemModal from '../../../components/driver/ReportProblemModal'
+import { currentStopOf, DONE, useDriverTrip } from '../../../hooks/useDriverTrip'
+import { driverActions } from '../../../services/driverData'
+import { formatCountdown, formatTime, formatTimestamp } from '../../../utils/orderFormat'
 import './DeliveryStop.css'
 
-const DEFAULT_ORDER_ITEMS = [
-  { name: 'Fresh Milk', quantity: '12 units' },
-  { name: 'Yogurt', quantity: '10 units' },
-  { name: 'Butter', quantity: '8 units' },
-  { name: 'Cheese', quantity: '6 units' },
-  { name: 'Juice', quantity: '6 units' },
-]
-
-const INITIAL_CHECKLIST = [
-  { id: 1, label: 'Correct outlet verified', checked: true },
-  { id: 2, label: 'Delivery window checked and matched', checked: true },
-  { id: 3, label: 'Order information reviewed and items counted', checked: true },
-  { id: 4, label: 'Delivery instructions reviewed completely', checked: true },
+const CHECKS = [
+  { id: 1, label: 'Correct outlet verified' },
+  { id: 2, label: 'Delivery window checked' },
+  { id: 3, label: 'Order items counted against the manifest' },
+  { id: 4, label: 'Delivery instructions reviewed' },
 ]
 
 export default function DeliveryStop() {
   const { tripId } = useParams()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const activeTripId = tripId || 'TR-024'
-
-  const [checklist, setChecklist] = useState(INITIAL_CHECKLIST)
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
+  const { data, error } = useDriverTrip(tripId)
+  const [checked, setChecked] = useState([])
   const [toastMessage, setToastMessage] = useState(null)
-  const [isRecorded, setIsRecorded] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [nowMs, setNowMs] = useState(() => Date.now())
+
+  // Ticks the window countdown.
+  useEffect(() => {
+    const timer = setInterval(() => setNowMs(Date.now()), 30000)
+    return () => clearInterval(timer)
+  }, [])
 
   const showToast = (message) => {
     setToastMessage(message)
-    setTimeout(() => {
-      setToastMessage(null)
-    }, 3500)
+    setTimeout(() => setToastMessage(null), 4500)
   }
 
-  const handleToggleCheck = (id) => {
-    setChecklist((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, checked: !item.checked } : item
-      )
-    )
+  const trip = data?.trip
+  const stops = data?.stops || []
+  const stop = stops.find((s) => s.order_id === searchParams.get('order')) || currentStopOf(stops)
+  const done = stops.filter((s) => DONE.includes(s.stop_status)).length
+  const recorded = stop && DONE.includes(stop.stop_status)
+  const onRoad = trip && ['dispatched', 'in_progress', 'completed'].includes(trip.status)
+  const q = stop ? `?order=${stop.order_id}` : ''
+
+  const handleArrive = async () => {
+    setBusy(true)
+    try {
+      const res = await driverActions.arrive(tripId, stop.order_id)
+      showToast(res.synced ? 'Arrival recorded.' : 'Arrival saved on this device — it will sync when signal returns.')
+    } catch (err) {
+      showToast(err.message)
+    } finally {
+      setBusy(false)
+    }
   }
 
   const handleRecordDelivery = () => {
-    const allChecked = checklist.every((item) => item.checked)
-    if (!allChecked) {
-      showToast('⚠️ Please verify and confirm all checklist items before recording.')
+    if (!onRoad) {
+      showToast('Start the trip from your dashboard first.')
       return
     }
-    navigate(`/driver/my-trips/${activeTripId}/record-delivery`)
+    if (checked.length < CHECKS.length) {
+      showToast('⚠️ Confirm every checklist item before recording the delivery.')
+      return
+    }
+    navigate(`/driver/my-trips/${tripId}/record-delivery${q}`)
   }
 
-  const handleContinueProof = () => {
-    navigate(`/driver/my-trips/${activeTripId}/proof-of-delivery`)
-  }
-
-  const handleOpenNavigation = () => {
-    showToast('Opening GPS route navigation to Metro Grocers (OUT043)...')
-  }
-
-  const handleReportProblemSubmit = (data) => {
-    showToast(`⚠️ Problem reported to dispatch: ${data.issueType.toUpperCase()}`)
-  }
+  const windowOpen = stop && Date.parse(`${trip.delivery_date}T${String(stop.requested_window_open).slice(0, 5)}:00+05:30`)
+  const windowClose = stop && Date.parse(`${trip.delivery_date}T${String(stop.requested_window_close).slice(0, 5)}:00+05:30`)
+  const windowStatus = !stop
+    ? ''
+    : nowMs < windowOpen
+      ? `Opens in ${formatCountdown(windowOpen, nowMs)}`
+      : nowMs <= windowClose
+        ? `Open now — closes in ${formatCountdown(windowClose, nowMs)}`
+        : 'Window has closed — deliver and note the delay'
 
   return (
     <div className="delivery-stop-page-container">
@@ -80,106 +92,107 @@ export default function DeliveryStop() {
 
       {/* Main Stop Content */}
       <main className="delivery-stop-main-content">
-        {/* Banner with Breadcrumb & Hero Card */}
-        <StopHeaderBanner
-          tripId={activeTripId}
-          stopNumber="05"
-          totalStops="08"
-          storeName="Metro Grocers (OUT043)"
-          deliveryWindow="11:00 AM - 11:30 AM"
-          status={isRecorded ? 'Delivery Recorded' : 'Pending Delivery'}
-        />
+        <DriverSyncBanner compact cachedAt={data?.fromCache ? data.cachedAt : null} />
+        {error && !trip && <p className="driver-page-state error">{error}</p>}
+        {!trip && !error && <p className="driver-page-state">Loading stop…</p>}
+        {trip && !stop && <p className="driver-page-state">Every stop on {tripId} is recorded.</p>}
 
-        {/* 2-Column Grid Layout */}
-        <div className="delivery-stop-grid">
-          {/* Left Column (Main Stop Data) */}
-          <div className="stop-left-column">
-            {/* Order Information Card */}
-            <StopOrderInfoCard
-              orderCode="ORD-1042"
-              items={DEFAULT_ORDER_ITEMS}
-              totalUnits="42 units"
-              isRefrigerated={true}
+        {trip && stop && (
+          <>
+            {/* Banner with Breadcrumb & Hero Card */}
+            <StopHeaderBanner
+              tripId={tripId}
+              stopNumber={String(stop.stop_sequence).padStart(2, '0')}
+              totalStops={String(stops.length).padStart(2, '0')}
+              storeName={`Waypoint ${stop.brand} (${stop.outlet_id})`}
+              deliveryWindow={`${formatTime(stop.requested_window_open)} - ${formatTime(stop.requested_window_close)}`}
+              status={recorded ? `Recorded: ${stop.stop_status}${stop.pending_sync ? ' (waiting to sync)' : ''}` : stop.actual_arrival_time ? 'Arrived' : 'Pending Delivery'}
             />
 
-            {/* Delivery Instructions Card */}
-            <StopInstructionsCard
-              instructions="Use the rear receiving entrance. Ask for the outlet manager before unloading. Keep refrigerated items inside the cold storage area."
-            />
+            {onRoad && !recorded && !stop.actual_arrival_time && (
+              <div className="driver-start-card">
+                <p>At {stop.outlet_id}? Record your arrival time — it is used for lateness and service-time records.</p>
+                <button type="button" className="driver-primary-btn" onClick={handleArrive} disabled={busy}>
+                  I've Arrived
+                </button>
+              </div>
+            )}
 
-            {/* Before Recording Delivery Checklist */}
-            <StopPreChecklistCard
-              checks={checklist}
-              onToggleCheck={handleToggleCheck}
-            />
+            {/* 2-Column Grid Layout */}
+            <div className="delivery-stop-grid">
+              {/* Left Column (Main Stop Data) */}
+              <div className="stop-left-column">
+                <StopOrderInfoCard
+                  orderCode={stop.order_id}
+                  items={stop.items.map((i) => ({ name: i.product_name, quantity: `${i.quantity} × ${i.unit}` }))}
+                  totalUnits={`${stop.total_units} units • ${Math.round(stop.total_weight_kg)} kg`}
+                  isRefrigerated={stop.temp_requirement === 'chilled'}
+                />
+                <StopInstructionsCard
+                  instructions={[
+                    stop.order_notes,
+                    stop.shortfall_flag ? `Loaded short: ${stop.shortfall_reason}. Record a part delivery and get the store to sign for what arrived.` : null,
+                    stop.parking_constraint === 'van_only' ? 'Van-only access: park in the outlet lane, not on the main road.' : null,
+                    stop.mall_window ? `Mall delivery bay window ${stop.mall_window}.` : null,
+                  ].filter(Boolean).join(' ') || 'Ask for the store manager before unloading.'}
+                />
+                {!recorded && (
+                  <StopPreChecklistCard
+                    checks={CHECKS.map((c) => ({ ...c, checked: checked.includes(c.id) }))}
+                    onToggleCheck={(id) => setChecked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))}
+                  />
+                )}
 
-            {/* Bottom Actions Row */}
-            <div className="stop-bottom-actions-row">
-              <button
-                type="button"
-                className="btn-record-delivery-primary"
-                onClick={handleRecordDelivery}
-              >
-                {isRecorded ? 'Delivery Recorded ✓' : 'Record Delivery'}
-              </button>
+                {/* Bottom Actions Row */}
+                <div className="stop-bottom-actions-row">
+                  <button
+                    type="button"
+                    className="btn-record-delivery-primary"
+                    onClick={handleRecordDelivery}
+                    disabled={recorded}
+                  >
+                    {recorded ? 'Delivery Recorded ✓' : 'Record Delivery'}
+                  </button>
+                  {!recorded && (
+                    <button
+                      type="button"
+                      className="btn-report-stop-problem"
+                      onClick={() => navigate(`/driver/my-trips/${tripId}/report-problem${q}`)}
+                    >
+                      <span>Report Problem</span>
+                    </button>
+                  )}
+                </div>
+              </div>
 
-              <button
-                type="button"
-                className="btn-report-stop-problem"
-                onClick={() => navigate(`/driver/my-trips/${activeTripId}/report-problem`)}
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                  <line x1="12" y1="9" x2="12" y2="13" />
-                  <line x1="12" y1="17" x2="12.01" y2="17" />
-                </svg>
-                <span>Report Problem</span>
-              </button>
+              {/* Right Column (Sidebar Cards) */}
+              <aside className="stop-right-column">
+                <OutletDetailsCard
+                  storeName={`Waypoint ${stop.brand}`}
+                  storeCode={`Code: ${stop.outlet_id}`}
+                  district={stop.district}
+                  address={`${stop.district} District • ${stop.dock_type.replace('_', ' ')}`}
+                  contactPerson={stop.manager_name || 'Store manager'}
+                  role="Receiving contact"
+                  phone={stop.manager_phone || '—'}
+                  onOpenNavigation={() => showToast(`Navigate to ${stop.outlet_id} in ${stop.district}. Planned arrival ${formatTime(stop.planned_arrival_time)}.`)}
+                />
+                <DeliveryWindowCard
+                  windowTime={`${formatTime(stop.requested_window_open)} - ${formatTime(stop.requested_window_close)}`}
+                  statusText={stop.actual_arrival_time ? `Arrived ${String(stop.actual_arrival_time).includes('T') ? formatTimestamp(stop.actual_arrival_time).time : formatTime(stop.actual_arrival_time)} • ${windowStatus}` : windowStatus}
+                />
+                <TripContextCard
+                  tripId={tripId}
+                  route={`${trip.depot} → ${trip.district}`}
+                  vehicle={trip.vehicle_id}
+                  progressText={`${done} / ${stops.length} stops completed`}
+                />
+                {!recorded && <ProofOfDeliveryCard onContinueProof={handleRecordDelivery} />}
+              </aside>
             </div>
-          </div>
-
-          {/* Right Column (Sidebar Cards) */}
-          <aside className="stop-right-column">
-            {/* Outlet Details */}
-            <OutletDetailsCard
-              storeName="Metro Grocers"
-              storeCode="Code: OUT043"
-              district="Colombo 05"
-              address="125 Main Street, Colombo 05"
-              contactPerson="Outlet Manager"
-              role="Contact Person"
-              phone="+94 11 234 5678"
-              onOpenNavigation={handleOpenNavigation}
-            />
-
-            {/* Delivery Window */}
-            <DeliveryWindowCard
-              windowTime="11:00 AM - 11:30 AM"
-              statusText="Scheduled - Starts in 15 mins"
-            />
-
-            {/* Trip Context */}
-            <TripContextCard
-              tripId={activeTripId}
-              route="Peliyagoda → Colombo South"
-              vehicle="WP-REF-007"
-              progressText="4 / 8 stops completed"
-            />
-
-            {/* Proof of Delivery */}
-            <ProofOfDeliveryCard
-              onContinueProof={handleContinueProof}
-            />
-          </aside>
-        </div>
+          </>
+        )}
       </main>
-
-      {/* Report Problem Modal */}
-      <ReportProblemModal
-        isOpen={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-        onSubmit={handleReportProblemSubmit}
-      />
 
       {/* Floating Action Toast Notification */}
       {toastMessage && (

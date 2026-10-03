@@ -8,6 +8,7 @@ export default function MyTripsFilterBar({
   vehicleFilter,
   onVehicleChange,
   onClearFilters,
+  vehicleOptions = [],
 }) {
   return (
     <div className="my-trips-filter-bar">
@@ -42,8 +43,8 @@ export default function MyTripsFilterBar({
             onChange={(e) => onDateChange(e.target.value)}
           >
             <option value="All Dates">All Dates</option>
-            <option value="Today">Today (27 Sep)</option>
-            <option value="Tomorrow">Tomorrow (28 Sep)</option>
+            <option value="Today">Today</option>
+            <option value="Tomorrow">Tomorrow</option>
             <option value="Past 7 Days">Past 7 Days</option>
           </select>
         </div>
@@ -67,11 +68,11 @@ export default function MyTripsFilterBar({
           onChange={(e) => onVehicleChange(e.target.value)}
         >
           <option value="All Vehicles">All Vehicles</option>
-          <option value="WP-REF-007">WP-REF-007 (Refrigerated)</option>
-          <option value="WP-VAN-004">WP-VAN-004 (Delivery Van)</option>
-          <option value="WP-DRY-019">WP-DRY-019 (Dry-box)</option>
-          <option value="WP-LOR-012">WP-LOR-012 (Lorry)</option>
-          <option value="WP-REF-011">WP-REF-011 (Refrigerated)</option>
+          {vehicleOptions.map((v) => (
+            <option key={v} value={v}>
+              {v}
+            </option>
+          ))}
         </select>
 
         {/* Clear Filters */}

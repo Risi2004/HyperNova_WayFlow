@@ -7,7 +7,7 @@ export default function RouteValidationCard() {
     },
     {
       title: 'Vehicle volume capacity',
-      desc: '28 mÂ³ capacity / 21.4 mÂ³ assigned',
+      desc: '28 m³ capacity / 21.4 m³ assigned',
       passed: true,
     },
     {

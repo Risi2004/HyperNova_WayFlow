@@ -1,12 +1,7 @@
 import delayIcon from '../../../assets/icons/delay.svg'
 import attentionIcon from '../../../assets/icons/attention.svg'
 
-export default function DeliveryWindowCard({
-  date = '26 September 2026',
-  window = '10:00 AM â€“ 12:00 PM',
-  countdown = '1h 25m until delivery window',
-  status = 'At Risk',
-}) {
+export default function DeliveryWindowCard({ date, window, countdown, status = 'On Track', tone = 'at-risk', footnote }) {
   return (
     <div className="order-details-card window-card">
       <div className="card-top-title-group">
@@ -34,14 +29,14 @@ export default function DeliveryWindowCard({
       {/* Window Status Row */}
       <div className="window-status-row">
         <span className="window-status-label">Window Status</span>
-        <span className="window-status-badge badge-at-risk">
+        <span className={`window-status-badge badge-${tone}`}>
           <img src={attentionIcon} alt="" className="status-badge-icon" aria-hidden="true" />
           <span>{status}</span>
         </span>
       </div>
 
       <span className="window-footnote">
-        This order has not yet been assigned to a delivery plan.
+        {footnote}
       </span>
     </div>
   )

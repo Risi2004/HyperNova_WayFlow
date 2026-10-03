@@ -1,4 +1,12 @@
-export default function DeliveryRequirementsCard() {
+import { formatWindow } from '../../../utils/orderFormat'
+
+export default function DeliveryRequirementsCard({ order }) {
+  const chilled = order.temp_requirement === 'chilled'
+  const vanOnly = order.parking_constraint === 'van_only'
+  const urgent = order.priority === 'urgent'
+  const box = (on) => (on ? 'box-green' : 'box-neutral')
+  const icon = (on) => (on ? 'icon-green' : 'icon-neutral')
+
   return (
     <div className="order-details-card requirements-card">
       <div className="card-top-title-group">
@@ -9,9 +17,9 @@ export default function DeliveryRequirementsCard() {
       {/* 2x2 grid */}
       <div className="requirements-quad-grid">
         {/* Refrigerated */}
-        <div className="req-quad-box box-green">
+        <div className={`req-quad-box ${box(chilled)}`}>
           <div className="req-quad-left">
-            <div className="req-icon-wrap icon-green">
+            <div className={`req-icon-wrap ${icon(chilled)}`}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="2" x2="12" y2="22" />
                 <line x1="12" y1="8" x2="16" y2="6" />
@@ -27,15 +35,15 @@ export default function DeliveryRequirementsCard() {
             </div>
             <div className="req-text-wrap">
               <span className="req-name">Refrigerated</span>
-              <span className="req-badge badge-required">Required</span>
+              <span className={`req-badge ${chilled ? 'badge-required' : 'badge-optional'}`}>{chilled ? 'Required' : 'Not required'}</span>
             </div>
           </div>
         </div>
 
         {/* Van Only */}
-        <div className="req-quad-box box-green">
+        <div className={`req-quad-box ${box(vanOnly)}`}>
           <div className="req-quad-left">
-            <div className="req-icon-wrap icon-green">
+            <div className={`req-icon-wrap ${icon(vanOnly)}`}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="1" y="3" width="15" height="13" />
                 <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
@@ -45,7 +53,7 @@ export default function DeliveryRequirementsCard() {
             </div>
             <div className="req-text-wrap">
               <span className="req-name">Van Only</span>
-              <span className="req-badge badge-required">Required</span>
+              <span className={`req-badge ${vanOnly ? 'badge-required' : 'badge-optional'}`}>{vanOnly ? 'Required' : 'Not required'}</span>
             </div>
           </div>
         </div>
@@ -61,7 +69,7 @@ export default function DeliveryRequirementsCard() {
             </div>
             <div className="req-text-wrap">
               <span className="req-name">Delivery Window</span>
-              <span className="req-val-bold">10:00 AM â€“ 12:00 PM</span>
+              <span className="req-val-bold">{formatWindow(order.requested_window_open, order.requested_window_close)}</span>
             </div>
           </div>
         </div>
@@ -77,7 +85,7 @@ export default function DeliveryRequirementsCard() {
             </div>
             <div className="req-text-wrap">
               <span className="req-name">Priority</span>
-              <span className="req-val-amber">High</span>
+              <span className={urgent ? 'req-val-amber' : 'req-val-bold'}>{urgent ? 'Urgent' : 'Normal'}</span>
             </div>
           </div>
         </div>
@@ -90,7 +98,11 @@ export default function DeliveryRequirementsCard() {
           <line x1="12" y1="16" x2="12" y2="12" />
           <line x1="12" y1="8" x2="12.01" y2="8" />
         </svg>
-        <span>Vehicle selection must satisfy all order requirements.</span>
+        <span>
+          {order.parking_constraint === 'mall_dock'
+            ? `Mall outlet — arrival must fit the mall access window${order.mall_window ? ` (${order.mall_window})` : ''}.`
+            : 'Vehicle selection must satisfy all order requirements.'}
+        </span>
       </div>
     </div>
   )

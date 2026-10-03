@@ -1,7 +1,14 @@
 import weightIcon from '../../../assets/icons/weight.svg'
 import volumeIcon from '../../../assets/icons/volume.svg'
 
-export default function CapacityRequirementsCard({ weight = '420 kg', volume = '3.8 mÂ³' }) {
+// Bars show the share of the assigned vehicle's capacity, or of the smallest van when unplanned.
+export default function CapacityRequirementsCard({ weightKg = 0, volumeM3 = 0, weightCapKg, volumeCapM3, capLabel }) {
+  const weight = `${Number(weightKg).toLocaleString()} kg`
+  const volume = `${Number(volumeM3)} m³`
+  const pct = (value, cap) => (cap ? Math.min(100, Math.round((Number(value) / Number(cap)) * 100)) : 0)
+  const weightPct = pct(weightKg, weightCapKg)
+  const volumePct = pct(volumeM3, volumeCapM3)
+
   return (
     <div className="order-details-card capacity-card">
       <div className="card-top-title-group">
@@ -19,9 +26,11 @@ export default function CapacityRequirementsCard({ weight = '420 kg', volume = '
           <div className="capacity-metric-value">{weight}</div>
           <span className="capacity-req-text">Weight requirement {weight}</span>
           <div className="capacity-progress-track">
-            <div className="capacity-progress-fill" style={{ width: '48%' }} />
+            <div className="capacity-progress-fill" style={{ width: `${weightPct}%` }} />
           </div>
-          <span className="capacity-footnote">Requirement baseline for vehicle comparison</span>
+          <span className="capacity-footnote">
+            {capLabel ? `${weightPct}% of ${capLabel} weight limit` : 'No vehicle assigned yet'}
+          </span>
         </div>
 
         {/* Total Volume */}
@@ -33,9 +42,11 @@ export default function CapacityRequirementsCard({ weight = '420 kg', volume = '
           <div className="capacity-metric-value">{volume}</div>
           <span className="capacity-req-text">Volume requirement {volume}</span>
           <div className="capacity-progress-track">
-            <div className="capacity-progress-fill" style={{ width: '38%' }} />
+            <div className="capacity-progress-fill" style={{ width: `${volumePct}%` }} />
           </div>
-          <span className="capacity-footnote">Requirement baseline for vehicle comparison</span>
+          <span className="capacity-footnote">
+            {capLabel ? `${volumePct}% of ${capLabel} volume limit` : 'No vehicle assigned yet'}
+          </span>
         </div>
       </div>
     </div>

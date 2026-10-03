@@ -92,7 +92,7 @@ export default function DispatcherSettings() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
-              <span>Preferences successfully saved & synced to all West Hub dispatch nodes.</span>
+              <span>Preferences saved.</span>
             </div>
           )}
 
@@ -137,7 +137,7 @@ export default function DispatcherSettings() {
 
           {/* Dispatcher Footer */}
           <footer className="dispatcher-footer">
-            <span>System configuration v4.8 • West Hub timezone (Asia/Colombo)</span>
+            <span>System configuration v4.8 • Asia/Colombo (UTC+05:30)</span>
             <a href="#help" className="footer-link">
               Help & operational documentation
             </a>

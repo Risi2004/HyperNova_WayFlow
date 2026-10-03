@@ -5,6 +5,53 @@ const { generateToken, verifyToken } = require('../middleware/auth')
 
 const router = express.Router()
 
+// Public profile of a user, including the outlet (store managers) or vehicle (drivers) they are
+// linked to, so every screen can show who is signed in and where they work.
+async function loadProfile(userId) {
+  const rows = await sql.query(
+    `SELECT u.user_id, u.email, u.full_name, u.role, u.facility, u.outlet_id, u.assigned_vehicle_id,
+            u.phone, u.status, u.avatar, u.requires_password_change,
+            o.brand AS outlet_brand, o.district AS outlet_district, o.depot AS outlet_depot,
+            o.dock_type AS outlet_dock_type, o.parking_constraint AS outlet_parking_constraint,
+            o.mall_window AS outlet_mall_window,
+            v.type AS vehicle_type, v.temp AS vehicle_temp, v.depot AS vehicle_depot
+     FROM users u
+     LEFT JOIN outlets o ON o.outlet_id = u.outlet_id
+     LEFT JOIN vehicles v ON v.vehicle_id = u.assigned_vehicle_id
+     WHERE u.user_id = $1`,
+    [userId]
+  )
+  const u = rows[0]
+  if (!u) return null
+  return {
+    id: u.user_id,
+    email: u.email,
+    name: u.full_name,
+    role: u.role,
+    facility: u.facility,
+    outlet_id: u.outlet_id,
+    assigned_vehicle_id: u.assigned_vehicle_id,
+    phone: u.phone,
+    status: u.status,
+    avatar: u.avatar,
+    requires_password_change: u.requires_password_change,
+    outlet: u.outlet_id && u.outlet_brand
+      ? {
+        outlet_id: u.outlet_id,
+        brand: u.outlet_brand,
+        district: u.outlet_district,
+        depot: u.outlet_depot,
+        dock_type: u.outlet_dock_type,
+        parking_constraint: u.outlet_parking_constraint,
+        mall_window: u.outlet_mall_window,
+      }
+      : null,
+    vehicle: u.assigned_vehicle_id && u.vehicle_type
+      ? { vehicle_id: u.assigned_vehicle_id, type: u.vehicle_type, temp: u.vehicle_temp, depot: u.vehicle_depot }
+      : null,
+  }
+}
+
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body
@@ -43,19 +90,7 @@ router.post('/login', async (req, res) => {
     res.json({
       success: true,
       token,
-      user: {
-        id: user.user_id,
-        email: user.email,
-        name: user.full_name,
-        role: user.role,
-        facility: user.facility,
-        outlet_id: user.outlet_id,
-        assigned_vehicle_id: user.assigned_vehicle_id,
-        phone: user.phone,
-        status: user.status,
-        avatar: user.avatar,
-        requires_password_change: user.requires_password_change,
-      },
+      user: await loadProfile(user.user_id),
     })
   } catch (err) {
     console.error('Login error:', err)
@@ -106,34 +141,31 @@ router.post('/change-password', verifyToken, async (req, res) => {
   }
 })
 
+// GET /api/auth/activity — the signed-in user's most recent order decisions (audit trail).
+router.get('/activity', verifyToken, async (req, res) => {
+  try {
+    const events = await sql.query(
+      `SELECT e.order_id, e.from_status, e.to_status, e.note, e.created_at
+       FROM order_status_events e
+       WHERE e.actor_user_id = $1
+       ORDER BY e.created_at DESC, e.event_id DESC
+       LIMIT 5`,
+      [req.user.userId]
+    )
+    res.json({ events })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // GET /api/auth/me
 router.get('/me', verifyToken, async (req, res) => {
   try {
-    const users = await sql.query(
-      `SELECT user_id, email, full_name, role, facility, outlet_id,
-              assigned_vehicle_id, phone, status, avatar, requires_password_change
-       FROM users WHERE user_id = $1`,
-      [req.user.userId]
-    )
-
-    if (users.length === 0) {
+    const profile = await loadProfile(req.user.userId)
+    if (!profile) {
       return res.status(404).json({ error: 'User not found' })
     }
-
-    const user = users[0]
-    res.json({
-      id: user.user_id,
-      email: user.email,
-      name: user.full_name,
-      role: user.role,
-      facility: user.facility,
-      outlet_id: user.outlet_id,
-      assigned_vehicle_id: user.assigned_vehicle_id,
-      phone: user.phone,
-      status: user.status,
-      avatar: user.avatar,
-      requires_password_change: user.requires_password_change,
-    })
+    res.json(profile)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

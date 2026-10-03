@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 
-export default function AttentionRequiredCard() {
+export default function AttentionRequiredCard({ issue }) {
   const navigate = useNavigate()
+  if (!issue) return null
 
   return (
     <div className="loader-card attention-alert-card">
@@ -34,16 +35,16 @@ export default function AttentionRequiredCard() {
 
       <div className="alert-card-body-row">
         <div className="alert-content-meta">
-          <span className="alert-vehicle-id bold">LD-027 (WP-DRY-019)</span>
+          <span className="alert-vehicle-id bold">{issue.tripId} ({issue.vehicleId})</span>
           <p className="alert-message-text">
-            3 cartons reported missing during pre-loading checks.
+            {issue.message}
           </p>
         </div>
 
         <button
           type="button"
           className="btn-view-issue-solid"
-          onClick={() => navigate('/loader/today-loads/LD-027/report-issue')}
+          onClick={() => navigate(`/loader/today-orders/${issue.tripId}`)}
         >
           View Issue
         </button>

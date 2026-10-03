@@ -1,7 +1,8 @@
 export default function LoadAttentionBanner({
-  orderCode = 'ORD-1057',
-  productName = 'Frozen Chicken',
-  description = 'Requires ultra-low temp verify. Confirm frozen storage handling is pre-activated on WP-REF-007 before loading this shipment.',
+  title = 'Loading Attention Required',
+  orderCode,
+  productName,
+  description,
 }) {
   return (
     <div className="load-attention-banner-card">
@@ -21,12 +22,12 @@ export default function LoadAttentionBanner({
           <line x1="12" y1="9" x2="12" y2="13"></line>
           <line x1="12" y1="17" x2="12.01" y2="17"></line>
         </svg>
-        <span className="attention-banner-title">Loading Attention Required</span>
+        <span className="attention-banner-title">{title}</span>
       </div>
 
       <div className="attention-banner-body">
         <p className="attention-order-highlight">
-          Order: {orderCode} ({productName})
+          {orderCode ? `Order: ${orderCode}` : ''}{productName ? ` (${productName})` : ''}
         </p>
         <p className="attention-order-desc">{description}</p>
       </div>

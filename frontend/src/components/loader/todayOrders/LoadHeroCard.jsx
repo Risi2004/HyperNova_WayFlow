@@ -1,16 +1,5 @@
 export default function LoadHeroCard({
-  load = {
-    id: 'LD-025',
-    status: 'LOADING',
-    vehicleId: 'WP-REF-007',
-    vehicleType: 'Refrigerated Truck',
-    routeProfile: 'Peliyagoda → Colombo South',
-    routeStopsDistance: '5 Stops · 52.4 km',
-    departureTime: '06:00 AM',
-    departureSub: 'Scheduled Today',
-    progressPercent: 60,
-    progressSub: '3 of 5 orders loaded successfully',
-  },
+  load,
   onReportIssue,
   onContinueLoading,
 }) {
@@ -20,7 +9,7 @@ export default function LoadHeroCard({
       <div className="load-hero-top-row">
         <div className="load-hero-id-group">
           <h2 className="load-hero-id">{load.id}</h2>
-          <span className="load-status-badge badge-loading">{load.status}</span>
+          <span className={`load-status-badge badge-${load.statusType || 'loading'}`}>{load.status}</span>
         </div>
 
         <div className="load-hero-actions">
@@ -28,6 +17,7 @@ export default function LoadHeroCard({
             type="button"
             className="btn-report-issue"
             onClick={onReportIssue}
+            disabled={!load.canEdit}
           >
             <svg
               width="15"
@@ -45,13 +35,16 @@ export default function LoadHeroCard({
             </svg>
             <span>Report Loading Issue</span>
           </button>
-          <button
-            type="button"
-            className="btn-continue-loading"
-            onClick={onContinueLoading}
-          >
-            Continue Loading
-          </button>
+          {load.actionLabel && (
+            <button
+              type="button"
+              className="btn-continue-loading"
+              onClick={onContinueLoading}
+              disabled={load.actionDisabled}
+            >
+              {load.actionLabel}
+            </button>
+          )}
         </div>
       </div>
 

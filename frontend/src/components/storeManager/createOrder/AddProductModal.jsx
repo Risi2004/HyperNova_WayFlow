@@ -1,64 +1,35 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { productService } from '../../../services/productService'
+import { productCategory } from '../../../utils/orderFormat'
 
-const AVAILABLE_CATALOG = [
-  {
-    id: 101,
-    name: 'Samba Rice 5kg (Special Raw)',
-    category: 'Ambient',
-    type: 'ambient',
-    sku: 'SKU: GRD-RIC-90422 Bags / Case: Groceries',
-    weightPerCase: 50,
-    defaultCases: 5,
-  },
-  {
-    id: 102,
-    name: 'Anchor Pure Butter 227g',
-    category: 'Chilled (+4°C)',
-    type: 'chilled',
-    sku: 'Dairy Products  24 Packs / Case  SKU: DAI-BTR-004',
-    weightPerCase: 8,
-    defaultCases: 4,
-  },
-  {
-    id: 103,
-    name: 'Ocean Fresh Frozen Salmon Fillets 500g',
-    category: 'Frozen (-18°C)',
-    type: 'frozen',
-    sku: 'Seafood/FRZ  FRZ-SEA-104-12 Packs / Case',
-    weightPerCase: 12,
-    defaultCases: 6,
-  },
-  {
-    id: 104,
-    name: 'Kotmale Full Cream Fresh Milk 1L',
-    category: 'Chilled (+4°C)',
-    type: 'chilled',
-    sku: 'Dairy Products  12 Bottles / Case  SKU: DAI-KOT-012',
-    weightPerCase: 14,
-    defaultCases: 8,
-  },
-  {
-    id: 105,
-    name: 'Sunlight Washing Powder 1kg',
-    category: 'Ambient',
-    type: 'ambient',
-    sku: 'Cleaning  10 Packs / Case  SKU: CLN-SUN-001',
-    weightPerCase: 10,
-    defaultCases: 10,
-  },
-]
-
-export default function AddProductModal({ isOpen, onClose, onAddProduct }) {
+export default function AddProductModal({ isOpen, brand, orderLabel, onClose, onAddProduct }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedFilter, setSelectedFilter] = useState('ALL')
+  const [catalog, setCatalog] = useState(null)
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [quantities, setQuantities] = useState({})
+
+  // Load the outlet brand's catalog the first time the modal opens (and again after Retry).
+  useEffect(() => {
+    if (!isOpen || !brand || catalog || loadFailed) return
+    let active = true
+    productService
+      .getProducts({ brand })
+      .then((res) => active && setCatalog(res.products || []))
+      .catch(() => active && setLoadFailed(true))
+    return () => {
+      active = false
+    }
+  }, [isOpen, brand, catalog, loadFailed])
 
   if (!isOpen) return null
 
-  const filteredItems = AVAILABLE_CATALOG.filter((item) => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.sku.toLowerCase().includes(searchTerm.toLowerCase())
+  const status = loadFailed ? 'error' : catalog ? 'ready' : 'loading'
+  const filteredItems = (catalog || []).filter((item) => {
+    const q = searchTerm.toLowerCase()
+    const matchesSearch = item.product_name.toLowerCase().includes(q) || item.product_id.toLowerCase().includes(q)
     if (selectedFilter === 'ALL') return matchesSearch
-    return matchesSearch && item.type === selectedFilter.toLowerCase()
+    return matchesSearch && productCategory(item).type === selectedFilter.toLowerCase()
   })
 
   return (
@@ -67,7 +38,7 @@ export default function AddProductModal({ isOpen, onClose, onAddProduct }) {
         <div className="co-modal-header">
           <div className="co-modal-title-col">
             <h3 className="co-modal-title">Add Product to Replenishment Order</h3>
-            <span className="co-modal-sub">Select catalog items to add to order ORD-1043</span>
+            <span className="co-modal-sub">Waypoint {brand} catalog • adding to {orderLabel}</span>
           </div>
           <button type="button" className="btn-co-modal-close" onClick={onClose}>
             ✕
@@ -83,7 +54,7 @@ export default function AddProductModal({ isOpen, onClose, onAddProduct }) {
             </svg>
             <input
               type="text"
-              placeholder="Search by product name or SKU..."
+              placeholder="Search by product name or ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -105,35 +76,54 @@ export default function AddProductModal({ isOpen, onClose, onAddProduct }) {
 
         {/* Products List */}
         <div className="co-modal-products-list">
-          {filteredItems.map((prod) => (
-            <div key={prod.id} className="co-modal-product-item">
-              <div className="co-modal-prod-info">
-                <div className="co-modal-prod-name-row">
-                  <span className="co-modal-prod-name">{prod.name}</span>
-                  <span className={`co-category-tag ${prod.type}`}>{prod.category}</span>
-                </div>
-                <span className="co-modal-prod-sku">{prod.sku}</span>
-              </div>
-              <button
-                type="button"
-                className="btn-co-modal-add"
-                onClick={() => {
-                  onAddProduct({
-                    id: Date.now(),
-                    name: prod.name,
-                    category: prod.category,
-                    type: prod.type,
-                    sku: prod.sku,
-                    weightPerCase: prod.weightPerCase,
-                    cases: prod.defaultCases,
-                  })
-                  onClose()
-                }}
-              >
-                + Add Item
+          {status === 'loading' && <div className="co-modal-state">Loading catalog…</div>}
+          {status === 'error' && (
+            <div className="co-modal-state">
+              Could not load the catalog.{' '}
+              <button type="button" className="co-modal-retry" onClick={() => setLoadFailed(false)}>
+                Retry
               </button>
             </div>
-          ))}
+          )}
+          {status === 'ready' && filteredItems.length === 0 && (
+            <div className="co-modal-state">No products match your search.</div>
+          )}
+
+          {filteredItems.map((prod) => {
+            const category = productCategory(prod)
+            const qty = quantities[prod.product_id] || 1
+            return (
+              <div key={prod.product_id} className="co-modal-product-item">
+                <div className="co-modal-prod-info">
+                  <div className="co-modal-prod-name-row">
+                    <span className="co-modal-prod-name">{prod.product_name}</span>
+                    <span className={`co-category-tag ${category.type}`}>{category.label}</span>
+                  </div>
+                  <span className="co-modal-prod-sku">
+                    {prod.product_id} • {Number(prod.weight_per_unit)} kg / {Number(prod.volume_per_unit)} m³ per {prod.unit}
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  className="co-modal-qty-input"
+                  value={qty}
+                  onChange={(e) => setQuantities((prev) => ({ ...prev, [prod.product_id]: Math.max(1, parseInt(e.target.value, 10) || 1) }))}
+                  aria-label={`Quantity of ${prod.product_name}`}
+                />
+                <button
+                  type="button"
+                  className="btn-co-modal-add"
+                  onClick={() => {
+                    onAddProduct(prod, qty)
+                    onClose()
+                  }}
+                >
+                  + Add Item
+                </button>
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>

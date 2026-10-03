@@ -76,7 +76,7 @@ export default function LiveNetworkMapCard() {
         <div>
           <h2 className="map-card-title">Delivery Network</h2>
           <p className="map-card-subtitle">
-            Live distribution overview Â· not for navigation
+            Live distribution overview · not for navigation
           </p>
         </div>
 
@@ -138,7 +138,7 @@ export default function LiveNetworkMapCard() {
               icon={createLiveNodeIcon(stop.num, stop.id, stop.status)}
             >
               <Popup>
-                <strong>Stop {stop.num} â€” {stop.id}</strong>
+                <strong>Stop {stop.num} — {stop.id}</strong>
                 <br />
                 Status: {stop.status}
               </Popup>

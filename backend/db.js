@@ -1,30 +1,66 @@
 require('dotenv').config()
-const { neon } = require('@neondatabase/serverless')
+const { Pool, types } = require('pg')
 
-const databaseUrl = process.env.DATABASE_URL
+// Keep DATE columns as plain 'YYYY-MM-DD' strings. Converting them to JS Date objects
+// shifts the day depending on the server timezone, which breaks delivery-date logic.
+types.setTypeParser(1082, (value) => value)
 
+// pg treats sslmode=require as verify-full and warns about it; state that mode explicitly
+// (same behaviour, no warning on every start).
+const databaseUrl = process.env.DATABASE_URL?.replace(/sslmode=(require|prefer|verify-ca)\b/, 'sslmode=verify-full')
+
+let pool = null
 let sql = null
 
 if (databaseUrl) {
   try {
-    sql = neon(databaseUrl)
+    // Works for both Neon (sslmode=require in the URL) and a plain Postgres container (Docker Compose).
+    pool = new Pool({
+      connectionString: databaseUrl,
+      max: Number(process.env.DB_POOL_MAX || 10),
+    })
+    pool.on('error', (err) => console.error('Postgres pool error:', err.message))
+
+    // Same calling convention the routes already use: sql.query(text, params) -> rows[]
+    sql = {
+      query: async (text, params = []) => (await pool.query(text, params)).rows,
+    }
   } catch (error) {
-    console.error('Failed to initialize Neon database client:', error.message)
+    console.error('Failed to initialize Postgres client:', error.message)
   }
 } else {
-  console.warn('\x1b[33m%s\x1b[0m', '⚠️  DATABASE_URL is not set in backend/.env. Please configure your Neon PostgreSQL connection string.')
+  console.warn('\x1b[33m%s\x1b[0m', '⚠️  DATABASE_URL is not set in backend/.env. Please configure your PostgreSQL connection string.')
+}
+
+// Runs fn inside a single database transaction. fn receives a client with the same
+// query(text, params) -> rows[] interface as `sql`. Rolls back if fn throws.
+async function withTransaction(fn) {
+  if (!pool) throw new Error('Database connection not initialized. Please set DATABASE_URL.')
+  const client = await pool.connect()
+  const tx = { query: async (text, params = []) => (await client.query(text, params)).rows }
+  try {
+    await client.query('BEGIN')
+    const result = await fn(tx)
+    await client.query('COMMIT')
+    return result
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {})
+    throw err
+  } finally {
+    client.release()
+  }
 }
 
 async function testConnection() {
   if (!sql) {
     return {
       connected: false,
-      message: 'DATABASE_URL is missing. Please add your Neon connection string in .env',
+      message: 'DATABASE_URL is missing. Please add your PostgreSQL connection string in .env',
     }
   }
 
   try {
-    const result = await sql`SELECT NOW() as current_time, version() as version`
+    const result = await sql.query('SELECT NOW() as current_time, version() as version')
     return {
       connected: true,
       time: result[0]?.current_time,
@@ -40,5 +76,7 @@ async function testConnection() {
 
 module.exports = {
   sql,
+  pool,
+  withTransaction,
   testConnection,
 }

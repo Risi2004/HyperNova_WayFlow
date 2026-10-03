@@ -42,7 +42,7 @@ export default function GeneralSettingsCard({ settings, onChange }) {
             value={settings.timezone}
             onChange={(e) => onChange('timezone', e.target.value)}
           >
-            <option value="Asia/Colombo">Asia/Colombo (UTC +05:30) â€” Standard</option>
+            <option value="Asia/Colombo">Asia/Colombo (UTC +05:30) — Standard</option>
             <option value="UTC">UTC (Coordinated Universal Time)</option>
           </select>
         </div>
@@ -74,8 +74,8 @@ export default function GeneralSettingsCard({ settings, onChange }) {
             value={settings.mapFocus}
             onChange={(e) => onChange('mapFocus', e.target.value)}
           >
-            <option value="Colombo Metropolitan">Colombo Metropolitan (6.9271Â° N, 79.8612Â° E)</option>
-            <option value="Kandy Valley">Kandy Valley (7.2906Â° N, 80.6337Â° E)</option>
+            <option value="Colombo Metropolitan">Colombo Metropolitan (6.9271° N, 79.8612° E)</option>
+            <option value="Kandy Valley">Kandy Valley (7.2906° N, 80.6337° E)</option>
             <option value="Island Wide">Island-Wide Sri Lanka Macro View</option>
           </select>
         </div>
@@ -92,8 +92,8 @@ export default function GeneralSettingsCard({ settings, onChange }) {
             value={settings.unitSystem}
             onChange={(e) => onChange('unitSystem', e.target.value)}
           >
-            <option value="Metric-LKR">Metric (kg, mÂ³) Â· LKR (Sri Lankan Rupee)</option>
-            <option value="Metric-USD">Metric (kg, mÂ³) Â· USD ($)</option>
+            <option value="Metric-LKR">Metric (kg, m³) · LKR (Sri Lankan Rupee)</option>
+            <option value="Metric-USD">Metric (kg, m³) · USD ($)</option>
           </select>
         </div>
 

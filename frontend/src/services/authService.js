@@ -3,6 +3,14 @@ import { API_BASE } from './apiConfig'
 const TOKEN_KEY = 'wayflow_auth_token'
 const USER_KEY = 'wayflow_auth_user'
 
+// Fired whenever the stored user profile changes in this tab (login, refresh, logout).
+export const USER_UPDATED_EVENT = 'wayflow-user-updated'
+
+function storeUser(user) {
+  localStorage.setItem(USER_KEY, JSON.stringify(user))
+  window.dispatchEvent(new Event(USER_UPDATED_EVENT))
+}
+
 export const authService = {
   async login(email, password) {
     const res = await fetch(`${API_BASE}/auth/login`, {
@@ -23,7 +31,7 @@ export const authService = {
     }
 
     localStorage.setItem(TOKEN_KEY, data.token)
-    localStorage.setItem(USER_KEY, JSON.stringify(data.user))
+    storeUser(data.user)
     return data
   },
 
@@ -47,7 +55,7 @@ export const authService = {
     const currentUser = this.getCurrentUser()
     if (currentUser) {
       currentUser.requires_password_change = false
-      localStorage.setItem(USER_KEY, JSON.stringify(currentUser))
+      storeUser(currentUser)
     }
 
     return data
@@ -60,6 +68,7 @@ export const authService = {
       sessionStorage.clear()
       // Dispatch custom event so any active listeners or auth states reset immediately
       window.dispatchEvent(new Event('wayflow-logout'))
+      window.dispatchEvent(new Event(USER_UPDATED_EVENT))
     } catch (e) {
       console.error('Error during logout:', e)
     }
@@ -67,6 +76,22 @@ export const authService = {
 
   getToken() {
     return localStorage.getItem(TOKEN_KEY)
+  },
+
+  // Raw stored JSON (a stable string, so React can compare snapshots cheaply).
+  getRawUser() {
+    return localStorage.getItem(USER_KEY)
+  },
+
+  // Re-fetches the signed-in user's profile (name, outlet, vehicle) from the server.
+  async refreshProfile() {
+    const token = this.getToken()
+    if (!token) return null
+    const res = await fetch(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
+    if (!res.ok) return null
+    const profile = await res.json()
+    storeUser(profile)
+    return profile
   },
 
   getCurrentUser() {

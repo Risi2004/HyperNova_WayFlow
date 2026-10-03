@@ -1,115 +1,87 @@
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import DriverNavbar from '../../../components/driver/DriverNavbar'
+import DriverSyncBanner from '../../../components/driver/DriverSyncBanner'
 import RecordDeliveryHeader from '../../../components/driver/recordDelivery/RecordDeliveryHeader'
 import DeliveryOutletSummaryCard from '../../../components/driver/recordDelivery/DeliveryOutletSummaryCard'
 import DeliveryOutcomeSelector from '../../../components/driver/recordDelivery/DeliveryOutcomeSelector'
 import OutcomeConfirmationCard from '../../../components/driver/recordDelivery/OutcomeConfirmationCard'
 import ProofOfDeliveryFooterCard from '../../../components/driver/recordDelivery/ProofOfDeliveryFooterCard'
-import ReportProblemModal from '../../../components/driver/ReportProblemModal'
+import { currentStopOf, DONE, useDriverTrip } from '../../../hooks/useDriverTrip'
+import { formatTime } from '../../../utils/orderFormat'
 import './RecordDelivery.css'
 
 export default function RecordDelivery() {
   const { tripId } = useParams()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const activeTripId = tripId || 'TR-024'
-
+  const { data, error } = useDriverTrip(tripId)
   const [selectedOutcome, setSelectedOutcome] = useState('success')
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
-  const [toastMessage, setToastMessage] = useState(null)
-  const [isConfirmed, setIsConfirmed] = useState(false)
 
-  const showToast = (message) => {
-    setToastMessage(message)
-    setTimeout(() => {
-      setToastMessage(null)
-    }, 3500)
-  }
+  const trip = data?.trip
+  const stops = data?.stops || []
+  const stop = stops.find((s) => s.order_id === searchParams.get('order')) || currentStopOf(stops)
+  const q = stop ? `?order=${stop.order_id}` : ''
+  // A short-loaded order can only be part-delivered.
+  const outcome = stop?.shortfall_flag ? 'partial' : 'delivered'
 
-  const handleSelectOutcome = (outcome) => {
-    if (outcome === 'problem') {
-      navigate(`/driver/my-trips/${activeTripId}/report-problem`)
+  const handleSelectOutcome = (choice) => {
+    if (choice === 'problem') {
+      navigate(`/driver/my-trips/${tripId}/report-problem${q}`)
       return
     }
-    setSelectedOutcome(outcome)
-    setIsConfirmed(false)
+    setSelectedOutcome(choice)
   }
 
-  const handleConfirmAndContinue = () => {
-    setIsConfirmed(true)
-    navigate(`/driver/my-trips/${activeTripId}/proof-of-delivery`)
-  }
-
-  const handleContinueProof = () => {
-    navigate(`/driver/my-trips/${activeTripId}/proof-of-delivery`)
-  }
-
-  const handleReportProblemSubmit = (data) => {
-    showToast(`⚠️ Delivery issue recorded: ${data.issueType.toUpperCase()}. Dispatch has been notified.`)
-  }
+  const goToProof = () => navigate(`/driver/my-trips/${tripId}/proof-of-delivery${q}&outcome=${outcome}`)
 
   return (
     <div className="record-delivery-page-container">
-      {/* Top Navbar */}
       <DriverNavbar activeTab="My Trips" />
 
-      {/* Main Container */}
       <main className="record-delivery-main-content">
-        {/* Header & Back Link */}
-        <RecordDeliveryHeader
-          tripId={activeTripId}
-          stopNumber="05"
-          totalStops="08"
-        />
+        <DriverSyncBanner compact cachedAt={data?.fromCache ? data.cachedAt : null} />
+        {error && !trip && <p className="driver-page-state error">{error}</p>}
+        {trip && !stop && <p className="driver-page-state">Every stop on {tripId} is recorded.</p>}
 
-        {/* Store & Outlet Summary Card */}
-        <DeliveryOutletSummaryCard
-          storeName="Metro Grocers"
-          outletId="OUT043"
-          orderId="ORD-1042"
-          deliveryWindow="11:00 AM – 11:30 AM"
-          route="Peliyagoda → Colombo South"
-          vehicle="WP-REF-007"
-          badgeText="CURRENT STOP"
-        />
+        {trip && stop && (
+          <>
+            <RecordDeliveryHeader
+              tripId={tripId}
+              stopNumber={String(stop.stop_sequence).padStart(2, '0')}
+              totalStops={String(stops.length).padStart(2, '0')}
+            />
 
-        {/* How was this delivery completed? */}
-        <DeliveryOutcomeSelector
-          selectedOutcome={selectedOutcome}
-          onSelectOutcome={handleSelectOutcome}
-        />
+            {/* Store & Outlet Summary Card */}
+            <DeliveryOutletSummaryCard
+              storeName={`Waypoint ${stop.brand} — ${stop.district}`}
+              outletId={stop.outlet_id}
+              orderId={stop.order_id}
+              deliveryWindow={`${formatTime(stop.requested_window_open)} – ${formatTime(stop.requested_window_close)}`}
+              route={`${trip.depot} → ${trip.district}`}
+              vehicle={trip.vehicle_id}
+              badgeText={DONE.includes(stop.stop_status) ? 'RECORDED' : 'CURRENT STOP'}
+            />
 
-        {/* Ready to Complete Status Card */}
-        <OutcomeConfirmationCard
-          outcome={selectedOutcome}
-          storeName="Metro Grocers"
-          orderId="ORD-1042"
-          schedule="Scheduled 11:00–11:30 AM"
-          statusBadge={isConfirmed ? 'CONFIRMED' : 'DELIVERED'}
-          onConfirmAndContinue={handleConfirmAndContinue}
-          onReportProblem={() => navigate(`/driver/my-trips/${activeTripId}/report-problem`)}
-        />
+            {/* How was this delivery completed? */}
+            <DeliveryOutcomeSelector selectedOutcome={selectedOutcome} onSelectOutcome={handleSelectOutcome} />
 
-        {/* Next: Capture Proof of Delivery Banner */}
-        <ProofOfDeliveryFooterCard
-          onContinueProof={handleContinueProof}
-        />
+            {/* Ready to Complete Status Card */}
+            <OutcomeConfirmationCard
+              outcome={selectedOutcome}
+              storeName={`Waypoint ${stop.brand} (${stop.outlet_id})`}
+              orderId={stop.order_id}
+              schedule={`Window ${formatTime(stop.requested_window_open)}–${formatTime(stop.requested_window_close)}`}
+              statusBadge={outcome === 'partial' ? 'PART DELIVERY — LOADED SHORT' : 'DELIVERED'}
+              onConfirmAndContinue={goToProof}
+              onReportProblem={() => navigate(`/driver/my-trips/${tripId}/report-problem${q}`)}
+            />
+
+            {/* Next: Capture Proof of Delivery Banner */}
+            <ProofOfDeliveryFooterCard onContinueProof={goToProof} />
+          </>
+        )}
       </main>
-
-      {/* Report Problem Modal */}
-      <ReportProblemModal
-        isOpen={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-        onSubmit={handleReportProblemSubmit}
-      />
-
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="record-action-toast">
-          <span>{toastMessage}</span>
-          <button type="button" className="btn-toast-dismiss" onClick={() => setToastMessage(null)}>✕</button>
-        </div>
-      )}
     </div>
   )
 }

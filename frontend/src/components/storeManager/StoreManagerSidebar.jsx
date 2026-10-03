@@ -3,8 +3,10 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { authService } from '../../services/authService'
 import logoImg from '../../assets/images/logo.png'
 import './StoreManagerSidebar.css'
+import { useCurrentUser, initialsOf, workplaceOf } from '../../hooks/useCurrentUser'
 
 export default function StoreManagerSidebar({ activeItem = 'Dashboard' }) {
+  const user = useCurrentUser()
   const navigate = useNavigate()
   const location = useLocation()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
@@ -178,10 +180,10 @@ export default function StoreManagerSidebar({ activeItem = 'Dashboard' }) {
             {/* User Profile Card */}
             <div className="sm-user-card" style={{ margin: '12px 14px' }} title="Store Manager Profile">
               <div className="sm-user-left">
-                <div className="sm-avatar">SP</div>
+                <div className="sm-avatar">{initialsOf(user?.name)}</div>
                 <div className="sm-user-meta">
-                  <span className="sm-user-name">Sarah Perera</span>
-                  <span className="sm-user-role">Store Manager • Colombo 05</span>
+                  <span className="sm-user-name">{user?.name}</span>
+                  <span className="sm-user-role">{user?.role} • {workplaceOf(user)}</span>
                 </div>
               </div>
               <span className="sm-user-arrow">
@@ -246,10 +248,10 @@ export default function StoreManagerSidebar({ activeItem = 'Dashboard' }) {
           {/* User Card (Placed directly under Brand Header) */}
           <div className="sm-user-card" title="Store Manager Profile">
             <div className="sm-user-left">
-              <div className="sm-avatar">SP</div>
+              <div className="sm-avatar">{initialsOf(user?.name)}</div>
               <div className="sm-user-meta">
-                <span className="sm-user-name">Sarah Perera</span>
-                <span className="sm-user-role">Store Manager • Colombo 05</span>
+                <span className="sm-user-name">{user?.name}</span>
+                <span className="sm-user-role">{user?.role} • {workplaceOf(user)}</span>
               </div>
             </div>
             <span className="sm-user-arrow">

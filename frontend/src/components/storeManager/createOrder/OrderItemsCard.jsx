@@ -1,6 +1,7 @@
 export default function OrderItemsCard({
   items,
   onUpdateQty,
+  onSetQty,
   onRemoveItem,
   onOpenAddModal,
 }) {
@@ -72,7 +73,7 @@ export default function OrderItemsCard({
       {/* Items List */}
       <div className="co-items-list">
         {items.map((item) => {
-          const itemWeight = item.cases * item.weightPerCase
+          const itemWeight = Math.round(item.cases * item.weightPerCase * 10) / 10
           return (
             <div key={item.id} className="co-item-row">
               {/* Product Icon */}
@@ -97,7 +98,7 @@ export default function OrderItemsCard({
               <div className="co-item-qty-section">
                 <div className="co-item-weight-col">
                   <span className="co-weight-value">{itemWeight} kg</span>
-                  <span className="co-cases-label">{item.cases} Cases</span>
+                  <span className="co-cases-label">{item.cases} × {item.unit}</span>
                 </div>
 
                 <div className="co-stepper-wrap">
@@ -110,7 +111,15 @@ export default function OrderItemsCard({
                   >
                     −
                   </button>
-                  <span className="co-stepper-count">{item.cases}</span>
+                  <input
+                    type="number"
+                    className="co-stepper-count"
+                    min="1"
+                    max="10000"
+                    value={item.cases}
+                    onChange={(e) => onSetQty(item.id, e.target.value)}
+                    aria-label={`Quantity of ${item.name}`}
+                  />
                   <button
                     type="button"
                     className="btn-stepper plus"

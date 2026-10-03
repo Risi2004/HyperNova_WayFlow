@@ -15,10 +15,10 @@ export default function DeferredOrdersTable({
     <div className="deferred-table-card">
       <div className="deferred-table-header-row">
         <h2 className="deferred-table-title">
-          Deferred Orders â€” Saturday, 26 September
+          Deferred Orders — Saturday, 26 September
         </h2>
         <div className="table-sort-meta">
-          <span>{orders.length} orders Â· Most recent deferral first</span>
+          <span>{orders.length} orders · Most recent deferral first</span>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="7 15 12 20 17 15" />
             <polyline points="7 9 12 4 17 9" />
