@@ -108,7 +108,6 @@ export default function OrderHistoryFiltersBar({
               <option value="all">All Types</option>
               <option value="standard">Standard</option>
               <option value="refrigerated">Refrigerated</option>
-              <option value="express">Express</option>
             </select>
           </div>
 

@@ -1,12 +1,15 @@
 import { Link } from 'react-router-dom'
+import { formatShortDate } from '../../../utils/orderFormat'
 
 export default function DeferredOrdersTable({
-  orders = [],
-  selectedIds = [],
+  orders,
+  totalCount,
+  firstIndex,
+  selectedIds,
   onToggleSelect,
   onToggleSelectAll,
-  currentPage = 1,
-  totalPages = 2,
+  currentPage,
+  totalPages,
   onPageChange,
 }) {
   const isAllChecked = orders.length > 0 && orders.every((o) => selectedIds.includes(o.id))
@@ -15,10 +18,10 @@ export default function DeferredOrdersTable({
     <div className="deferred-table-card">
       <div className="deferred-table-header-row">
         <h2 className="deferred-table-title">
-          Deferred Orders â€” Saturday, 26 September
+          Deferred Orders
         </h2>
         <div className="table-sort-meta">
-          <span>{orders.length} orders Â· Most recent deferral first</span>
+          <span>{totalCount} orders · Deferred most often first</span>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="7 15 12 20 17 15" />
             <polyline points="7 9 12 4 17 9" />
@@ -36,19 +39,21 @@ export default function DeferredOrdersTable({
                   checked={isAllChecked}
                   onChange={onToggleSelectAll}
                   className="deferred-custom-checkbox"
+                  aria-label="Select all on this page"
                 />
               </th>
               <th>ORDER ID</th>
               <th>OUTLET</th>
               <th>BRAND</th>
-              <th>ORDER VALUE</th>
+              <th>UNITS</th>
               <th>WEIGHT</th>
               <th>VOLUME</th>
               <th>DELIVERY WINDOW</th>
               <th>DEPOT</th>
+              <th>ORIGINAL DATE</th>
               <th>DEFERRAL REASON</th>
               <th>NEXT RUN</th>
-              <th>STATUS</th>
+              <th>DEFERRED</th>
               <th>ACTION</th>
             </tr>
           </thead>
@@ -66,6 +71,7 @@ export default function DeferredOrdersTable({
                       checked={isChecked}
                       onChange={() => onToggleSelect(order.id)}
                       className="deferred-custom-checkbox"
+                      aria-label={`Select ${order.id}`}
                     />
                   </td>
                   <td className="td-order-id bold">
@@ -76,13 +82,20 @@ export default function DeferredOrdersTable({
                       {order.id}
                     </Link>
                   </td>
-                  <td className="td-outlet bold">{order.outlet}</td>
-                  <td className="td-brand">{order.brand}</td>
-                  <td className="td-order-val bold">{order.orderValue}</td>
+                  <td className="td-outlet bold">
+                    {order.outlet}
+                    <div className="reason-secondary-desc">{order.district}</div>
+                  </td>
+                  <td className="td-brand">Waypoint {order.brand}</td>
+                  <td className="td-order-val bold">
+                    {order.units}
+                    <div className="reason-secondary-desc">{order.temp}</div>
+                  </td>
                   <td className="td-weight">{order.weight}</td>
                   <td className="td-volume">{order.volume}</td>
                   <td className="td-window">{order.window}</td>
                   <td className="td-depot">{order.depot}</td>
+                  <td className="td-next-run">{formatShortDate(order.originalDate)}</td>
                   <td className="td-deferral-reason">
                     <div className="reason-text-cell">
                       <span className="reason-primary-title">
@@ -97,7 +110,7 @@ export default function DeferredOrdersTable({
                   <td className="td-status">
                     <span className="status-pill-badge pill-deferred">
                       <span className="dot"></span>
-                      Deferred
+                      {order.consecutive}×
                     </span>
                   </td>
                   <td className="td-action">
@@ -118,7 +131,7 @@ export default function DeferredOrdersTable({
       {/* Pagination Footer */}
       <div className="deferred-table-pagination-row">
         <span className="pagination-count-label">
-          Showing 1-{orders.length} of 12 deferred orders
+          {totalCount ? `Showing ${firstIndex + 1}–${firstIndex + orders.length} of ${totalCount} deferred orders` : 'No orders match these filters'}
         </span>
 
         <div className="pagination-buttons-group">

@@ -37,7 +37,7 @@ export default function StoreManagerMetricsCards({
           </div>
         </div>
         <div className="sm-metric-value">{scheduledDeliveries}</div>
-        <div className="sm-metric-subtext">Deliveries scheduled today</div>
+        <div className="sm-metric-subtext">Upcoming deliveries on a trip</div>
       </div>
 
       {/* Metric 3 */}

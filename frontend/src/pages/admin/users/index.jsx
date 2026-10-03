@@ -4,12 +4,7 @@ import AddUserModal from '../../../components/admin/AddUserModal'
 import EditUserModal from '../../../components/admin/EditUserModal'
 import DeleteUserModal from '../../../components/admin/DeleteUserModal'
 import { userService } from '../../../services/userService'
-import {
-  getStoredUsers,
-  saveStoredUsers,
-  getRoleColor,
-  getStatusColor,
-} from '../../../services/adminUserData'
+import { getRoleColor, getStatusColor } from '../../../services/adminUserData'
 import './AdminUsers.css'
 
 export default function AdminUsers() {
@@ -18,6 +13,7 @@ export default function AdminUsers() {
   const [selectedRole, setSelectedRole] = useState('All')
   const [selectedStatus, setSelectedStatus] = useState('All')
   const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState(null)
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -30,17 +26,10 @@ export default function AdminUsers() {
   const fetchUsers = async () => {
     setLoading(true)
     try {
-      const dbUsers = await userService.getUsers()
-      if (dbUsers && dbUsers.length > 0) {
-        setUsers(dbUsers)
-        saveStoredUsers(dbUsers)
-      } else {
-        const fallback = getStoredUsers()
-        setUsers(fallback)
-      }
+      setUsers((await userService.getUsers()) || [])
+      setLoadError(null)
     } catch (err) {
-      console.warn('Backend users not available, using cached:', err.message)
-      setUsers(getStoredUsers())
+      setLoadError(err.message)
     } finally {
       setLoading(false)
     }
@@ -75,12 +64,11 @@ export default function AdminUsers() {
     try {
       await userService.updateUser(updatedUser.id, updatedUser)
     } catch (err) {
-      console.warn('API update failed, updating local state:', err.message)
+      showToast(`Could not update ${updatedUser.name}: ${err.message}`)
+      return
     }
-    const updated = users.map((u) => (u.id === updatedUser.id ? updatedUser : u))
-    setUsers(updated)
-    saveStoredUsers(updated)
     setEditingUser(null)
+    fetchUsers()
     showToast(
       statusChanged
         ? `Updated status for ${updatedUser.name} (${updatedUser.status}). Email notification sent!`
@@ -94,11 +82,10 @@ export default function AdminUsers() {
     try {
       await userService.deleteUser(userId)
     } catch (err) {
-      console.warn('API delete failed, updating local state:', err.message)
+      showToast(`Could not remove ${target?.name || 'account'}: ${err.message}`)
+      return
     }
-    const updated = users.filter((u) => u.id !== userId)
-    setUsers(updated)
-    saveStoredUsers(updated)
+    setUsers((prev) => prev.filter((u) => u.id !== userId))
     setDeletingUser(null)
     showToast(`User ${target?.name || 'account'} has been removed from the system`)
   }
@@ -109,14 +96,12 @@ export default function AdminUsers() {
     const nextStatus = target?.status === 'Active' ? 'Inactive' : 'Active'
     try {
       await userService.updateUser(userId, { status: nextStatus })
-      showToast(`${target?.name} is now ${nextStatus}. Email notice sent to ${target?.email}`)
     } catch (err) {
-      console.warn('API status toggle failed:', err.message)
-      showToast(`${target?.name} status updated locally to ${nextStatus}`)
+      showToast(`Could not change ${target?.name}'s status: ${err.message}`)
+      return
     }
-    const updated = users.map((u) => (u.id === userId ? { ...u, status: nextStatus } : u))
-    setUsers(updated)
-    saveStoredUsers(updated)
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, status: nextStatus } : u)))
+    showToast(`${target?.name} is now ${nextStatus}. Email notice sent to ${target?.email}`)
   }
 
   // Filtering users
@@ -253,6 +238,11 @@ export default function AdminUsers() {
         {/* Users Table */}
         <div className="admin-table-card">
           <div className="admin-table-responsive">
+            {loadError && (
+              <div className="admin-users-load-error" role="alert">
+                Unable to load users from the database: {loadError}
+              </div>
+            )}
             <table className="admin-users-table">
               <thead>
                 <tr>

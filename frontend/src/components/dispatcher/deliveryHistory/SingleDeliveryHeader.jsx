@@ -29,7 +29,7 @@ export default function SingleDeliveryHeader({ deliveryId = 'DEL-8401' }) {
             </span>
           </div>
           <p className="single-delivery-subtitle">
-            Order ORD-2026-1048 Â· Delivered to OUT042 Waypoint Fresh
+            Order ORD-2026-1048 · Delivered to OUT042 Waypoint Fresh
           </p>
           <span className="single-delivery-date">
             Saturday, 26 September 2026, 09:14 AM

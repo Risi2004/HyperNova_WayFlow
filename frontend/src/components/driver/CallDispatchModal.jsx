@@ -1,4 +1,4 @@
-export default function CallDispatchModal({ isOpen, onClose }) {
+export default function CallDispatchModal({ isOpen, onClose, depot = 'Peliyagoda' }) {
   if (!isOpen) return null
 
   return (
@@ -12,7 +12,7 @@ export default function CallDispatchModal({ isOpen, onClose }) {
               </svg>
             </span>
             <div>
-              <h3 className="driver-modal-title">Peliyagoda Central Dispatch</h3>
+              <h3 className="driver-modal-title">{depot} Dispatch</h3>
               <p className="driver-modal-sub">Direct hotline for live delivery assistance</p>
             </div>
           </div>
@@ -22,8 +22,8 @@ export default function CallDispatchModal({ isOpen, onClose }) {
         <div className="dispatch-contact-card">
           <div className="dispatch-controller-meta">
             <span className="controller-role">Active Route Controller</span>
-            <span className="controller-name">Dinesh Fernando (Desk 04)</span>
-            <span className="controller-channel">Radio Frequency: CH-08 (Colombo South)</span>
+            <span className="controller-name">{depot} dispatcher on duty</span>
+            <span className="controller-channel">Problems you report in the app reach this desk instantly (or as soon as you have signal)</span>
           </div>
 
           <div className="dispatch-numbers-list">

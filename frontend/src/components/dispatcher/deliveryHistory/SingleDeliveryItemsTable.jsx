@@ -5,24 +5,24 @@ export default function SingleDeliveryItemsTable() {
       category: 'Dairy',
       qty: '120 units',
       weight: '120 kg',
-      temp: 'Chilled (2â€“6Â°C)',
-      status: 'Accepted â€” Perfect condition',
+      temp: 'Chilled (2–6°C)',
+      status: 'Accepted — Perfect condition',
     },
     {
       product: 'Yoghurt Pack (6-pack)',
       category: 'Dairy',
       qty: '80 packs',
       weight: '80 kg',
-      temp: 'Chilled (2â€“6Â°C)',
-      status: 'Accepted â€” Perfect condition',
+      temp: 'Chilled (2–6°C)',
+      status: 'Accepted — Perfect condition',
     },
     {
       product: 'Artisan Butter Blocks',
       category: 'Dairy',
       qty: '40 blocks',
       weight: '60 kg',
-      temp: 'Chilled (2â€“6Â°C)',
-      status: 'Accepted â€” Perfect condition',
+      temp: 'Chilled (2–6°C)',
+      status: 'Accepted — Perfect condition',
     },
     {
       product: 'Farm Fresh Organic Eggs (Crates)',
@@ -30,23 +30,23 @@ export default function SingleDeliveryItemsTable() {
       qty: '50 crates',
       weight: '150 kg',
       temp: 'Ambient / Cool',
-      status: 'Accepted â€” Intact seal',
+      status: 'Accepted — Intact seal',
     },
     {
       product: 'Imported Hard Cheeses',
       category: 'Dairy',
       qty: '30 wheels',
       weight: '90 kg',
-      temp: 'Chilled (2â€“6Â°C)',
-      status: 'Accepted â€” Perfect condition',
+      temp: 'Chilled (2–6°C)',
+      status: 'Accepted — Perfect condition',
     },
     {
       product: 'Fresh Double Cream 500ml',
       category: 'Dairy',
       qty: '120 tubs',
       weight: '120 kg',
-      temp: 'Chilled (2â€“6Â°C)',
-      status: 'Accepted â€” Perfect condition',
+      temp: 'Chilled (2–6°C)',
+      status: 'Accepted — Perfect condition',
     },
   ]
 
@@ -56,7 +56,7 @@ export default function SingleDeliveryItemsTable() {
         <div>
           <h2 className="single-card-title">Delivered Manifest & Acceptance</h2>
           <p className="single-card-subtitle">
-            6 line items Â· 440 total units Â· 620 kg delivered weight
+            6 line items · 440 total units · 620 kg delivered weight
           </p>
         </div>
         <span className="all-items-accepted-pill">

@@ -1,11 +1,7 @@
-export default function OrderSummaryCard({ orderId = 'ORD-2026-1048' }) {
-  const steps = [
-    { label: 'Order Created', state: 'completed' },
-    { label: 'Planning', state: 'current', subtext: 'Current' },
-    { label: 'Loading', state: 'pending' },
-    { label: 'In Transit', state: 'pending' },
-    { label: 'Delivered', state: 'pending' },
-  ]
+import { formatDate, formatWindow, outletLabel } from '../../../utils/orderFormat'
+
+export default function OrderSummaryCard({ order, statusLabel, createdBy, createdAt, steps = [] }) {
+  const orderId = order.order_id
 
   return (
     <div className="order-details-card summary-card">
@@ -22,36 +18,36 @@ export default function OrderSummaryCard({ orderId = 'ORD-2026-1048' }) {
         </div>
         <div className="info-cell">
           <span className="info-label">Order Status</span>
-          <span className="info-value value-status">Pending Planning</span>
+          <span className="info-value value-status">{statusLabel}</span>
         </div>
         <div className="info-cell">
           <span className="info-label">Brand</span>
-          <span className="info-value">Waypoint Fresh</span>
+          <span className="info-value">Waypoint {order.brand}</span>
         </div>
         <div className="info-cell">
           <span className="info-label">Outlet</span>
-          <span className="info-value">Waypoint Fresh â€“ Colombo 03</span>
+          <span className="info-value">{outletLabel(order)}</span>
         </div>
         <div className="info-cell">
           <span className="info-label">Order Created</span>
-          <span className="info-value">26 Sep 2026, 08:42 AM</span>
+          <span className="info-value">{createdAt}</span>
         </div>
 
         <div className="info-cell">
           <span className="info-label">Requested Delivery</span>
-          <span className="info-value">26 Sep 2026</span>
+          <span className="info-value">{formatDate(order.target_delivery_date)}</span>
         </div>
         <div className="info-cell">
           <span className="info-label">Delivery Window</span>
-          <span className="info-value value-window">10:00 AM â€“ 12:00 PM</span>
+          <span className="info-value value-window">{formatWindow(order.requested_window_open, order.requested_window_close)}</span>
         </div>
         <div className="info-cell">
           <span className="info-label">Priority</span>
-          <span className="info-value value-priority">High</span>
+          <span className="info-value value-priority">{order.priority === 'urgent' ? 'Urgent' : 'Normal'}</span>
         </div>
         <div className="info-cell">
           <span className="info-label">Created By</span>
-          <span className="info-value">Store Manager</span>
+          <span className="info-value">{createdBy ? `${createdBy.full_name} (${createdBy.role})` : '—'}</span>
         </div>
       </div>
 

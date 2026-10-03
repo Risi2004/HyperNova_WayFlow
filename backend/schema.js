@@ -284,7 +284,91 @@ const TABLES = [
     resolution_status VARCHAR(20) NOT NULL DEFAULT 'open',
     resolution_notes TEXT,
     reported_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-  );`
+  );`,
+
+  // 19. Order Status Events (audit trail of every order status change)
+  `CREATE TABLE IF NOT EXISTS order_status_events (
+    event_id BIGSERIAL PRIMARY KEY,
+    order_id VARCHAR(30) NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
+    from_status VARCHAR(30),
+    to_status VARCHAR(30) NOT NULL,
+    actor_user_id VARCHAR(20) REFERENCES users(user_id),
+    actor_role VARCHAR(30) NOT NULL DEFAULT 'System',
+    note TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  );`,
+
+  // 20. Order Intake Closures (dispatcher closes intake for a delivery date)
+  `CREATE TABLE IF NOT EXISTS order_intake_closures (
+    delivery_date DATE PRIMARY KEY,
+    closed_by_user_id VARCHAR(20) REFERENCES users(user_id),
+    closed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    confirmed_order_count INTEGER NOT NULL DEFAULT 0
+  );`,
+]
+
+// 21. Delivery plans: one plan per delivery date, drafted by the planner and published by the dispatcher
+TABLES.push(`CREATE TABLE IF NOT EXISTS delivery_plans (
+    delivery_date DATE PRIMARY KEY,
+    status VARCHAR(20) NOT NULL DEFAULT 'draft',
+    unscheduled JSONB NOT NULL DEFAULT '{}'::jsonb,
+    generated_by_user_id VARCHAR(20) REFERENCES users(user_id),
+    generated_at TIMESTAMP WITH TIME ZONE,
+    published_by_user_id VARCHAR(20) REFERENCES users(user_id),
+    published_at TIMESTAMP WITH TIME ZONE,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  );`)
+
+// 22. Vehicle availability exceptions (e.g. in the workshop on a given date)
+TABLES.push(`CREATE TABLE IF NOT EXISTS vehicle_availability (
+    vehicle_id VARCHAR(10) NOT NULL REFERENCES vehicles(vehicle_id),
+    date DATE NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'in_workshop',
+    reason TEXT,
+    PRIMARY KEY (vehicle_id, date)
+  );`)
+
+// Additive changes for databases created before these columns existed.
+const MIGRATIONS = [
+  `CREATE SEQUENCE IF NOT EXISTS order_number_seq START 1001;`,
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS priority VARCHAR(10) NOT NULL DEFAULT 'normal';`,
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS outlet_reference VARCHAR(60);`,
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_group_id VARCHAR(30);`,
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS submitted_at TIMESTAMP WITH TIME ZONE;`,
+  `ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;`,
+  `ALTER TABLE order_items ADD COLUMN IF NOT EXISTS product_code VARCHAR(30);`,
+  `ALTER TABLE order_items ADD COLUMN IF NOT EXISTS unit VARCHAR(30);`,
+  `CREATE INDEX IF NOT EXISTS idx_orders_delivery_status ON orders (target_delivery_date, status);`,
+  `CREATE INDEX IF NOT EXISTS idx_orders_outlet ON orders (outlet_id, target_delivery_date);`,
+  `CREATE INDEX IF NOT EXISTS idx_order_events_order ON order_status_events (order_id, created_at);`,
+  `CREATE INDEX IF NOT EXISTS idx_order_deferrals_order ON order_deferrals (order_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_trips_date ON trips (delivery_date, vehicle_id);`,
+  `ALTER TABLE trips ADD COLUMN IF NOT EXISTS planned_fuel_l NUMERIC(8,2) NOT NULL DEFAULT 0;`,
+  `ALTER TABLE trips ADD COLUMN IF NOT EXISTS budget_minutes INTEGER NOT NULL DEFAULT 0;`,
+  `ALTER TABLE trips ADD COLUMN IF NOT EXISTS loading_completed_at TIMESTAMP WITH TIME ZONE;`,
+  // Proof of delivery photo (compressed JPEG data URL) and idempotency key for offline replay
+  `ALTER TABLE delivery_records ADD COLUMN IF NOT EXISTS proof_photo_data TEXT;`,
+  `ALTER TABLE delivery_records ADD COLUMN IF NOT EXISTS client_event_id VARCHAR(64);`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS uq_delivery_client_event ON delivery_records (client_event_id) WHERE client_event_id IS NOT NULL;`,
+  `ALTER TABLE operational_issues ADD COLUMN IF NOT EXISTS impact VARCHAR(30);`,
+  `ALTER TABLE operational_issues ADD COLUMN IF NOT EXISTS photo_data TEXT;`,
+  `ALTER TABLE operational_issues ADD COLUMN IF NOT EXISTS client_event_id VARCHAR(64);`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS uq_issue_client_event ON operational_issues (client_event_id) WHERE client_event_id IS NOT NULL;`,
+  `ALTER TABLE loading_verifications ADD COLUMN IF NOT EXISTS issue_type VARCHAR(40);`,
+  `ALTER TABLE loading_verifications ADD COLUMN IF NOT EXISTS item_name VARCHAR(150);`,
+  `ALTER TABLE loading_verifications ADD COLUMN IF NOT EXISTS planned_units INTEGER;`,
+  `ALTER TABLE loading_verifications ADD COLUMN IF NOT EXISTS notes TEXT;`,
+  `CREATE INDEX IF NOT EXISTS idx_trips_driver ON trips (driver_user_id, delivery_date);`,
+  `ALTER TABLE receipt_confirmations ADD COLUMN IF NOT EXISTS line_details JSONB;`,
+  `CREATE INDEX IF NOT EXISTS idx_issues_open ON operational_issues (resolution_status, reported_at);`,
+  // Repair accounts unlinked by the old user-update bug: the facility label written at creation
+  // ("Store OUT101 - …", "… Fleet Hub (VEH012)") still names the outlet / vehicle.
+  `UPDATE users u SET outlet_id = substring(u.facility from 'Store (OUT[0-9]{3})')
+   WHERE u.role = 'Store Manager' AND u.outlet_id IS NULL
+     AND EXISTS (SELECT 1 FROM outlets o WHERE o.outlet_id = substring(u.facility from 'Store (OUT[0-9]{3})'));`,
+  `UPDATE users u SET assigned_vehicle_id = substring(u.facility from '\\((VEH[0-9]{3})\\)')
+   WHERE u.role = 'Driver' AND u.assigned_vehicle_id IS NULL
+     AND EXISTS (SELECT 1 FROM vehicles v WHERE v.vehicle_id = substring(u.facility from '\\((VEH[0-9]{3})\\)'));`,
 ]
 
 async function createSchema(dropFirst = false) {
@@ -297,6 +381,10 @@ async function createSchema(dropFirst = false) {
   if (dropFirst) {
     console.log('⚠️  Dropping existing tables...')
     const dropQuery = `
+      DROP TABLE IF EXISTS vehicle_availability CASCADE;
+      DROP TABLE IF EXISTS delivery_plans CASCADE;
+      DROP TABLE IF EXISTS order_intake_closures CASCADE;
+      DROP TABLE IF EXISTS order_status_events CASCADE;
       DROP TABLE IF EXISTS operational_issues CASCADE;
       DROP TABLE IF EXISTS receipt_confirmations CASCADE;
       DROP TABLE IF EXISTS delivery_records CASCADE;
@@ -307,6 +395,8 @@ async function createSchema(dropFirst = false) {
       DROP TABLE IF EXISTS order_items CASCADE;
       DROP TABLE IF EXISTS orders CASCADE;
       DROP TABLE IF EXISTS catalog_products CASCADE;
+      DROP TABLE IF EXISTS products CASCADE;
+      DROP SEQUENCE IF EXISTS order_number_seq;
       DROP TABLE IF EXISTS users CASCADE;
       DROP TABLE IF EXISTS road_disruptions CASCADE;
       DROP TABLE IF EXISTS traffic_speed_index CASCADE;
@@ -320,12 +410,14 @@ async function createSchema(dropFirst = false) {
     console.log('✔ Dropped existing tables.')
   }
 
-  for (let i = 0; i < TABLES.length; i++) {
-    const tableSql = TABLES[i]
+  for (const tableSql of TABLES) {
     await sql.query(tableSql)
   }
+  for (const migrationSql of MIGRATIONS) {
+    await sql.query(migrationSql)
+  }
 
-  console.log('✔ All 18 tables verified/created successfully on Neon!')
+  console.log(`✔ All ${TABLES.length} tables verified/created and ${MIGRATIONS.length} migrations applied.`)
 }
 
 if (require.main === module) {

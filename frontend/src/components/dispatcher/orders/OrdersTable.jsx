@@ -1,14 +1,29 @@
 import { Link, useNavigate } from 'react-router-dom'
 
+// Page numbers to show: first, last, and a window around the current page.
+function pageList(page, totalPages) {
+  const pages = new Set([1, totalPages, page - 1, page, page + 1])
+  return [...pages].filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b)
+}
+
 export default function OrdersTable({
   orders,
   selectedOrderIds,
   onToggleSelectOrder,
   onToggleSelectAll,
   onViewOrder,
+  pagination = { page: 1, pageSize: 20, total: 0, totalPages: 1 },
+  onPageChange,
+  onPageSizeChange,
+  isLoading = false,
+  onClearFilters,
 }) {
   const navigate = useNavigate()
   const allSelected = orders.length > 0 && orders.every((o) => selectedOrderIds.includes(o.id))
+  const { page, pageSize, total, totalPages } = pagination
+  const firstShown = total === 0 ? 0 : (page - 1) * pageSize + 1
+  const lastShown = Math.min(page * pageSize, total)
+  const pages = pageList(page, totalPages)
 
   return (
     <div className="orders-table-wrapper">
@@ -16,10 +31,10 @@ export default function OrdersTable({
       <div className="orders-table-top-bar">
         <div className="table-title-group">
           <h2 className="table-main-title">All Orders</h2>
-          <span className="table-count-badge">86 total</span>
+          <span className="table-count-badge">{total} total</span>
         </div>
         <div className="table-sort-group">
-          <span>Sorted by newest order</span>
+          <span>{isLoading ? 'Refreshing…' : 'Sorted by newest order'}</span>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M12 5v14M19 12l-7 7-7-7" />
           </svg>
@@ -42,7 +57,7 @@ export default function OrdersTable({
               <th>ORDER ID</th>
               <th>OUTLET</th>
               <th>BRAND</th>
-              <th>ORDER DATE</th>
+              <th>DELIVERY DATE</th>
               <th>DELIVERY WINDOW</th>
               <th>WEIGHT</th>
               <th>VOLUME</th>
@@ -91,7 +106,7 @@ export default function OrdersTable({
                     </span>
                   </td>
                   <td>
-                    <span className={`status-tag tag-${ord.statusType}`}>
+                    <span className={`status-tag tag-${ord.statusType}`} title={ord.statusDetail || undefined}>
                       {ord.status}
                     </span>
                   </td>
@@ -112,13 +127,24 @@ export default function OrdersTable({
                     >
                       View
                     </button>
-                    <button type="button" className="btn-action-more">
-                      More
-                    </button>
                   </td>
                 </tr>
               )
             })}
+
+            {orders.length === 0 && !isLoading && (
+              <tr>
+                <td colSpan="13" className="orders-empty-cell">
+                  <div className="empty-state-content">
+                    <h4 className="empty-title">No orders found</h4>
+                    <p className="empty-desc">Try changing your filters or search criteria.</p>
+                    <button type="button" className="empty-clear-btn" onClick={onClearFilters}>
+                      Clear Filters
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -126,30 +152,42 @@ export default function OrdersTable({
       {/* Pagination Footer */}
       <div className="orders-pagination-bar">
         <div className="pagination-info">
-          Showing 1â€“20 of 86 orders
+          Showing {firstShown}–{lastShown} of {total} orders
         </div>
 
         <div className="pagination-pages">
-          <button type="button" className="pagination-btn" disabled>
+          <button
+            type="button"
+            className="pagination-btn"
+            disabled={page <= 1}
+            onClick={() => onPageChange(page - 1)}
+          >
             Previous
           </button>
-          <button type="button" className="pagination-page-number active">
-            1
-          </button>
-          <button type="button" className="pagination-page-number">
-            2
-          </button>
-          <button type="button" className="pagination-page-number">
-            3
-          </button>
-          <span className="pagination-ellipsis">...</span>
-          <button type="button" className="pagination-btn">
+          {pages.map((p, i) => (
+            <span key={p} className="pagination-page-group">
+              {i > 0 && p - pages[i - 1] > 1 && <span className="pagination-ellipsis">...</span>}
+              <button
+                type="button"
+                className={`pagination-page-number ${p === page ? 'active' : ''}`}
+                onClick={() => onPageChange(p)}
+              >
+                {p}
+              </button>
+            </span>
+          ))}
+          <button
+            type="button"
+            className="pagination-btn"
+            disabled={page >= totalPages}
+            onClick={() => onPageChange(page + 1)}
+          >
             Next
           </button>
         </div>
 
         <div className="pagination-size-select">
-          <select defaultValue="20">
+          <select value={String(pageSize)} onChange={(e) => onPageSizeChange(Number(e.target.value))}>
             <option value="10">10 per page</option>
             <option value="20">20 per page</option>
             <option value="50">50 per page</option>

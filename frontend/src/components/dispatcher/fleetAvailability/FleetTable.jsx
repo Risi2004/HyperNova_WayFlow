@@ -185,7 +185,7 @@ export default function FleetTable({ vehicles = [] }) {
 
       {/* Pagination Footer */}
       <div className="fleet-pagination-bar">
-        <span className="showing-page-range">Showing 1â€“8 of 60 vehicles</span>
+        <span className="showing-page-range">Showing 1–8 of 60 vehicles</span>
         <div className="fleet-pages-controls">
           <button
             type="button"

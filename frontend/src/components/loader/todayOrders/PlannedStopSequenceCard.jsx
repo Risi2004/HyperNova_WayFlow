@@ -1,41 +1,5 @@
 export default function PlannedStopSequenceCard({
-  stops = [
-    {
-      step: 1,
-      name: 'Waypoint Fresh — Colombo 03',
-      outletInfo: 'Outlet ID: OUT-018 · Colombo 03 District',
-      timeWindow: '05:30 - 07:00 AM',
-      completed: true,
-    },
-    {
-      step: 2,
-      name: 'Waypoint Style — Bambalapitiya',
-      outletInfo: 'Outlet ID: OUT-024 · Galle Road, Bamba',
-      timeWindow: '06:00 - 08:00 AM',
-      completed: true,
-    },
-    {
-      step: 3,
-      name: 'Waypoint Tech — Wellawatte',
-      outletInfo: 'Outlet ID: OUT-031 · Highlevel Rd, Wellawatte',
-      timeWindow: '06:30 - 09:00 AM',
-      completed: true,
-    },
-    {
-      step: 4,
-      name: 'Waypoint Fresh — Dehiwala',
-      outletInfo: 'Outlet ID: OUT-042 · Hill Street Junction',
-      timeWindow: '07:00 - 09:30 AM',
-      completed: false,
-    },
-    {
-      step: 5,
-      name: 'Waypoint Fresh — Mount Lavinia',
-      outletInfo: 'Outlet ID: OUT-051 · Hotel Road Coastal',
-      timeWindow: '07:30 - 10:00 AM',
-      completed: false,
-    },
-  ],
+  stops = [],
 }) {
   return (
     <div className="loader-detail-card planned-sequence-card">

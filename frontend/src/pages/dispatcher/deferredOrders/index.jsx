@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Sidebar from '../../../components/dispatcher/layout/Sidebar'
 import Header from '../../../components/dispatcher/layout/Header'
 import DeferredHeader from '../../../components/dispatcher/deferredOrders/DeferredHeader'
@@ -6,214 +6,181 @@ import DeferredStatCards from '../../../components/dispatcher/deferredOrders/Def
 import DeferredFilterBar from '../../../components/dispatcher/deferredOrders/DeferredFilterBar'
 import DeferredBulkBanner from '../../../components/dispatcher/deferredOrders/DeferredBulkBanner'
 import DeferredOrdersTable from '../../../components/dispatcher/deferredOrders/DeferredOrdersTable'
-import TraceableDecisionsCard from '../../../components/dispatcher/deferredOrders/TraceableDecisionsCard'
 import EmptyStateCard from '../../../components/dispatcher/deferredOrders/EmptyStateCard'
-
+import { orderService } from '../../../services/orderService'
+import { DEFERRAL_REASONS, formatKg, formatM3, formatShortDate, formatWindow } from '../../../utils/orderFormat'
 import './DeferredOrders.css'
 
+const PAGE = 15
+const CAPACITY = ['capacity_exceeded', 'no_reefer_available', 'fuel_quota']
+const ACCESS = ['no_van_available', 'time_window', 'outlet_access']
+
+// The orders API pages at 100; deferred orders are few enough to load them all.
+async function loadAllDeferred() {
+  const first = await orderService.listOrders({ status: 'deferred', date: 'all', pageSize: 100, page: 1 })
+  const pages = first.pagination.totalPages
+  const rest = await Promise.all(
+    Array.from({ length: Math.max(0, pages - 1) }, (_, i) => orderService.listOrders({ status: 'deferred', date: 'all', pageSize: 100, page: i + 2 }))
+  )
+  return [first, ...rest].flatMap((r) => r.orders)
+}
+
 export default function DeferredOrders() {
+  const [orders, setOrders] = useState(null)
+  const [error, setError] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [depotFilter, setDepotFilter] = useState('All')
   const [brandFilter, setBrandFilter] = useState('All')
   const [reasonFilter, setReasonFilter] = useState('All')
-  const [windowFilter, setWindowFilter] = useState('All')
   const [nextRunFilter, setNextRunFilter] = useState('All')
+  const [selectedIds, setSelectedIds] = useState([])
+  const [page, setPage] = useState(1)
 
-  // Selected orders (first 3 checked by default to reflect screenshot)
-  const [selectedIds, setSelectedIds] = useState(['ORD-1072', 'ORD-1081', 'ORD-1087'])
-  const [currentPage, setCurrentPage] = useState(1)
+  useEffect(() => {
+    let active = true
+    loadAllDeferred()
+      .then((list) => {
+        if (!active) return
+        setOrders(list)
+        setError(null)
+      })
+      .catch((err) => active && setError(err.message))
+    return () => {
+      active = false
+    }
+  }, [])
 
-  const initialOrders = [
-    {
-      id: 'ORD-1072',
-      outlet: 'OUT042',
-      brand: 'Waypoint Fresh',
-      orderValue: 'LKR 184,500',
-      weight: '620 kg',
-      volume: '4.2 m³',
-      window: '05:30-08:00',
-      depot: 'Peliyagoda',
-      reasonTitle: 'Insufficient Capacity',
-      reasonSub: 'Insufficient refrigerated capacity',
-      nextRun: 'Mon, 28 Sep',
-    },
-    {
-      id: 'ORD-1081',
-      outlet: 'OUT061',
-      brand: 'Waypoint Style',
-      orderValue: 'LKR 126,800',
-      weight: '390 kg',
-      volume: '8.1 m³',
-      window: '07:00-08:00',
-      depot: 'Peliyagoda',
-      reasonTitle: 'Insufficient Capacity',
-      reasonSub: 'Vehicle volume capacity',
-      nextRun: 'Next available run',
-    },
-    {
-      id: 'ORD-1087',
-      outlet: 'OUT019',
-      brand: 'Waypoint Tech',
-      orderValue: 'LKR 342,900',
-      weight: '780 kg',
-      volume: '3.8 m³',
-      window: '08:00-09:00',
-      depot: 'Kandy',
-      reasonTitle: 'No Suitable Vehicle',
-      reasonSub: 'No suitable vehicle available',
-      nextRun: 'Next available run',
-    },
-    {
-      id: 'ORD-1090',
-      outlet: 'OUT033',
-      brand: 'Waypoint Fresh',
-      orderValue: 'LKR 98,400',
-      weight: '540 kg',
-      volume: '3.2 m³',
-      window: '06:15-06:45',
-      depot: 'Peliyagoda',
-      reasonTitle: 'Delivery Window Conflict',
-      reasonSub: 'Fixed window cannot be reached',
-      nextRun: 'Next available run',
-    },
-    {
-      id: 'ORD-1094',
-      outlet: 'OUT078',
-      brand: 'Waypoint Tech',
-      orderValue: 'LKR 217,600',
-      weight: '410 kg',
-      volume: '2.6 m³',
-      window: '07:30-08:15',
-      depot: 'Kandy',
-      reasonTitle: 'Vehicle Access Restriction',
-      reasonSub: 'Outlet is van-access only',
-      nextRun: 'Next available run',
-    },
-    {
-      id: 'ORD-1102',
-      outlet: 'OUT052',
-      brand: 'Waypoint Style',
-      orderValue: 'LKR 154,200',
-      weight: '430 kg',
-      volume: '2.2 m³',
-      window: '09:00-09:45',
-      depot: 'Kandy',
-      reasonTitle: 'Fuel Quota Constraint',
-      reasonSub: 'Weekly fuel quota unavailable',
-      nextRun: 'Next available run',
-    },
-  ]
+  const rows = useMemo(
+    () =>
+      (orders || [])
+        .map((o) => ({
+          id: o.order_id,
+          outlet: o.outlet_id,
+          district: o.district,
+          brand: o.brand,
+          units: o.total_units,
+          weight: formatKg(o.total_weight_kg),
+          volume: formatM3(o.total_volume_m3),
+          window: formatWindow(o.requested_window_open, o.requested_window_close),
+          depot: o.depot,
+          temp: o.temp_requirement,
+          reason: o.deferral_reason || 'dispatcher_decision',
+          reasonTitle: DEFERRAL_REASONS[o.deferral_reason] || 'Deferred',
+          reasonSub: o.deferral_explanation || '',
+          originalDate: o.target_delivery_date,
+          nextRunDate: o.next_scheduled_date,
+          nextRun: o.next_scheduled_date ? formatShortDate(o.next_scheduled_date) : 'Not scheduled',
+          consecutive: Number(o.consecutive_deferral_count || 1),
+        }))
+        .sort((a, b) => b.consecutive - a.consecutive || String(a.nextRunDate).localeCompare(String(b.nextRunDate))),
+    [orders]
+  )
 
-  // Filtering
-  const filteredOrders = useMemo(() => {
-    return initialOrders.filter((order) => {
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase()
-        const matchesQuery =
-          order.id.toLowerCase().includes(q) ||
-          order.outlet.toLowerCase().includes(q) ||
-          order.brand.toLowerCase().includes(q)
-        if (!matchesQuery) return false
-      }
-      if (depotFilter !== 'All' && order.depot !== depotFilter) return false
-      if (brandFilter !== 'All' && order.brand !== brandFilter) return false
-      if (reasonFilter !== 'All' && order.reasonTitle !== reasonFilter) return false
-      if (windowFilter !== 'All' && order.window !== windowFilter) return false
-      if (nextRunFilter !== 'All' && order.nextRun !== nextRunFilter) return false
+  const stats = {
+    total: rows.length,
+    consecutive: rows.filter((o) => o.consecutive > 1).length,
+    capacity: rows.filter((o) => CAPACITY.includes(o.reason)).length,
+    access: rows.filter((o) => ACCESS.includes(o.reason)).length,
+  }
+
+  const options = useMemo(() => ({
+    depots: [...new Set(rows.map((r) => r.depot))].sort(),
+    brands: [...new Set(rows.map((r) => r.brand))].sort(),
+    reasons: [...new Set(rows.map((r) => r.reason))].sort(),
+    nextRuns: [...new Set(rows.map((r) => r.nextRunDate).filter(Boolean))].sort(),
+  }), [rows])
+
+  const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    return rows.filter((o) => {
+      if (q && ![o.id, o.outlet, o.district, o.brand].some((s) => s.toLowerCase().includes(q))) return false
+      if (depotFilter !== 'All' && o.depot !== depotFilter) return false
+      if (brandFilter !== 'All' && o.brand !== brandFilter) return false
+      if (reasonFilter !== 'All' && o.reason !== reasonFilter) return false
+      if (nextRunFilter !== 'All' && o.nextRunDate !== nextRunFilter) return false
       return true
     })
-  }, [initialOrders, searchQuery, depotFilter, brandFilter, reasonFilter, windowFilter, nextRunFilter])
+  }, [rows, searchQuery, depotFilter, brandFilter, reasonFilter, nextRunFilter])
 
-  // Toggle selection
-  const handleToggleSelect = (id) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    )
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE))
+  const currentPage = Math.min(page, totalPages)
+  const shown = filtered.slice((currentPage - 1) * PAGE, currentPage * PAGE)
+  const selected = rows.filter((o) => selectedIds.includes(o.id))
+  // The planner works one delivery date at a time: open it on the selected orders' next run.
+  const plannerDate = [...new Set(selected.map((o) => o.nextRunDate).filter(Boolean))].sort()[0] || options.nextRuns[0]
+
+  const toggle = (id) => setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  const toggleAll = () => {
+    const ids = shown.map((o) => o.id)
+    const all = ids.length > 0 && ids.every((id) => selectedIds.includes(id))
+    setSelectedIds((prev) => (all ? prev.filter((id) => !ids.includes(id)) : [...new Set([...prev, ...ids])]))
   }
-
-  const handleToggleSelectAll = () => {
-    const allIds = filteredOrders.map((o) => o.id)
-    const isAllChecked = allIds.length > 0 && allIds.every((id) => selectedIds.includes(id))
-    if (isAllChecked) {
-      setSelectedIds([])
-    } else {
-      setSelectedIds(allIds)
-    }
-  }
-
-  const handleClearFilters = () => {
-    setSearchQuery('')
-    setDepotFilter('All')
-    setBrandFilter('All')
-    setReasonFilter('All')
-    setWindowFilter('All')
-    setNextRunFilter('All')
+  const filterSetter = (setter) => (value) => {
+    setter(value)
+    setPage(1)
   }
 
   return (
     <div className="deferred-page-container">
-      {/* Sidebar with Deferred Orders Active */}
       <Sidebar activeItem="Deferred Orders" />
 
-      {/* Main Content Area */}
       <div className="deferred-main-wrapper">
         <Header />
 
         <main className="deferred-content">
-          {/* Header Row & Global Controls */}
-          <DeferredHeader />
+          <DeferredHeader plannerDate={plannerDate} />
 
-          {/* 4 Summary Stat Cards */}
-          <DeferredStatCards />
+          {error && <p className="deferred-page-state error">{error}</p>}
+          {!orders && !error && <p className="deferred-page-state">Loading deferred orders…</p>}
 
-          {/* Multi-Filter & Search Bar */}
-          <DeferredFilterBar
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            depotFilter={depotFilter}
-            setDepotFilter={setDepotFilter}
-            brandFilter={brandFilter}
-            setBrandFilter={setBrandFilter}
-            reasonFilter={reasonFilter}
-            setReasonFilter={setReasonFilter}
-            windowFilter={windowFilter}
-            setWindowFilter={setWindowFilter}
-            nextRunFilter={nextRunFilter}
-            setNextRunFilter={setNextRunFilter}
-            onClearFilters={handleClearFilters}
-          />
+          {orders && (
+            <>
+              <DeferredStatCards stats={stats} />
 
-          {/* Active Selection Bulk Banner */}
-          {selectedIds.length > 0 && (
-            <DeferredBulkBanner
-              selectedCount={selectedIds.length}
-              onSelectAll={handleToggleSelectAll}
-            />
+              <DeferredFilterBar
+                options={options}
+                searchQuery={searchQuery}
+                setSearchQuery={filterSetter(setSearchQuery)}
+                depotFilter={depotFilter}
+                setDepotFilter={filterSetter(setDepotFilter)}
+                brandFilter={brandFilter}
+                setBrandFilter={filterSetter(setBrandFilter)}
+                reasonFilter={reasonFilter}
+                setReasonFilter={filterSetter(setReasonFilter)}
+                nextRunFilter={nextRunFilter}
+                setNextRunFilter={filterSetter(setNextRunFilter)}
+                onClearFilters={() => {
+                  setSearchQuery('')
+                  setDepotFilter('All')
+                  setBrandFilter('All')
+                  setReasonFilter('All')
+                  setNextRunFilter('All')
+                  setPage(1)
+                }}
+              />
+
+              {selected.length > 0 && <DeferredBulkBanner selectedCount={selected.length} onClear={() => setSelectedIds([])} plannerDate={plannerDate} />}
+
+              {rows.length === 0 ? (
+                <EmptyStateCard />
+              ) : (
+                <DeferredOrdersTable
+                  orders={shown}
+                  totalCount={filtered.length}
+                  firstIndex={(currentPage - 1) * PAGE}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggle}
+                  onToggleSelectAll={toggleAll}
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setPage}
+                />
+              )}
+            </>
           )}
 
-          {/* Deferred Orders Grid Table */}
-          <DeferredOrdersTable
-            orders={filteredOrders}
-            selectedIds={selectedIds}
-            onToggleSelect={handleToggleSelect}
-            onToggleSelectAll={handleToggleSelectAll}
-            currentPage={currentPage}
-            totalPages={2}
-            onPageChange={setCurrentPage}
-          />
-
-          {/* Bottom Row: Traceable Decisions & Associated Empty State */}
-          <div className="deferred-bottom-two-col">
-            <TraceableDecisionsCard />
-            <EmptyStateCard />
-          </div>
-
-          {/* Footer */}
           <footer className="dispatcher-footer">
-            <span>Operational data synced at 09:26 • West Hub timezone</span>
-            <a href="#help" className="footer-link">
-              Help & operational support
-            </a>
+            <span>All times in Asia/Colombo (UTC+05:30)</span>
           </footer>
         </main>
       </div>

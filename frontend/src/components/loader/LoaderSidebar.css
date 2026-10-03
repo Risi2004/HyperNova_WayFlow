@@ -323,3 +323,23 @@
     padding: 4px 8px;
   }
 }
+
+/* Phone / tablet: the sidebar becomes a top menu bar, so every loader page stacks vertically. */
+@media (max-width: 900px) {
+  .today-orders-layout-container,
+  .today-loads-page-container,
+  .report-issue-layout-container,
+  .loading-history-layout-container,
+  .loader-settings-layout-container {
+    flex-direction: column !important;
+  }
+
+  .today-orders-content,
+  .today-loads-content,
+  .report-issue-content,
+  .loading-history-content,
+  .loader-settings-content {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+}

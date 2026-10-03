@@ -1,6 +1,6 @@
 export default function ReportIssueHeader({
-  orderId = 'ORD-1042',
-  status = 'Delivery Completed',
+  orderId,
+  status,
   onBackToOrders,
 }) {
   return (

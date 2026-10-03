@@ -11,7 +11,7 @@ export default function RoutesBottomCards({ onClearFilters, onViewRoute }) {
             <span className="tablet-sub">Tablet-friendly route layout</span>
           </div>
           <span className="badge-tablet-status">
-            <span className="bullet-dot">â€¢</span>
+            <span className="bullet-dot">•</span>
             <span>PLANNED</span>
           </span>
         </div>
@@ -63,7 +63,7 @@ export default function RoutesBottomCards({ onClearFilters, onViewRoute }) {
               <circle cx="12" cy="12" r="10" />
               <polyline points="12 6 12 12 16 14" />
             </svg>
-            <span>Ready for Loading â€¢ 06:30 AM</span>
+            <span>Ready for Loading • 06:30 AM</span>
           </div>
 
           <button

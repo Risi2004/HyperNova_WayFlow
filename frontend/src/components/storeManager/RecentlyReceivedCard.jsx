@@ -1,23 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 
 export default function RecentlyReceivedCard({
-  recentDeliveries = [
-    {
-      id: 'ORD-1030',
-      items: '12 Items',
-      receivedTime: 'Received Today • 08:12 AM',
-    },
-    {
-      id: 'ORD-1024',
-      items: '20 Items',
-      receivedTime: 'Sep 27, 2026 • 03:45 PM',
-    },
-    {
-      id: 'ORD-1019',
-      items: '06 Items',
-      receivedTime: 'Sep 27, 2026 • 09:10 AM',
-    },
-  ],
+  recentDeliveries = [],
 }) {
   const navigate = useNavigate()
 
@@ -45,6 +29,7 @@ export default function RecentlyReceivedCard({
       </p>
 
       <div className="sm-recently-items-list">
+        {recentDeliveries.length === 0 && <p className="sm-empty-note">No deliveries confirmed yet.</p>}
         {recentDeliveries.map((item) => (
           <div key={item.id} className="sm-recently-item-row">
             <div className="sm-recent-left">

@@ -1,131 +1,62 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import StoreManagerSidebar from '../../../components/storeManager/StoreManagerSidebar'
 import MyOrdersMetricsCards from '../../../components/storeManager/myOrders/MyOrdersMetricsCards'
 import MyOrdersFiltersBar from '../../../components/storeManager/myOrders/MyOrdersFiltersBar'
 import MyOrdersTable from '../../../components/storeManager/myOrders/MyOrdersTable'
 import OrderDetailsModal from '../../../components/storeManager/myOrders/OrderDetailsModal'
+import { orderService } from '../../../services/orderService'
+import {
+  DEFERRAL_REASONS,
+  STORE_STATUS,
+  colomboToday,
+  formatDate,
+  formatShortDate,
+  formatTime,
+  formatTimestamp,
+  formatWindow,
+} from '../../../utils/orderFormat'
 import './MyOrders.css'
 
-const INITIAL_ORDERS = [
-  {
-    id: 'ORD-1042',
-    priority: 'URGENT',
-    hubOrRoute: 'Peliyagoda DC #04',
-    placedDate: 'Sep 28, 2026',
-    placedTime: '08:15 AM',
-    itemCount: 18,
-    weightKg: 656,
-    skusSummary: '3 SKUs (10 Amb, 8 Chilled)',
-    requestedDate: 'Sep 29, 2026',
-    deliveryWindow: '10:30 – 11:00 AM',
-    status: 'SCHEDULED',
-    isToday: false,
-  },
-  {
-    id: 'ORD-1041',
-    priority: 'NORMAL',
-    hubOrRoute: 'Route R-10 Colombo West',
-    placedDate: 'Sep 28, 2026',
-    placedTime: '07:40 AM',
-    itemCount: 12,
-    weightKg: 340,
-    skusSummary: '2 SKUs (Fresh Bakery & Dairy)',
-    requestedDate: 'Today (Sep 28)',
-    deliveryWindow: '02:00 – 02:30 PM',
-    status: 'IN_DELIVERY',
-    statusSub: 'ETA ~25 min (TR-024)',
-    isToday: true,
-  },
-  {
-    id: 'ORD-1038',
-    priority: 'NORMAL',
-    hubOrRoute: 'Peliyagoda Central DC',
-    placedDate: 'Sep 27, 2026',
-    placedTime: '04:20 PM',
-    itemCount: 24,
-    weightKg: 890,
-    skusSummary: '4 SKUs (Dry Goods & Staples)',
-    requestedDate: 'Sep 29, 2026',
-    deliveryWindow: '08:00 – 08:30 AM',
-    status: 'CONFIRMED',
-    isToday: false,
-  },
-  {
-    id: 'ORD-1035',
-    priority: 'NORMAL',
-    hubOrRoute: 'Awaiting Hub Assignment',
-    placedDate: 'Sep 27, 2026',
-    placedTime: '02:10 PM',
-    itemCount: 8,
-    weightKg: 180,
-    skusSummary: '1 SKU (Beverage Crates)',
-    requestedDate: 'Sep 29, 2026',
-    deliveryWindow: '11:00 – 11:30 AM',
-    status: 'PENDING',
-    isToday: false,
-  },
-  {
-    id: 'ORD-1032',
-    priority: 'NORMAL',
-    hubOrRoute: 'DC Capacity Reassigned',
-    placedDate: 'Sep 26, 2026',
-    placedTime: '06:15 PM',
-    itemCount: 24,
-    weightKg: 710,
-    skusSummary: '3 SKUs (Packaged Goods)',
-    requestedDate: 'Sep 29, 2026',
-    deliveryWindow: '09:00 – 09:30 AM',
-    status: 'DEFERRED',
-    statusSub: 'Was Sep 28 • Vehicle cap.',
-    isToday: false,
-  },
-  {
-    id: 'ORD-1030',
-    priority: null,
-    hubOrRoute: 'Peliyagoda DC #01',
-    placedDate: 'Sep 25, 2026',
-    placedTime: '08:00 AM',
-    itemCount: 12,
-    weightKg: 310,
-    skusSummary: '2 SKUs (Dairy & Chill)',
-    requestedDate: 'Sep 26, 2026',
-    deliveryWindow: '10:00 – 10:30 AM',
-    status: 'COMPLETED',
-    statusSub: 'Signed by M. Perera',
-    isToday: false,
-  },
-  {
-    id: 'ORD-1027',
-    priority: null,
-    hubOrRoute: 'Route Overcapacity',
-    placedDate: 'Sep 25, 2026',
-    placedTime: '11:30 AM',
-    itemCount: 10,
-    weightKg: 280,
-    skusSummary: '2 SKUs (Dry Snacks)',
-    requestedDate: 'Sep 30, 2026',
-    deliveryWindow: '01:30 – 02:00 PM',
-    status: 'DEFERRED',
-    statusSub: 'Transit capacity load',
-    isToday: false,
-  },
-  {
-    id: 'ORD-1024',
-    priority: null,
-    hubOrRoute: 'Peliyagoda DC #02',
-    placedDate: 'Sep 24, 2026',
-    placedTime: '01:10 PM',
-    itemCount: 20,
-    weightKg: 620,
-    skusSummary: '4 SKUs (Chilled & Fresh)',
-    requestedDate: 'Sep 27, 2026',
-    deliveryWindow: '03:45 PM Completed',
-    status: 'COMPLETED',
-    statusSub: 'Confirmed Intact',
-    isToday: false,
-  },
-]
+// Maps an API order onto the row shape the My Orders components render.
+function toRow(o, today) {
+  const status = STORE_STATUS[o.status] || o.status.toUpperCase()
+  const placed = formatTimestamp(o.submitted_at || o.created_at)
+  const eta = o.planned_arrival_time ? `ETA ${formatTime(o.planned_arrival_time)}` : null
+
+  const subByStatus = {
+    PENDING: 'Confirms at 4:00 PM cutoff',
+    CONFIRMED: 'Waiting for dispatcher planning',
+    SCHEDULED: [eta, o.vehicle_id].filter(Boolean).join(' • ') || 'Assigned to a delivery run',
+    IN_DELIVERY: [eta, o.trip_id].filter(Boolean).join(' • '),
+    DEFERRED: o.next_scheduled_date
+      ? `Moved to ${formatShortDate(o.next_scheduled_date)} • ${DEFERRAL_REASONS[o.deferral_reason] || 'Capacity'}`
+      : 'Delivery attempt failed',
+    COMPLETED: o.received_by_name ? `Signed by ${o.received_by_name}` : o.status === 'partial' ? 'Part delivered' : 'Delivered',
+  }
+
+  return {
+    id: o.order_id,
+    priority: (o.priority || 'normal').toUpperCase(),
+    hubOrRoute: o.trip_id ? `Trip ${o.trip_id} • ${o.vehicle_id}` : `${o.depot} DC`,
+    placedDate: placed.date,
+    placedTime: placed.time,
+    itemCount: o.total_units,
+    weightKg: Number(o.total_weight_kg),
+    skusSummary: `${o.sku_count} SKU${o.sku_count === 1 ? '' : 's'} • ${o.temp_requirement === 'chilled' ? 'Chilled' : 'Ambient'} • ${Number(o.total_volume_m3)} m³`,
+    requestedDate: o.target_delivery_date === today ? `Today (${formatShortDate(today)})` : formatDate(o.target_delivery_date),
+    requestedDateIso: o.target_delivery_date,
+    deliveryWindow: formatWindow(o.requested_window_open, o.requested_window_close),
+    status,
+    statusSub: subByStatus[status] || null,
+    isToday: o.target_delivery_date === today,
+    tripId: o.trip_id,
+    outletLabel: `Waypoint ${o.brand} – ${o.district} (${o.outlet_id})`,
+    receivedBy: o.received_by_name,
+    receiptStatus: o.receipt_status,
+    createdAt: o.created_at,
+  }
+}
 
 export default function MyOrders() {
   const navigate = useNavigate()
@@ -142,6 +73,10 @@ export default function MyOrders() {
   const [isReceiptModal, setIsReceiptModal] = useState(false)
   const [toastMessage, setToastMessage] = useState(null)
 
+  const [orders, setOrders] = useState([])
+  const [outletId, setOutletId] = useState('')
+  const [loadState, setLoadState] = useState({ loading: true, error: null })
+
   const showToast = (msg) => {
     setToastMessage(msg)
     setTimeout(() => {
@@ -149,15 +84,66 @@ export default function MyOrders() {
     }, 3500)
   }
 
+  // Bumping reloadKey re-fetches the outlet's orders (after a withdrawal or a manual refresh).
+  const [reloadKey, setReloadKey] = useState(0)
+  const reloadOrders = () => setReloadKey((k) => k + 1)
+
+  useEffect(() => {
+    let active = true
+    orderService
+      .getMyOrders()
+      .then((res) => {
+        if (!active) return
+        const today = colomboToday()
+        setOrders(res.orders.map((o) => toRow(o, today)))
+        setOutletId(res.outlet_id)
+        setLoadState({ loading: false, error: null })
+      })
+      .catch((err) => active && setLoadState({ loading: false, error: err.message }))
+    return () => {
+      active = false
+    }
+  }, [reloadKey])
+
+  const counts = useMemo(() => {
+    const by = (status) => orders.filter((o) => o.status === status).length
+    return {
+      all: orders.length,
+      pending: by('PENDING'),
+      confirmed: by('CONFIRMED'),
+      scheduled: by('SCHEDULED'),
+      inDelivery: by('IN_DELIVERY'),
+      completed: by('COMPLETED'),
+      deferred: by('DEFERRED'),
+    }
+  }, [orders])
+
   // Filtered & Sorted orders
   const filteredOrders = useMemo(() => {
-    return INITIAL_ORDERS.filter((order) => {
+    const today = colomboToday()
+    const shift = (days) => new Date(Date.parse(`${today}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10)
+    const inDateRange = (date) => {
+      switch (dateFilter) {
+        case 'TODAY':
+          return date === today
+        case 'TOMORROW':
+          return date === shift(1)
+        case 'NEXT_7_DAYS':
+          return date >= today && date <= shift(7)
+        case 'PAST_30_DAYS':
+          return date < today && date >= shift(-30)
+        default:
+          return true
+      }
+    }
+
+    const rows = orders.filter((order) => {
       // Status filter
       if (statusFilter !== 'ALL' && order.status !== statusFilter) {
         return false
       }
       // Date filter
-      if (dateFilter === 'TODAY' && !order.isToday) {
+      if (!inDateRange(order.requestedDateIso)) {
         return false
       }
       // Search query
@@ -172,7 +158,11 @@ export default function MyOrders() {
       }
       return true
     })
-  }, [statusFilter, dateFilter, searchQuery])
+    if (sortBy === 'EARLIEST') return [...rows].sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)))
+    if (sortBy === 'DELIVERY_DATE') return [...rows].sort((a, b) => String(a.requestedDateIso).localeCompare(String(b.requestedDateIso)))
+    if (sortBy === 'PAYLOAD_WEIGHT') return [...rows].sort((a, b) => b.weightKg - a.weightKg)
+    return rows
+  }, [orders, statusFilter, dateFilter, searchQuery, sortBy])
 
   // Handlers
   const handleViewOrder = (order) => {
@@ -181,7 +171,18 @@ export default function MyOrders() {
   }
 
   const handleTrackOrder = (order) => {
-    navigate('/store-manager/track-delivery/TR-024')
+    navigate(order.tripId ? `/store-manager/track-delivery/${order.tripId}` : '/store-manager/track-delivery')
+  }
+
+  const handleWithdraw = async (order) => {
+    try {
+      const res = await orderService.cancelOrder(order.id, 'Withdrawn by store manager')
+      setInspectingOrder(null)
+      showToast(res.message)
+      reloadOrders()
+    } catch (err) {
+      showToast(err.message)
+    }
   }
 
   const handleViewReceipt = (order) => {
@@ -190,7 +191,19 @@ export default function MyOrders() {
   }
 
   const handleExport = () => {
-    showToast('Exporting 24 orders to CSV/Excel report...')
+    const header = ['Order ID', 'Priority', 'Placed', 'Units', 'Weight (kg)', 'Requested Date', 'Window', 'Status', 'Detail']
+    const lines = filteredOrders.map((o) =>
+      [o.id, o.priority, `${o.placedDate} ${o.placedTime}`, o.itemCount, o.weightKg, o.requestedDate, o.deliveryWindow, o.status, o.statusSub || '']
+        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+        .join(',')
+    )
+    const blob = new Blob([[header.join(','), ...lines].join('\n')], { type: 'text/csv' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `${outletId || 'outlet'}-orders.csv`
+    link.click()
+    URL.revokeObjectURL(link.href)
+    showToast(`Exported ${filteredOrders.length} orders to CSV.`)
   }
 
   const handlePrint = () => {
@@ -198,7 +211,8 @@ export default function MyOrders() {
   }
 
   const handleRefresh = () => {
-    showToast('Orders list synchronized with Peliyagoda DC Dispatch.')
+    reloadOrders()
+    showToast('Refreshing order statuses from dispatch…')
   }
 
   return (
@@ -233,7 +247,7 @@ export default function MyOrders() {
               type="button"
               className="btn-mo-utility"
               title="Filter by target criteria"
-              onClick={() => showToast('Target store outlet filter: Colombo 05 (OUT043)')}
+              onClick={() => showToast(`Showing orders for outlet ${outletId}`)}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
@@ -274,13 +288,7 @@ export default function MyOrders() {
 
         {/* 5 Metric Summary Cards */}
         <MyOrdersMetricsCards
-          counts={{
-            all: 24,
-            pending: 3,
-            inDelivery: 2,
-            completed: 17,
-            deferred: 2,
-          }}
+          counts={counts}
           activeFilter={statusFilter}
           onSelectFilter={(filterKey) => setStatusFilter(filterKey)}
         />
@@ -295,17 +303,15 @@ export default function MyOrders() {
           setSortBy={setSortBy}
           statusFilter={statusFilter}
           setStatusFilter={setStatusFilter}
-          statusCounts={{
-            all: 24,
-            pending: 3,
-            confirmed: 2,
-            scheduled: 2,
-            inDelivery: 2,
-            completed: 17,
-            deferred: 2,
-          }}
+          statusCounts={counts}
           onRefresh={handleRefresh}
         />
+
+        {(loadState.loading || loadState.error) && (
+          <div className={`mo-page-state ${loadState.error ? 'error' : ''}`}>
+            {loadState.error ? `Unable to load orders: ${loadState.error}` : 'Loading your orders…'}
+          </div>
+        )}
 
         {/* Orders Table */}
         <MyOrdersTable
@@ -323,6 +329,7 @@ export default function MyOrders() {
         order={inspectingOrder}
         isOpen={Boolean(inspectingOrder)}
         onClose={() => setInspectingOrder(null)}
+        onWithdraw={handleWithdraw}
         isReceiptMode={isReceiptModal}
       />
 

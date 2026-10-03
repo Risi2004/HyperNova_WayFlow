@@ -1,30 +1,5 @@
 export default function UpcomingTripsCards({
-  trips = [
-    {
-      id: 'TR-025',
-      timeText: 'Tomorrow, 05:30 AM',
-      vehicle: 'WP-VAN-004 • Delivery Van',
-      route: 'Peliyagoda → Negombo',
-      stopsCount: 6,
-      status: 'Scheduled',
-    },
-    {
-      id: 'TR-026',
-      timeText: '28 Sep, 07:00 AM',
-      vehicle: 'WP-DRY-019 • Dry-box Truck',
-      route: 'Kandy → Central Region',
-      stopsCount: 7,
-      status: 'Scheduled',
-    },
-    {
-      id: 'TR-027',
-      timeText: '29 Sep, 06:00 AM',
-      vehicle: 'WP-REF-011 • Refrigerated',
-      route: 'Peliyagoda → Galle Coastal',
-      stopsCount: 5,
-      status: 'Scheduled',
-    },
-  ],
+  trips = [],
   onViewRouteDetails,
 }) {
   return (

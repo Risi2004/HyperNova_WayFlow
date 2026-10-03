@@ -42,6 +42,30 @@ router.get('/', async (req, res) => {
   }
 })
 
+// GET /api/users/activity - recent account provisioning and order decisions across all roles
+router.get('/activity', async (req, res) => {
+  try {
+    const activity = await sql.query(`
+      SELECT * FROM (
+        SELECT 'account' AS kind, u.full_name AS actor_name, u.role AS actor_role,
+               NULL::varchar AS order_id, NULL::varchar AS from_status, NULL::varchar AS to_status,
+               u.facility AS note, u.created_at AS at
+        FROM users u
+        UNION ALL
+        SELECT 'order' AS kind, COALESCE(u.full_name, 'System') AS actor_name, e.actor_role,
+               e.order_id, e.from_status, e.to_status, e.note, e.created_at AS at
+        FROM order_status_events e
+        LEFT JOIN users u ON u.user_id = e.actor_user_id
+      ) feed
+      ORDER BY at DESC NULLS LAST
+      LIMIT 6
+    `)
+    res.json({ activity })
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load activity: ' + err.message })
+  }
+})
+
 // POST /api/users - Provision new user into Neon and send credential email
 router.post('/', async (req, res) => {
   const {
@@ -176,8 +200,8 @@ router.put('/:id', async (req, res) => {
         full_name = COALESCE($1, full_name),
         role = COALESCE($2, role),
         facility = COALESCE($3, facility),
-        outlet_id = $4,
-        assigned_vehicle_id = $5,
+        outlet_id = CASE WHEN $9 THEN $4 ELSE outlet_id END,
+        assigned_vehicle_id = CASE WHEN $10 THEN $5 ELSE assigned_vehicle_id END,
         phone = COALESCE($6, phone),
         status = COALESCE($7, status)
       WHERE user_id = $8
@@ -188,11 +212,15 @@ router.put('/:id', async (req, res) => {
       name,
       role,
       facility,
-      outlet_id !== undefined ? outlet_id : null,
-      assigned_vehicle_id !== undefined ? assigned_vehicle_id : null,
+      outlet_id || null,
+      assigned_vehicle_id || null,
       phone,
       status,
       id,
+      // Partial updates (e.g. the status toggle) omit these keys and must not unlink
+      // a store manager from their outlet or a driver from their vehicle.
+      outlet_id !== undefined,
+      assigned_vehicle_id !== undefined,
     ])
 
     const u = result[0]

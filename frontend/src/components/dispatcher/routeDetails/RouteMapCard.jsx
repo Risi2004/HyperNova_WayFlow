@@ -74,7 +74,7 @@ export default function RouteMapCard() {
           <h2 className="route-card-title">Route Map</h2>
           <p className="route-card-subtitle">Planned stop order from Peliyagoda Distribution Center</p>
         </div>
-        <span className="sequence-disclaimer-pill">Sequence view Â· not for navigation</span>
+        <span className="sequence-disclaimer-pill">Sequence view · not for navigation</span>
       </div>
 
       {/* Leaflet Map Container */}

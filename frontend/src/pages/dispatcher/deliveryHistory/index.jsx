@@ -274,7 +274,7 @@ export default function DeliveryHistory() {
 
           {/* Operational Footer */}
           <footer className="dispatcher-footer">
-            <span>Operational data synced at 09:26 • West Hub timezone</span>
+            <span>All times in Asia/Colombo (UTC+05:30)</span>
             <a href="#help" className="footer-link">
               Help & operational support
             </a>

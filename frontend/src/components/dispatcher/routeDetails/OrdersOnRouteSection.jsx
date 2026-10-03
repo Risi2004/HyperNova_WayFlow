@@ -8,7 +8,7 @@ export default function OrdersOnRouteSection() {
       brand: 'Waypoint Fresh',
       items: 36,
       weight: '620 kg',
-      volume: '3.4 mÂ³',
+      volume: '3.4 m³',
       temp: 'Chilled',
       window: '05:45-06:15',
       status: 'Assigned',
@@ -19,7 +19,7 @@ export default function OrdersOnRouteSection() {
       brand: 'Waypoint Fresh',
       items: 18,
       weight: '460 kg',
-      volume: '2.8 mÂ³',
+      volume: '2.8 m³',
       temp: 'Frozen',
       window: '06:00-06:30',
       status: 'Assigned',
@@ -30,7 +30,7 @@ export default function OrdersOnRouteSection() {
       brand: 'Waypoint Style',
       items: 14,
       weight: '380 kg',
-      volume: '2.1 mÂ³',
+      volume: '2.1 m³',
       temp: 'Ambient',
       window: '06:30-07:15',
       status: 'Assigned',
@@ -41,7 +41,7 @@ export default function OrdersOnRouteSection() {
       brand: 'Waypoint Fresh',
       items: 22,
       weight: '540 kg',
-      volume: '3.2 mÂ³',
+      volume: '3.2 m³',
       temp: 'Chilled',
       window: '07:00-07:45',
       status: 'Assigned',
@@ -52,7 +52,7 @@ export default function OrdersOnRouteSection() {
       brand: 'Waypoint Tech',
       items: 16,
       weight: '410 kg',
-      volume: '2.6 mÂ³',
+      volume: '2.6 m³',
       temp: 'Ambient',
       window: '07:30-08:15',
       status: 'Assigned',
@@ -63,7 +63,7 @@ export default function OrdersOnRouteSection() {
       brand: 'Waypoint Fresh',
       items: 24,
       weight: '520 kg',
-      volume: '3.0 mÂ³',
+      volume: '3.0 m³',
       temp: 'Chilled',
       window: '08:15-09:00',
       status: 'Assigned',
@@ -74,7 +74,7 @@ export default function OrdersOnRouteSection() {
       brand: 'Waypoint Style',
       items: 19,
       weight: '430 kg',
-      volume: '2.2 mÂ³',
+      volume: '2.2 m³',
       temp: 'Ambient',
       window: '09:00-09:45',
       status: 'Assigned',
@@ -85,7 +85,7 @@ export default function OrdersOnRouteSection() {
       brand: 'Waypoint Fresh',
       items: 21,
       weight: '460 kg',
-      volume: '2.1 mÂ³',
+      volume: '2.1 m³',
       temp: 'Frozen',
       window: '09:45-10:30',
       status: 'Assigned',
@@ -97,7 +97,7 @@ export default function OrdersOnRouteSection() {
       <div className="route-card-header flex-between">
         <div>
           <h2 className="route-card-title">Orders on Route</h2>
-          <p className="route-card-subtitle">8 orders Â· 190 items Â· 3,820 kg Â· 21.4 mÂ³</p>
+          <p className="route-card-subtitle">8 orders · 190 items · 3,820 kg · 21.4 m³</p>
         </div>
         <span className="all-assigned-pill">All assigned</span>
       </div>

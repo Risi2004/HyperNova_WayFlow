@@ -2,23 +2,56 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import AdminSidebar from '../../../components/admin/AdminSidebar'
 import AddUserModal from '../../../components/admin/AddUserModal'
-import { getStoredUsers, saveStoredUsers, getRoleColor } from '../../../services/adminUserData'
+import { getRoleColor } from '../../../services/adminUserData'
+import { userService } from '../../../services/userService'
+import { apiRequest } from '../../../services/apiClient'
+import { dispatchStatusOf, formatTimestamp } from '../../../utils/orderFormat'
+
+const ROLE_ACCENTS = {
+  Dispatcher: '#60a5fa',
+  Driver: '#34d399',
+  Loader: '#fbbf24',
+  'Store Manager': '#c084fc',
+  Admin: '#fb7185',
+  System: '#94a3b8',
+}
+
+// "5 mins ago" style relative time for the activity feed.
+function timeAgo(ts) {
+  const mins = Math.max(0, Math.round((Date.now() - new Date(ts).getTime()) / 60000))
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins} min${mins === 1 ? '' : 's'} ago`
+  const hours = Math.round(mins / 60)
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`
+  const f = formatTimestamp(ts)
+  return `${f.date}, ${f.time}`
+}
 import './AdminDashboard.css'
 
 export default function AdminDashboard() {
   const [users, setUsers] = useState([])
+  const [activity, setActivity] = useState(null)
+  const [reloadKey, setReloadKey] = useState(0)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
+  // Live user counts and activity from the database.
   useEffect(() => {
-    const loaded = getStoredUsers()
-    setUsers(loaded)
-  }, [])
+    let active = true
+    userService
+      .getUsers()
+      .then((list) => active && setUsers(list || []))
+      .catch(() => active && setUsers([]))
+    apiRequest('/users/activity')
+      .then((res) => active && setActivity(res.activity))
+      .catch(() => active && setActivity([]))
+    return () => {
+      active = false
+    }
+  }, [reloadKey])
 
-  const handleAddUser = (newUser) => {
-    const updated = [newUser, ...users]
-    setUsers(updated)
-    saveStoredUsers(updated)
+  const handleAddUser = () => {
     setIsAddModalOpen(false)
+    setReloadKey((k) => k + 1)
   }
 
   // Calculate metrics
@@ -311,64 +344,47 @@ export default function AdminDashboard() {
             </div>
 
             <div className="audit-list">
-              <div className="audit-item" style={{ borderLeftColor: '#60a5fa' }}>
-                <div className="audit-icon" style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                  </svg>
-                </div>
-                <div>
-                  <div className="audit-desc">
-                    <strong>Kasun Fernando</strong> logged in to <em>Dispatcher Planning Portal</em>.
+              {activity === null && <div className="audit-time">Loading activity…</div>}
+              {activity?.length === 0 && <div className="audit-time">No activity recorded yet.</div>}
+              {activity?.map((item, idx) => {
+                const accent = ROLE_ACCENTS[item.actor_role] || ROLE_ACCENTS.System
+                return (
+                  <div key={idx} className="audit-item" style={{ borderLeftColor: accent }}>
+                    <div className="audit-icon" style={{ background: `${accent}26`, color: accent }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        {item.kind === 'account' ? (
+                          <>
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                          </>
+                        ) : (
+                          <>
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                          </>
+                        )}
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="audit-desc">
+                        {item.kind === 'account' ? (
+                          <>
+                            <strong>{item.actor_name}</strong> was provisioned as <em>{item.actor_role}</em>.
+                          </>
+                        ) : (
+                          <>
+                            <strong>{item.actor_name}</strong> moved <em>{item.order_id}</em> to{' '}
+                            <em>{dispatchStatusOf(item.to_status).label}</em>.
+                          </>
+                        )}
+                      </div>
+                      <div className="audit-time">
+                        {timeAgo(item.at)} &bull; {item.kind === 'account' ? item.note : item.actor_role}
+                      </div>
+                    </div>
                   </div>
-                  <div className="audit-time">5 mins ago &bull; IP: 192.168.1.104 &bull; Colombo Central</div>
-                </div>
-              </div>
-
-              <div className="audit-item" style={{ borderLeftColor: '#34d399' }}>
-                <div className="audit-icon" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                  </svg>
-                </div>
-                <div>
-                  <div className="audit-desc">
-                    <strong>Marcus Vance</strong> authenticated on Route <em>TR-024 (Peliyagoda &rarr; Colombo 05)</em>.
-                  </div>
-                  <div className="audit-time">12 mins ago &bull; GPS Verified &bull; Fleet Tablet</div>
-                </div>
-              </div>
-
-              <div className="audit-item" style={{ borderLeftColor: '#c084fc' }}>
-                <div className="audit-icon" style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                  </svg>
-                </div>
-                <div>
-                  <div className="audit-desc">
-                    <strong>Sarah Perera</strong> verified payload receipt for Order <em>#ORD-9021</em>.
-                  </div>
-                  <div className="audit-time">22 mins ago &bull; Colombo 05 Store</div>
-                </div>
-              </div>
-
-              <div className="audit-item" style={{ borderLeftColor: '#fb7185' }}>
-                <div className="audit-icon" style={{ background: 'rgba(244, 63, 94, 0.15)', color: '#fb7185' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                  </svg>
-                </div>
-                <div>
-                  <div className="audit-desc">
-                    <strong>Alexander Vance</strong> verified system security configuration & permissions matrix.
-                  </div>
-                  <div className="audit-time">1 hour ago &bull; Admin Console</div>
-                </div>
-              </div>
+                )
+              })}
             </div>
           </div>
         </div>

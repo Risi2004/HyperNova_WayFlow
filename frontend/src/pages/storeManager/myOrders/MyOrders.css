@@ -1220,3 +1220,31 @@
     flex: 1 !important;
   }
 }
+
+/* Live data states */
+.mo-page-state {
+  padding: 18px 22px;
+  margin-bottom: 16px;
+  border-radius: 10px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 0.82rem;
+}
+
+.mo-page-state.error {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.mo-modal-related-note {
+  margin: 10px 0 0;
+  font-size: 0.76rem;
+  color: #475569;
+}
+
+.btn-mo-withdraw {
+  color: #b91c1c;
+  border-color: #fecaca;
+}

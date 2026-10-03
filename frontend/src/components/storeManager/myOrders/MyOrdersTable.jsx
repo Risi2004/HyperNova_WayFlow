@@ -31,6 +31,12 @@ export default function MyOrdersTable({
 
   const allSelected = orders.length > 0 && selectedOrderIds.length === orders.length
 
+  const totalPages = Math.max(1, Math.ceil(orders.length / pageSize))
+  const page = Math.min(currentPage, totalPages)
+  const pageOrders = orders.slice((page - 1) * pageSize, page * pageSize)
+  const firstShown = orders.length === 0 ? 0 : (page - 1) * pageSize + 1
+  const lastShown = Math.min(page * pageSize, orders.length)
+
   const getStatusBadge = (order) => {
     switch (order.status) {
       case 'IN_DELIVERY':
@@ -60,6 +66,7 @@ export default function MyOrdersTable({
               </svg>
               <span>Scheduled</span>
             </span>
+            {order.statusSub && <span className="mo-status-sub">{order.statusSub}</span>}
           </div>
         )
       case 'CONFIRMED':
@@ -71,6 +78,7 @@ export default function MyOrdersTable({
               </svg>
               <span>Confirmed</span>
             </span>
+            {order.statusSub && <span className="mo-status-sub">{order.statusSub}</span>}
           </div>
         )
       case 'PENDING':
@@ -83,6 +91,7 @@ export default function MyOrdersTable({
               </svg>
               <span>Pending</span>
             </span>
+            {order.statusSub && <span className="mo-status-sub">{order.statusSub}</span>}
           </div>
         )
       case 'DEFERRED':
@@ -141,7 +150,7 @@ export default function MyOrdersTable({
         </thead>
 
         <tbody>
-          {orders.map((order) => {
+          {pageOrders.map((order) => {
             const isRowChecked = selectedOrderIds.includes(order.id)
             return (
               <tr key={order.id} className={`mo-table-row ${isRowChecked ? 'selected' : ''}`}>
@@ -282,12 +291,15 @@ export default function MyOrdersTable({
       {/* Pagination Footer */}
       <div className="mo-pagination-footer">
         <div className="mo-pagination-left">
-          <span>Showing <strong>1-8</strong> of <strong>24</strong> orders</span>
+          <span>Showing <strong>{firstShown}-{lastShown}</strong> of <strong>{orders.length}</strong> orders</span>
           <div className="mo-page-size-selector">
             <span>Show:</span>
             <select
               value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value))
+                setCurrentPage(1)
+              }}
             >
               <option value="10">10 per page</option>
               <option value="25">25 per page</option>
@@ -300,37 +312,26 @@ export default function MyOrdersTable({
           <button
             type="button"
             className="mo-page-btn arrow"
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            onClick={() => setCurrentPage(Math.max(1, page - 1))}
           >
             ‹
           </button>
-          <button
-            type="button"
-            className={`mo-page-btn ${currentPage === 1 ? 'active' : ''}`}
-            onClick={() => setCurrentPage(1)}
-          >
-            1
-          </button>
-          <button
-            type="button"
-            className={`mo-page-btn ${currentPage === 2 ? 'active' : ''}`}
-            onClick={() => setCurrentPage(2)}
-          >
-            2
-          </button>
-          <button
-            type="button"
-            className={`mo-page-btn ${currentPage === 3 ? 'active' : ''}`}
-            onClick={() => setCurrentPage(3)}
-          >
-            3
-          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+            <button
+              key={n}
+              type="button"
+              className={`mo-page-btn ${page === n ? 'active' : ''}`}
+              onClick={() => setCurrentPage(n)}
+            >
+              {n}
+            </button>
+          ))}
           <button
             type="button"
             className="mo-page-btn arrow"
-            disabled={currentPage === 3}
-            onClick={() => setCurrentPage((p) => Math.min(3, p + 1))}
+            disabled={page === totalPages}
+            onClick={() => setCurrentPage(Math.min(totalPages, page + 1))}
           >
             ›
           </button>

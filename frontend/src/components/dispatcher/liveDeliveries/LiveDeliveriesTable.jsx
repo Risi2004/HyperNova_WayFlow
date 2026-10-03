@@ -1,25 +1,10 @@
-import { Link } from 'react-router-dom'
-
-export default function LiveDeliveriesTable({
-  deliveries = [],
-  currentPage = 1,
-  totalPages = 10,
-  onPageChange,
-}) {
+export default function LiveDeliveriesTable({ deliveries, totalCount, firstIndex, currentPage, totalPages, onPageChange, selected, onSelect }) {
   return (
     <div className="live-table-card">
       <div className="live-table-top-header">
         <div className="table-header-left">
-          <h2 className="live-table-title">Today's Deliveries</h2>
-          <p className="live-table-subtitle">
-            56 deliveries Â· Sorted by operational priority
-          </p>
-        </div>
-        <div className="table-refreshed-badge">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-          <span>Refreshed just now</span>
+          <h2 className="live-table-title">Trips</h2>
+          <p className="live-table-subtitle">{totalCount} trip{totalCount === 1 ? '' : 's'} · in departure order</p>
         </div>
       </div>
 
@@ -27,34 +12,39 @@ export default function LiveDeliveriesTable({
         <table className="live-deliveries-grid-table">
           <thead>
             <tr>
-              <th>ROUTE</th>
+              <th>TRIP</th>
               <th>VEHICLE</th>
               <th>DRIVER</th>
-              <th>STOPS</th>
-              <th>CURRENT STOP</th>
+              <th>DEPARTS</th>
+              <th>NEXT STOP</th>
               <th>PROGRESS</th>
-              <th>ETA</th>
+              <th>ARRIVALS</th>
               <th>STATUS</th>
-              <th>LAST UPDATE</th>
               <th>ACTION</th>
             </tr>
           </thead>
           <tbody>
+            {deliveries.length === 0 && (
+              <tr>
+                <td colSpan={9} className="td-driver">No trips match these filters.</td>
+              </tr>
+            )}
             {deliveries.map((del) => (
-              <tr key={del.route}>
-                <td className="td-route-id bold">
-                  <Link to={`/dispatcher/routes/${del.route}`} className="blue-table-link">
-                    {del.route}
-                  </Link>
+              <tr key={del.route} className={selected === del.route ? 'live-row-selected' : undefined}>
+                <td className="td-route-id bold">{del.route}</td>
+                <td className="td-vehicle bold">
+                  {del.vehicle}
+                  <div className="status-reason-subtext">{del.vehicleType}</div>
                 </td>
-                <td className="td-vehicle bold">{del.vehicle}</td>
                 <td className="td-driver">{del.driver}</td>
-                <td className="td-stops">{del.stops}</td>
+                <td className="td-driver">{del.departure}</td>
                 <td className="td-current-stop">{del.currentStop}</td>
                 <td className="td-progress-cell">
                   <div className="progress-cell-group">
                     <div className="progress-labels-row">
-                      <span className="stops-ratio bold">{del.completedStops} / {del.totalStops} stops</span>
+                      <span className="stops-ratio bold">
+                        {del.completedStops} / {del.totalStops} stops
+                      </span>
                       <span className="percent-val bold">{del.percent}%</span>
                     </div>
                     <div className="live-progress-track">
@@ -63,9 +53,6 @@ export default function LiveDeliveriesTable({
                         style={{ width: `${del.percent}%` }}
                       ></div>
                     </div>
-                    <span className="remaining-stops-subtext">
-                      {del.subProgress || `Completed ${del.completedStops} | Remaining ${del.totalStops - del.completedStops}`}
-                    </span>
                   </div>
                 </td>
                 <td className="td-eta bold">{del.eta}</td>
@@ -75,16 +62,13 @@ export default function LiveDeliveriesTable({
                       <span className="dot"></span>
                       {del.status.toUpperCase()}
                     </span>
-                    {del.statusDetail && (
-                      <span className="status-reason-subtext">{del.statusDetail}</span>
-                    )}
+                    {del.statusDetail && <span className="status-reason-subtext">{del.statusDetail}</span>}
                   </div>
                 </td>
-                <td className="td-last-update">{del.lastUpdate}</td>
                 <td className="td-action">
-                  <Link to={`/dispatcher/routes/${del.route}`} className="live-view-link">
-                    View
-                  </Link>
+                  <button type="button" className="live-view-link" onClick={() => onSelect(selected === del.route ? null : del.route)}>
+                    {selected === del.route ? 'Hide' : 'View'}
+                  </button>
                 </td>
               </tr>
             ))}
@@ -92,30 +76,19 @@ export default function LiveDeliveriesTable({
         </table>
       </div>
 
-      {/* Pagination Footer */}
       <div className="live-table-pagination-row">
         <span className="pagination-count-label">
-          Showing 1-{deliveries.length} of 56 deliveries
+          {totalCount ? `Showing ${firstIndex + 1}–${firstIndex + deliveries.length} of ${totalCount} trips` : 'No trips'}
         </span>
 
         <div className="pagination-buttons-group">
-          <button
-            type="button"
-            className="btn-pagination-control"
-            disabled={currentPage === 1}
-            onClick={() => onPageChange(currentPage - 1)}
-          >
+          <button type="button" className="btn-pagination-control" disabled={currentPage === 1} onClick={() => onPageChange(currentPage - 1)}>
             Previous
           </button>
           <span className="pagination-current-pill">
             {currentPage} / {totalPages}
           </span>
-          <button
-            type="button"
-            className="btn-pagination-control"
-            disabled={currentPage === totalPages}
-            onClick={() => onPageChange(currentPage + 1)}
-          >
+          <button type="button" className="btn-pagination-control" disabled={currentPage === totalPages} onClick={() => onPageChange(currentPage + 1)}>
             Next
           </button>
         </div>

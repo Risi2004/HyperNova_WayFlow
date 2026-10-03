@@ -1,13 +1,4 @@
-export default function VehicleInfoCard({
-  vehicle = {
-    id: 'WP-REF-007',
-    type: 'Refrigerated Truck (Cold-chain)',
-    depot: 'Peliyagoda Distribution Center',
-    departureTime: '06:00 AM Today',
-    assignedDriver: 'Ranil Wickremasinghe',
-    driverContact: '+94 77 123 4567',
-  },
-}) {
+export default function VehicleInfoCard({ vehicle }) {
   const fields = [
     { label: 'Vehicle ID', value: vehicle.id, bold: true },
     { label: 'Type', value: vehicle.type, bold: true },

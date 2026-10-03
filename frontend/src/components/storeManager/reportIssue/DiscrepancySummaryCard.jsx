@@ -1,8 +1,9 @@
 export default function DiscrepancySummaryCard({
-  categoryLabel = 'Missing Item',
-  skuName = 'Fresh Farm Milk 1L',
-  discrepancyText = '4 Crates (48 Units)',
-  evidenceCount = 1,
+  categoryLabel,
+  skuName,
+  discrepancyText,
+  evidenceCount = 0,
+  error,
   onSubmit,
   onCancel,
   isSubmitting = false,
@@ -19,7 +20,7 @@ export default function DiscrepancySummaryCard({
           </svg>
           <h3 className="ri-side-card-title">Discrepancy Summary</h3>
         </div>
-        <span className="ri-badge-draft">Draft</span>
+        <span className="ri-badge-draft">Not sent yet</span>
       </div>
 
       <div className="ri-summary-details-list">
@@ -59,9 +60,11 @@ export default function DiscrepancySummaryCard({
           </svg>
         </div>
         <p className="ri-notice-text">
-          Central logistics will review within 24h for store credit.
+          Dispatch sees this on the Live Deliveries board and follows up with you.
         </p>
       </div>
+
+      {error && <p className="sm-page-state error" role="alert">{error}</p>}
 
       {/* Action buttons */}
       <div className="ri-summary-actions">
@@ -94,7 +97,7 @@ export default function DiscrepancySummaryCard({
           className="btn-ri-cancel-return"
           onClick={onCancel}
         >
-          Cancel &amp; Return to Order
+          Cancel
         </button>
       </div>
     </div>

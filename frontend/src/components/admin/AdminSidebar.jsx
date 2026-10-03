@@ -3,8 +3,10 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { authService } from '../../services/authService'
 import logoImg from '../../assets/images/logo.png'
 import './AdminSidebar.css'
+import { useCurrentUser, initialsOf } from '../../hooks/useCurrentUser'
 
 export default function AdminSidebar({ activeItem, activeTab }) {
+  const user = useCurrentUser()
   const navigate = useNavigate()
   const location = useLocation()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
@@ -136,10 +138,10 @@ export default function AdminSidebar({ activeItem, activeTab }) {
             {/* Admin Profile Card */}
             <div className="admin-user-card" style={{ margin: '14px 14px 10px' }}>
               <div className="admin-user-left">
-                <div className="admin-avatar">AV</div>
+                <div className="admin-avatar">{initialsOf(user?.name)}</div>
                 <div className="admin-user-meta">
-                  <span className="admin-user-name">Alexander Vance</span>
-                  <span className="admin-user-role">Super Admin • Regional HQ</span>
+                  <span className="admin-user-name">{user?.name}</span>
+                  <span className="admin-user-role">{user?.role} • {user?.facility}</span>
                 </div>
               </div>
               <span className="admin-user-status-dot" title="Admin Active" />
@@ -197,10 +199,10 @@ export default function AdminSidebar({ activeItem, activeTab }) {
           {/* User Profile Card */}
           <div className="admin-user-card" title="Super Administrator Profile">
             <div className="admin-user-left">
-              <div className="admin-avatar">AV</div>
+              <div className="admin-avatar">{initialsOf(user?.name)}</div>
               <div className="admin-user-meta">
-                <span className="admin-user-name">Alexander Vance</span>
-                <span className="admin-user-role">Super Admin • Regional HQ</span>
+                <span className="admin-user-name">{user?.name}</span>
+                <span className="admin-user-role">{user?.role} • {user?.facility}</span>
               </div>
             </div>
             <span className="admin-user-status-dot" title="Active Root Admin" />

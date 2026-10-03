@@ -2,8 +2,8 @@ export default function OrderHistoryTable({
   orders,
   onViewOrder,
   currentPage = 1,
-  totalPages = 13,
-  totalOrders = 128,
+  totalPages = 1,
+  totalOrders = 0,
   onPageChange,
 }) {
   return (
@@ -126,7 +126,9 @@ export default function OrderHistoryTable({
       {/* Pagination Footer */}
       <div className="oh-pagination-bar">
         <div className="oh-pagination-left">
-          Showing 1-{orders.length} of {totalOrders} orders
+          {totalOrders === 0
+            ? 'No orders match these filters'
+            : `Showing ${(currentPage - 1) * 10 + 1}-${(currentPage - 1) * 10 + orders.length} of ${totalOrders} orders`}
         </div>
 
         <div className="oh-pagination-controls">
@@ -139,35 +141,20 @@ export default function OrderHistoryTable({
             Previous
           </button>
 
-          <button
-            type="button"
-            className={`btn-oh-page-num ${currentPage === 1 ? 'active' : ''}`}
-            onClick={() => onPageChange && onPageChange(1)}
-          >
-            1
-          </button>
-          <button
-            type="button"
-            className={`btn-oh-page-num ${currentPage === 2 ? 'active' : ''}`}
-            onClick={() => onPageChange && onPageChange(2)}
-          >
-            2
-          </button>
-          <button
-            type="button"
-            className={`btn-oh-page-num ${currentPage === 3 ? 'active' : ''}`}
-            onClick={() => onPageChange && onPageChange(3)}
-          >
-            3
-          </button>
-          <span className="oh-page-dots">...</span>
-          <button
-            type="button"
-            className={`btn-oh-page-num ${currentPage === totalPages ? 'active' : ''}`}
-            onClick={() => onPageChange && onPageChange(totalPages)}
-          >
-            {totalPages}
-          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter((n) => n === 1 || n === totalPages || Math.abs(n - currentPage) <= 1)
+            .map((n, i, shown) => (
+              <span key={n} className="oh-page-group">
+                {i > 0 && n - shown[i - 1] > 1 && <span className="oh-page-dots">...</span>}
+                <button
+                  type="button"
+                  className={`btn-oh-page-num ${currentPage === n ? 'active' : ''}`}
+                  onClick={() => onPageChange && onPageChange(n)}
+                >
+                  {n}
+                </button>
+              </span>
+            ))}
 
           <button
             type="button"

@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom'
 import { authService } from '../../services/authService'
 import logoImg from '../../assets/images/logo.png'
+import { useCurrentUser, initialsOf } from '../../hooks/useCurrentUser'
 
 export default function DriverNavbar({ activeTab = 'Dashboard' }) {
+  const user = useCurrentUser()
   const navigate = useNavigate()
 
   const handleLogout = () => {
@@ -52,10 +54,10 @@ export default function DriverNavbar({ activeTab = 'Dashboard' }) {
       {/* Right: Driver Profile & Exit */}
       <div className="driver-nav-user-area">
         <div className="driver-profile-pill" title="Driver Profile">
-          <div className="driver-avatar-circle">KP</div>
+          <div className="driver-avatar-circle">{initialsOf(user?.name)}</div>
           <div className="driver-meta-text">
-            <span className="driver-user-name">Kasun Perera</span>
-            <span className="driver-user-role">Driver • WP-REF-007</span>
+            <span className="driver-user-name">{user?.name}</span>
+            <span className="driver-user-role">{user?.role} • {user?.assigned_vehicle_id || user?.facility}</span>
           </div>
         </div>
 

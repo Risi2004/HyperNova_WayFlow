@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 
 export default function LoadDetailHeader({
-  loadId = 'LD-025',
+  loadId,
   hub = 'Peliyagoda Distribution Center',
 }) {
   const navigate = useNavigate()

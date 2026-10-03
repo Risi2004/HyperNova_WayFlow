@@ -959,3 +959,4 @@
     flex-direction: column;
   }
 }
+.oh-page-group { display: inline-flex; align-items: center; gap: 4px; }

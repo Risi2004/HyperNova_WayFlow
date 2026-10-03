@@ -2,7 +2,11 @@ require('dotenv').config()
 const fs = require('fs')
 const path = require('path')
 const { sql } = require('./db')
+const bcrypt = require('bcryptjs')
 const { createSchema } = require('./schema')
+const { seedProducts } = require('./seedProducts')
+const { generatePeakDay } = require('./services/planner/scenario')
+const { toColomboParts, now, addDays } = require('./services/orderSchedule')
 
 // Helper to parse standard CSV text into array of objects
 function parseCSV(filePath) {
@@ -73,8 +77,9 @@ async function batchInsert(tableName, columns, rows, batchSize = 400) {
 }
 
 async function seedDatabase() {
-  console.log('🌱 Starting WayFlow Database Seeding on Neon...\n')
-  const datasetsDir = path.resolve(__dirname, '..', 'datasets')
+  console.log('🌱 Starting WayFlow Database Seeding...\n')
+  await createSchema()
+  const datasetsDir = process.env.DATASETS_DIR || path.resolve(__dirname, '..', 'datasets')
 
   // 1. Seed District Travel (12 rows)
   console.log('📍 Seeding district_travel...')
@@ -300,7 +305,7 @@ async function seedDatabase() {
       password_hash: 'dispatcher123',
       full_name: 'Kasun Fernando',
       role: 'Dispatcher',
-      facility: 'Central Planning Hub',
+      facility: 'Peliyagoda Central Planning Hub',
       outlet_id: null,
       phone: '+94 77 123 4567',
       status: 'Active',
@@ -313,7 +318,7 @@ async function seedDatabase() {
       password_hash: 'dispatcher123',
       full_name: 'Rohan Jayawardena',
       role: 'Dispatcher',
-      facility: 'Peliyagoda DC',
+      facility: 'Kandy Regional Planning Hub',
       outlet_id: null,
       phone: '+94 77 998 1122',
       status: 'Active',
@@ -326,7 +331,7 @@ async function seedDatabase() {
       password_hash: 'store123',
       full_name: 'Sarah Perera',
       role: 'Store Manager',
-      facility: 'Colombo 05 Store',
+      facility: 'Store OUT001 - Colombo (Fresh)',
       outlet_id: 'OUT001',
       phone: '+94 71 890 2234',
       status: 'Active',
@@ -339,7 +344,7 @@ async function seedDatabase() {
       password_hash: 'store123',
       full_name: 'Nimali Rathnayake',
       role: 'Store Manager',
-      facility: 'Kandy Central Outlet',
+      facility: 'Store OUT081 - Kandy (Fresh)',
       outlet_id: 'OUT081',
       phone: '+94 72 901 3345',
       status: 'Active',
@@ -352,7 +357,7 @@ async function seedDatabase() {
       password_hash: 'loader123',
       full_name: 'Jordan Davis',
       role: 'Loader',
-      facility: 'Peliyagoda DC - Bay 02',
+      facility: 'Peliyagoda DC - Bay 02 (Chilled / Reefer)',
       outlet_id: null,
       phone: '+94 77 342 1092',
       status: 'Active',
@@ -365,7 +370,7 @@ async function seedDatabase() {
       password_hash: 'loader123',
       full_name: 'Praveen Wickrama',
       role: 'Loader',
-      facility: 'Colombo Central DC',
+      facility: 'Kandy Hub - Bay 01 (Ambient Dry-Box)',
       outlet_id: null,
       phone: '+94 75 443 2190',
       status: 'Active',
@@ -378,8 +383,9 @@ async function seedDatabase() {
       password_hash: 'driver123',
       full_name: 'Marcus Vance',
       role: 'Driver',
-      facility: 'West Hub Fleet (Heavy Refrigerated)',
+      facility: 'Peliyagoda Fleet Hub (VEH035)',
       outlet_id: null,
+      assigned_vehicle_id: 'VEH035',
       phone: '+94 76 554 9912',
       status: 'Active',
       avatar: 'MV',
@@ -391,14 +397,19 @@ async function seedDatabase() {
       password_hash: 'driver123',
       full_name: 'Dinesh Silva',
       role: 'Driver',
-      facility: 'Colombo Logistics Fleet (14T Dry)',
+      facility: 'Peliyagoda Fleet Hub (VEH009)',
       outlet_id: null,
+      assigned_vehicle_id: 'VEH009',
       phone: '+94 70 887 6543',
       status: 'Active',
       avatar: 'DS',
       joined_date: '29 Aug 2025',
     },
   ]
+  // Store bcrypt hashes; the plain values above are the documented demo passwords.
+  for (const user of initialUsers) {
+    user.password_hash = await bcrypt.hash(user.password_hash, 10)
+  }
   await batchInsert(
     'users',
     [
@@ -409,12 +420,13 @@ async function seedDatabase() {
       'role',
       'facility',
       'outlet_id',
+      'assigned_vehicle_id',
       'phone',
       'status',
       'avatar',
       'joined_date',
     ],
-    initialUsers
+    initialUsers.map((u) => ({ assigned_vehicle_id: null, ...u }))
   )
   console.log(`✔ Seeded ${initialUsers.length} system users across all roles.`)
 
@@ -532,6 +544,9 @@ async function seedDatabase() {
   console.log(`✔ Seeded ${catalogProducts.length} catalog products.`)
 
   // 10. Seed Realistic Delivery Day Walkthrough Data
+  // 10. Master product catalog used by store-manager ordering
+  await seedProducts()
+
   console.log('🚚 Seeding realistic delivery day walkthrough data (Scenario Day: 2026-09-29)...')
   const demoDate = '2026-09-29'
   const cutoffTime = `${demoDate}T16:00:00+05:30`
@@ -548,7 +563,7 @@ async function seedDatabase() {
       target_delivery_date: demoDate,
       cutoff_time: cutoffTime,
       placed_before_cutoff: true,
-      status: 'delivered',
+      status: 'received',
       temp_requirement: 'chilled',
       total_units: 24,
       total_weight_kg: 656.0,
@@ -571,7 +586,7 @@ async function seedDatabase() {
       status: 'loading',
       temp_requirement: 'chilled',
       total_units: 18,
-      total_weight_kg: 480.0,
+      total_weight_kg: 360.0,
       total_volume_m3: 0.95,
       requested_window_open: '05:30',
       requested_window_close: '08:00',
@@ -640,6 +655,11 @@ async function seedDatabase() {
     },
   ]
 
+  // Orders were placed the morning before the scenario day, before the 4 PM cutoff.
+  sampleOrders.forEach((order) => {
+    order.created_at = `${order.order_date}T08:30:00+05:30`
+    order.submitted_at = order.created_at
+  })
   await batchInsert(
     'orders',
     [
@@ -661,8 +681,46 @@ async function seedDatabase() {
       'requested_window_close',
       'order_notes',
       'created_by_user_id',
+      'created_at',
+      'submitted_at',
     ],
     sampleOrders
+  )
+
+  // Activity trail for the sample orders, so Order Details shows how each reached its status
+  const LIFECYCLE = ['submitted', 'confirmed', 'planned', 'loading', 'loaded', 'dispatched', 'delivered', 'received']
+  // Placed the morning before, confirmed at the 4 PM cutoff, planned that evening,
+  // loaded and dispatched before dawn on the delivery day.
+  const EVENT_TIMES = {
+    submitted: (o) => `${o.order_date}T08:30:00+05:30`,
+    confirmed: (o) => `${o.order_date}T16:00:00+05:30`,
+    planned: (o) => `${o.order_date}T17:30:00+05:30`,
+    deferred: (o) => `${o.order_date}T17:45:00+05:30`,
+    loading: (o) => `${o.target_delivery_date}T03:30:00+05:30`,
+    loaded: (o) => `${o.target_delivery_date}T04:00:00+05:30`,
+    dispatched: (o) => `${o.target_delivery_date}T04:15:00+05:30`,
+    delivered: (o) => `${o.target_delivery_date}T05:08:00+05:30`,
+    received: (o) => `${o.target_delivery_date}T05:20:00+05:30`,
+  }
+  const sampleEvents = []
+  for (const order of sampleOrders) {
+    const path = order.status === 'deferred' ? ['submitted', 'confirmed', 'deferred'] : LIFECYCLE.slice(0, LIFECYCLE.indexOf(order.status) + 1)
+    path.forEach((status, i) => {
+      sampleEvents.push({
+        order_id: order.order_id,
+        from_status: i === 0 ? null : path[i - 1],
+        to_status: status,
+        actor_user_id: ['submitted', 'received'].includes(status) ? order.created_by_user_id : status === 'confirmed' ? null : 'USR-102',
+        actor_role: ['submitted', 'received'].includes(status) ? 'Store Manager' : status === 'confirmed' ? 'System' : 'Dispatcher',
+        note: status === 'submitted' ? 'Order placed by store manager' : status === 'confirmed' ? 'Order intake closed — order confirmed for planning' : status === 'received' ? 'Receipt confirmed: 24 received, 0 damaged, 0 missing, 3.8°C at receipt.' : null,
+        created_at: EVENT_TIMES[status](order),
+      })
+    })
+  }
+  await batchInsert(
+    'order_status_events',
+    ['order_id', 'from_status', 'to_status', 'actor_user_id', 'actor_role', 'note', 'created_at'],
+    sampleEvents
   )
 
   // Seed Order Items for ORD-2026-00101
@@ -717,11 +775,12 @@ async function seedDatabase() {
     sampleItems
   )
 
-  // Seed Trip TR-024 (Reefer van VEH053 serving van_only outlets OUT001 and OUT002)
+  // Seed Trip TR-024: reefer van VEH035 (Peliyagoda, 1040 kg / 7.0 m³) serving the van_only
+  // Fresh outlets OUT001 and OUT002 with chilled orders (1016 kg, 2.21 m³ — within capacity).
   const sampleTrip = {
     trip_id: 'TR-024',
     delivery_date: demoDate,
-    vehicle_id: 'VEH053', // Refrigerated Van (cap 1520kg, 7.8m3)
+    vehicle_id: 'VEH035',
     trip_number: 1,
     depot: 'Peliyagoda',
     brand: 'Fresh',
@@ -731,7 +790,7 @@ async function seedDatabase() {
     planned_return_time: '07:45',
     total_planned_distance_km: 16.0,
     total_planned_duration_min: 72,
-    total_weight_kg: 1136.0,
+    total_weight_kg: 1016.0,
     total_volume_m3: 2.21,
     status: 'in_progress',
   }
@@ -839,23 +898,26 @@ async function seedDatabase() {
     [sampleDeferral]
   )
 
-  // Seed Delivery Record (Proof of Delivery for stop 1)
+  // Seed Delivery Record (Proof of Delivery for stop 1). The stop id comes from the database:
+  // on an existing database the trip_stops sequence does not start at 1.
+  const [podStop] = await sql.query(`SELECT stop_id FROM trip_stops WHERE order_id = 'ORD-2026-00101'`)
   const sampleDeliveryRecord = {
     trip_id: 'TR-024',
     order_id: 'ORD-2026-00101',
-    stop_id: 1,
+    stop_id: podStop.stop_id,
     driver_user_id: 'USR-108',
     actual_arrival_time: '04:50',
     actual_departure_time: '05:08',
     handling_duration_min: 18,
     is_late: false,
     lateness_minutes: 0,
-    outcome: 'delivered_full',
+    outcome: 'delivered',
     received_by_name: 'Sarah Perera (Store Manager)',
     signature_data: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0xMCA1MCBDIDIwIDIwLCA0MCA4MCwgNjAgNTAgUyA4MCAyMCwgMTAwIDUwIiBzdHJva2U9IiMwZjE3MmEiIGZpbGw9InRyYW5zcGFyZW50Ii8+PC9zdmc+',
     proof_photo_url: null,
     driver_notes: 'Delivered before store opening. Verified 24 cases into walk-in cooler.',
     recorded_offline: false,
+    synced_at: `${demoDate}T05:08:00+05:30`,
   }
   await batchInsert(
     'delivery_records',
@@ -875,6 +937,7 @@ async function seedDatabase() {
       'proof_photo_url',
       'driver_notes',
       'recorded_offline',
+      'synced_at',
     ],
     [sampleDeliveryRecord]
   )
@@ -890,6 +953,7 @@ async function seedDatabase() {
     missing_cases: 0,
     temp_check_celsius: 3.8,
     manager_notes: 'All items received in good condition. Temperature verified at 3.8°C.',
+    confirmed_at: `${demoDate}T05:20:00+05:30`,
   }
   await batchInsert(
     'receipt_confirmations',
@@ -903,11 +967,25 @@ async function seedDatabase() {
       'missing_cases',
       'temp_check_celsius',
       'manager_notes',
+      'confirmed_at',
     ],
     [sampleReceiptConfirmation]
   )
 
   console.log('✔ Seeded realistic delivery day with orders, trips, stops, deferrals, POD, and receipt confirmation.')
+
+  // Peak-day planning scenario: demand exceeds the available fleet (SCENARIO_DATE or the next
+  // operating day). The dispatcher can reload it for any date from the Delivery Planner.
+  let scenarioDate = process.env.SCENARIO_DATE
+  if (!scenarioDate) {
+    const [row] = await sql.query(
+      `SELECT date FROM operating_calendar WHERE date > $1 AND is_operating = true ORDER BY date LIMIT 1`,
+      [toColomboParts(now()).date]
+    )
+    scenarioDate = row?.date || addDays(toColomboParts(now()).date, 1)
+  }
+  const scenario = await generatePeakDay(sql, scenarioDate, { actorUserId: 'USR-102' })
+  console.log(`✔ Peak-day scenario for ${scenario.date}: ${scenario.created} orders, ${scenario.in_workshop} vehicles in workshop.`)
   console.log('\n🎉 Database seeding completed successfully!')
 }
 

@@ -50,7 +50,7 @@ export default function SingleDeliveryPodCard() {
             </div>
             <div className="pod-metric-text">
               <span className="metric-title">GPS Geofence Handshake</span>
-              <span className="metric-detail">6.9580Â° N, 79.8650Â° E Â· 8m from dock</span>
+              <span className="metric-detail">6.9580° N, 79.8650° E · 8m from dock</span>
             </div>
             <span className="metric-tag-pill green">PASS</span>
           </div>
@@ -64,7 +64,7 @@ export default function SingleDeliveryPodCard() {
             </div>
             <div className="pod-metric-text">
               <span className="metric-title">Cargo Temperature at Handover</span>
-              <span className="metric-detail">4.2Â°C Â· Compliant with Chilled range (2â€“6Â°C)</span>
+              <span className="metric-detail">4.2°C · Compliant with Chilled range (2–6°C)</span>
             </div>
             <span className="metric-tag-pill green">PASS</span>
           </div>

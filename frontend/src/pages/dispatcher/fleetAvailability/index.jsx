@@ -268,7 +268,7 @@ export default function FleetAvailability() {
 
           {/* Footer */}
           <footer className="dispatcher-footer">
-            <span>Operational data synced at 10:42 • West Hub timezone</span>
+            <span>All times in Asia/Colombo (UTC+05:30)</span>
             <a href="#help" className="footer-link">
               Help & operational support
             </a>

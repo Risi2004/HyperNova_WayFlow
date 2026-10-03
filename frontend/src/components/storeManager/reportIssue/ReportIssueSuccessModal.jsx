@@ -1,8 +1,8 @@
 export default function ReportIssueSuccessModal({
-  orderId = 'ORD-1042',
-  ticketId = 'ISSUE-2026-0941',
-  categoryLabel = 'Missing Item',
-  skuName = 'Fresh Farm Milk 1L',
+  orderId,
+  ticketId,
+  categoryLabel,
+  skuName,
   onClose,
   onGoToDashboard,
   onGoToOrders,
@@ -19,9 +19,9 @@ export default function ReportIssueSuccessModal({
           </svg>
         </div>
 
-        <h2 className="ri-modal-title">Discrepancy Report Logged</h2>
+        <h2 className="ri-modal-title">Issue Reported</h2>
         <p className="ri-modal-subtitle">
-          Your exception report for order <strong className="val-blue">{orderId}</strong> has been transmitted to Central Dispatch &amp; Warehouse Inventory Control.
+          Your exception report for order <strong className="val-blue">{orderId}</strong> has been sent to dispatch.
         </p>
 
         {/* Ticket Details */}
@@ -37,12 +37,6 @@ export default function ReportIssueSuccessModal({
           <div className="ri-ticket-row">
             <span className="ri-ticket-label">Affected Item</span>
             <span className="ri-ticket-val">{skuName}</span>
-          </div>
-          <div className="ri-ticket-row">
-            <span className="ri-ticket-label">Estimated SLA</span>
-            <span className="ri-ticket-val" style={{ color: '#059669', fontWeight: 700 }}>
-              Resolution within 24h (Store Credit / Re-dispatch)
-            </span>
           </div>
         </div>
 

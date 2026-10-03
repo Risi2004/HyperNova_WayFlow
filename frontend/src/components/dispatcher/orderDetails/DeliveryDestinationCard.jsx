@@ -1,6 +1,9 @@
 import DeliveryMap from './DeliveryMap'
+import { formatWindow, outletLabel } from '../../../utils/orderFormat'
 
-export default function DeliveryDestinationCard() {
+const DOCK_LABELS = { rear_dock: 'Rear loading dock', street: 'Curbside unloading', mall_bay: 'Shared mall loading bay' }
+
+export default function DeliveryDestinationCard({ order, outlet }) {
   return (
     <div className="order-details-card destination-card">
       <div className="card-top-title-group">
@@ -17,8 +20,10 @@ export default function DeliveryDestinationCard() {
           </svg>
         </div>
         <div className="destination-meta">
-          <h3 className="destination-name">Waypoint Fresh â€“ Colombo 03</h3>
-          <span className="destination-address">123 Example Street, Colombo 03</span>
+          <h3 className="destination-name">{outletLabel(order)}</h3>
+          <span className="destination-address">
+            {order.district} District • {DOCK_LABELS[order.dock_type] || order.dock_type} • served from {order.depot}
+          </span>
         </div>
       </div>
 
@@ -26,20 +31,20 @@ export default function DeliveryDestinationCard() {
       <div className="destination-contacts-grid">
         <div className="contact-item">
           <span className="contact-label">Contact Person</span>
-          <span className="contact-value">Store Manager</span>
+          <span className="contact-value">{outlet?.manager_name || 'Store Manager'}</span>
         </div>
         <div className="contact-item">
           <span className="contact-label">Contact Number</span>
-          <span className="contact-value">+94 XX XXX XXXX</span>
+          <span className="contact-value">{outlet?.manager_phone || '—'}</span>
         </div>
         <div className="contact-item">
           <span className="contact-label">Delivery Window</span>
-          <span className="contact-value value-green">10:00 AM â€“ 12:00 PM</span>
+          <span className="contact-value value-green">{formatWindow(order.requested_window_open, order.requested_window_close)}</span>
         </div>
       </div>
 
       {/* Interactive React Leaflet Map */}
-      <DeliveryMap />
+      <DeliveryMap depot={order.depot} district={order.district} outletLabel={`${order.outlet_id} • ${order.district}`} />
     </div>
   )
 }

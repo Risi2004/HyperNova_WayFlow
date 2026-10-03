@@ -122,7 +122,7 @@ export default function SingleDeliveryMapCard() {
           {/* Outlet Delivered Marker */}
           <Marker position={outletCoords} icon={outletDeliveredIcon}>
             <Popup>
-              <strong>OUT042 â€” Waypoint Fresh</strong>
+              <strong>OUT042 — Waypoint Fresh</strong>
               <br />Delivered at 09:14 AM
             </Popup>
           </Marker>

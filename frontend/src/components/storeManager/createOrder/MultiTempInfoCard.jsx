@@ -11,7 +11,7 @@ export default function MultiTempInfoCard() {
         <h4 className="co-multi-temp-title">Multi-Temp Palletizing</h4>
       </div>
       <p className="co-multi-temp-desc">
-        Orders with chilled and frozen SKUs will be automatically segregated into sealed insulated thermal roll-cages for transit.
+        Chilled and frozen lines are placed as a separate chilled order and planned onto a refrigerated vehicle. Ambient lines travel as their own order on the same delivery day.
       </p>
     </div>
   )

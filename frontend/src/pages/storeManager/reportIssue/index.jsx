@@ -1,178 +1,175 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import StoreManagerSidebar from '../../../components/storeManager/StoreManagerSidebar'
+import OrderPicker from '../../../components/storeManager/OrderPicker'
 import ReportIssueHeader from '../../../components/storeManager/reportIssue/ReportIssueHeader'
-import IssueCategorySelector, { ISSUE_CATEGORIES } from '../../../components/storeManager/reportIssue/IssueCategorySelector'
+import IssueCategorySelector from '../../../components/storeManager/reportIssue/IssueCategorySelector'
+import { ISSUE_CATEGORIES } from '../../../components/storeManager/reportIssue/issueCategories'
 import AffectedProductCard from '../../../components/storeManager/reportIssue/AffectedProductCard'
 import IssueDescriptionCard from '../../../components/storeManager/reportIssue/IssueDescriptionCard'
 import PhotoProofCard from '../../../components/storeManager/reportIssue/PhotoProofCard'
 import OrderContextCard from '../../../components/storeManager/reportIssue/OrderContextCard'
 import DiscrepancySummaryCard from '../../../components/storeManager/reportIssue/DiscrepancySummaryCard'
 import ReportIssueSuccessModal from '../../../components/storeManager/reportIssue/ReportIssueSuccessModal'
+import { orderService } from '../../../services/orderService'
+import { dispatchStatusOf, formatShortDate, formatTime } from '../../../utils/orderFormat'
 import './ReportIssue.css'
 
-const DEFAULT_PRODUCT = {
-  name: 'Fresh Highland Milk 1L',
-  sku: 'DAI-0402',
-  code: 'DAI-MLK-001',
-  category: 'Dairy & Cold Chain',
-  tempClass: 'Chilled (+4°C)',
-  orderedCrates: 24,
-  orderedUnits: 288,
-  affectedCrates: 4,
-  affectedUnits: 48,
-  receivedCrates: 20,
-  receivedUnits: 240,
-  sourceLocation: 'Peliyagoda DC Reefer',
-  destinationLocation: 'Cold Storage-Bay 02',
-}
-
-const DEFAULT_DESCRIPTION =
-  'Upon unloading pallet #01 at Dock Bay 02, crate row 4 was short by 4 crates of Fresh Farm Milk (1L). The delivery manifest indicated 24 crates loaded at Peliyagoda DC, but driver Marcus Vance confirmed only 20 crates were physically on the reefer.'
+// Issues are about goods on their way or already at the store.
+const REPORTABLE = ['loading', 'loaded', 'shortfall', 'dispatched', 'delivered', 'partial', 'failed', 'received', 'disputed']
 
 export default function ReportIssue() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const orderId = searchParams.get('orderId')
 
-  const [selectedCategory, setSelectedCategory] = useState('missing-item')
-  const [product, setProduct] = useState(DEFAULT_PRODUCT)
-  const [description, setDescription] = useState(DEFAULT_DESCRIPTION)
-  const [files, setFiles] = useState([
-    {
-      id: 1,
-      name: 'dock_manifest_photo.jpg',
-      size: '1.8 MB',
-    },
-  ])
+  const [detail, setDetail] = useState(null)
+  const [candidates, setCandidates] = useState(null)
+  const [loadError, setLoadError] = useState(null)
+  const [selectedCategory, setSelectedCategory] = useState(null)
+  const [itemId, setItemId] = useState('')
+  const [affectedQty, setAffectedQty] = useState(0)
+  const [description, setDescription] = useState('')
+  const [photo, setPhoto] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [ticketId, setTicketId] = useState('ISSUE-2026-0941')
+  const [submitError, setSubmitError] = useState(null)
+  const [ticket, setTicket] = useState(null)
 
-  const currentCategory = ISSUE_CATEGORIES.find((c) => c.id === selectedCategory)
+  useEffect(() => {
+    let active = true
+    const request = orderId ? orderService.getOrder(orderId) : orderService.getMyOrders()
+    request
+      .then((res) => {
+        if (!active) return
+        setLoadError(null)
+        if (orderId) setDetail(res)
+        else setCandidates(res.orders.filter((o) => REPORTABLE.includes(o.status)).slice(0, 30))
+      })
+      .catch((err) => active && setLoadError(err.message))
+    return () => {
+      active = false
+    }
+  }, [orderId])
 
-  const handleAddFile = (newFile) => {
-    setFiles((prev) => [...prev, newFile])
-  }
+  const category = ISSUE_CATEGORIES.find((c) => c.id === selectedCategory)
+  const item = detail?.items.find((i) => String(i.item_id) === String(itemId))
 
-  const handleRemoveFile = (fileId) => {
-    setFiles((prev) => prev.filter((f) => f.id !== fileId))
-  }
-
-  const handleScanBarcode = () => {
-    alert('Barcode Scanner active: Point your device camera at the crate or pallet barcode label.')
-  }
-
-  const handleChangeSku = () => {
-    const newName = prompt('Enter SKU name or select from manifest:', product.name)
-    if (newName) {
-      setProduct((prev) => ({ ...prev, name: newName }))
+  const handleSubmitIssue = async () => {
+    if (!selectedCategory) return setSubmitError('Choose what kind of issue this is.')
+    if (!description.trim()) return setSubmitError('Describe the issue so dispatch can act on it.')
+    setIsSubmitting(true)
+    setSubmitError(null)
+    try {
+      const res = await orderService.reportIssue(orderId, {
+        category: selectedCategory,
+        description: description.trim(),
+        item_id: item ? item.item_id : undefined,
+        affected_qty: item ? affectedQty : undefined,
+        photo: photo?.dataUrl,
+      })
+      setTicket(res)
+    } catch (err) {
+      setSubmitError(err.message)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
-  const handleSubmitIssue = () => {
-    setIsSubmitting(true)
-    setTimeout(() => {
-      setIsSubmitting(false)
-      const randomTicket = 'ISSUE-2026-' + Math.floor(1000 + Math.random() * 9000)
-      setTicketId(randomTicket)
-      setShowSuccessModal(true)
-    }, 700)
-  }
+  const order = detail?.order
+  const plan = detail?.plan
+  const delivery = detail?.delivery
 
-  const handleCancel = () => {
-    navigate('/store-manager/confirm-receipt')
-  }
+  let body
+  if (loadError) {
+    body = <p className="sm-page-state error">{loadError}</p>
+  } else if (!orderId) {
+    body = candidates ? (
+      <OrderPicker
+        title="Report an Issue"
+        hint="Choose the order the problem is about."
+        orders={candidates}
+        path="/store-manager/report-issue"
+        emptyText="None of your orders are on the way or delivered yet, so there is nothing to report against."
+      />
+    ) : (
+      <p className="sm-page-state">Loading your orders…</p>
+    )
+  } else if (!detail) {
+    body = <p className="sm-page-state">Loading {orderId}…</p>
+  } else {
+    body = (
+      <>
+        <ReportIssueHeader orderId={order.order_id} status={dispatchStatusOf(order.status).label} onBackToOrders={() => navigate('/store-manager/my-orders')} />
 
-  const handleGoToDashboard = () => {
-    navigate('/store-manager/dashboard')
-  }
+        {detail.issues?.length > 0 && (
+          <p className="sm-page-state">
+            Already reported on this order:{' '}
+            {detail.issues.map((i) => `#${i.issue_id} ${i.issue_category} (${i.resolution_status.replace('_', ' ')})`).join(' • ')}
+          </p>
+        )}
 
-  const handleGoToOrders = () => {
-    navigate('/store-manager/my-orders')
+        <div className="ri-layout-body">
+          <div className="ri-col-main">
+            <IssueCategorySelector selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
+
+            <AffectedProductCard
+              items={detail.items}
+              itemId={itemId}
+              onChangeItem={(id) => {
+                setItemId(id)
+                setAffectedQty(0)
+              }}
+              affectedQty={affectedQty}
+              onChangeAffectedQty={setAffectedQty}
+            />
+
+            <IssueDescriptionCard description={description} onChangeDescription={setDescription} maxLength={500} />
+
+            <PhotoProofCard photo={photo} onChangePhoto={setPhoto} />
+          </div>
+
+          <div className="ri-col-side">
+            <OrderContextCard
+              orderId={order.order_id}
+              store={`${order.district} (${order.outlet_id})`}
+              arrivalTime={delivery ? `${formatShortDate(order.target_delivery_date)}, ${formatTime(delivery.actual_arrival_time)}` : `${formatShortDate(order.target_delivery_date)} (planned ${formatTime(plan?.planned_arrival_time)})`}
+              arrivalLabel={delivery ? 'Arrived' : 'Delivery'}
+              receivedBy={delivery?.received_by_name || '—'}
+              tripId={plan?.trip_id || 'Not on a trip'}
+              driverName={plan?.driver_name || '—'}
+              status={dispatchStatusOf(order.status).label}
+            />
+
+            <DiscrepancySummaryCard
+              categoryLabel={category ? category.label : 'Not chosen'}
+              skuName={item ? item.product_name : 'Whole order'}
+              discrepancyText={item ? `${affectedQty} of ${item.quantity} ${item.unit.toLowerCase()}${item.quantity === 1 ? '' : 's'}` : '—'}
+              evidenceCount={photo ? 1 : 0}
+              onSubmit={handleSubmitIssue}
+              onCancel={() => navigate(-1)}
+              isSubmitting={isSubmitting}
+              error={submitError}
+            />
+          </div>
+        </div>
+      </>
+    )
   }
 
   return (
     <div className="ri-page-wrapper">
-      {/* Navigation Sidebar */}
       <StoreManagerSidebar activeItem="Report Issue" />
+      <main className="ri-main-content">{body}</main>
 
-      {/* Main Container */}
-      <main className="ri-main-content">
-        {/* Top Header */}
-        <ReportIssueHeader
-          orderId="ORD-1042"
-          status="Delivery Completed"
-          onBackToOrders={handleGoToOrders}
-        />
-
-        {/* 2-Column Layout */}
-        <div className="ri-layout-body">
-          {/* Main Left Column (Sections 1-4) */}
-          <div className="ri-col-main">
-            {/* Step 1: Category Selector */}
-            <IssueCategorySelector
-              selectedCategory={selectedCategory}
-              onSelectCategory={setSelectedCategory}
-            />
-
-            {/* Step 2: Affected Product & Quantities */}
-            <AffectedProductCard
-              product={product}
-              onScanBarcode={handleScanBarcode}
-              onChangeSku={handleChangeSku}
-            />
-
-            {/* Step 3: Describe the Issue */}
-            <IssueDescriptionCard
-              description={description}
-              onChangeDescription={setDescription}
-              maxLength={500}
-            />
-
-            {/* Step 4: Supporting Photo Proof */}
-            <PhotoProofCard
-              files={files}
-              onAddFile={handleAddFile}
-              onRemoveFile={handleRemoveFile}
-            />
-          </div>
-
-          {/* Right Column (Side Cards) */}
-          <div className="ri-col-side">
-            {/* Card 1: Order Context */}
-            <OrderContextCard
-              orderId="ORD-1042"
-              store="Colombo 05 (OUT043)"
-              arrivalTime="28 Sep, 10:52 AM"
-              dockBay="Bay 02 Ramp"
-              tripId="Trip TR-024"
-              driverName="Marcus Vance"
-              status="Completed"
-            />
-
-            {/* Card 2: Discrepancy Summary */}
-            <DiscrepancySummaryCard
-              categoryLabel={currentCategory ? currentCategory.label : 'Missing Item'}
-              skuName={product.name}
-              discrepancyText={`${product.affectedCrates} Crates (${product.affectedUnits} Units)`}
-              evidenceCount={files.length}
-              onSubmit={handleSubmitIssue}
-              onCancel={handleCancel}
-              isSubmitting={isSubmitting}
-            />
-          </div>
-        </div>
-      </main>
-
-      {/* Success Modal */}
-      {showSuccessModal && (
+      {ticket && (
         <ReportIssueSuccessModal
-          orderId="ORD-1042"
-          ticketId={ticketId}
-          categoryLabel={currentCategory ? currentCategory.label : 'Missing Item'}
-          skuName={product.name}
-          onClose={() => setShowSuccessModal(false)}
-          onGoToDashboard={handleGoToDashboard}
-          onGoToOrders={handleGoToOrders}
+          orderId={orderId}
+          ticketId={`#${ticket.issue_id}`}
+          categoryLabel={category?.label}
+          skuName={item ? item.product_name : 'Whole order'}
+          onClose={() => navigate(0)}
+          onGoToDashboard={() => navigate('/store-manager/dashboard')}
+          onGoToOrders={() => navigate('/store-manager/my-orders')}
         />
       )}
     </div>

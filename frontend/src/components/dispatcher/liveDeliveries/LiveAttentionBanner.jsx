@@ -1,20 +1,5 @@
-import { Link } from 'react-router-dom'
-
-export default function LiveAttentionBanner() {
-  const alerts = [
-    {
-      routeId: 'TR-027',
-      outletId: 'OUT019',
-      highlight: '12 min behind ETA',
-      detail: 'Reason reported: Traffic delay',
-    },
-    {
-      routeId: 'TR-031',
-      outletId: 'OUT052',
-      highlight: 'Delivery problem reported',
-      detail: 'Awaiting Dispatcher review',
-    },
-  ]
+export default function LiveAttentionBanner({ alerts, totalCount, onSelect }) {
+  if (alerts.length === 0) return null
 
   return (
     <div className="live-attention-card">
@@ -27,19 +12,15 @@ export default function LiveAttentionBanner() {
           </svg>
           <span className="attention-main-title">Needs Attention</span>
         </div>
-        <span className="attention-count-tag">4 deliveries require attention</span>
+        <span className="attention-count-tag">
+          {totalCount} trip{totalCount === 1 ? '' : 's'} need{totalCount === 1 ? 's' : ''} attention
+        </span>
       </div>
 
       <div className="attention-alerts-list">
-        {alerts.map((alert, idx) => (
-          <div key={idx} className="attention-alert-box">
+        {alerts.map((alert) => (
+          <div key={alert.routeId} className="attention-alert-box">
             <div className="alert-box-left">
-              <div className="alert-icon-square">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-              </div>
               <div className="alert-text-group">
                 <div className="alert-route-outlet">
                   {alert.routeId} / {alert.outletId}
@@ -49,9 +30,9 @@ export default function LiveAttentionBanner() {
               </div>
             </div>
 
-            <Link to={`/dispatcher/routes/${alert.routeId}`} className="alert-view-delivery-link">
-              View Delivery
-            </Link>
+            <button type="button" className="alert-view-delivery-link" onClick={() => onSelect(alert.routeId)}>
+              View Trip
+            </button>
           </div>
         ))}
       </div>

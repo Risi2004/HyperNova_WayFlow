@@ -1,37 +1,5 @@
 export default function ScheduledDeliveriesCard({
-  deliveries = [
-    {
-      id: 'ORD-1042',
-      status: 'In Transit',
-      statusType: 'in-transit',
-      location: 'Colombo 05 Store',
-      items: '18 Items',
-      trip: 'Trip TR-024',
-      timeText: 'TODAY 10:45 AM',
-      subtext: 'Arrival in 25m',
-      highlightTime: true,
-    },
-    {
-      id: 'ORD-1039',
-      status: 'Scheduled',
-      statusType: 'scheduled',
-      location: 'Colombo 05 Store',
-      items: '12 Items',
-      trip: 'Trip TR-026',
-      timeText: 'TODAY 02:30 PM',
-      subtext: 'Staged at Depot',
-    },
-    {
-      id: 'ORD-1028',
-      status: 'Scheduled',
-      statusType: 'scheduled',
-      location: 'Colombo 05 Store',
-      items: '24 Items',
-      trip: 'Trip TR-028',
-      timeText: 'TOMORROW 09:00 AM',
-      subtext: 'Consolidation Phase',
-    },
-  ],
+  deliveries = [],
 }) {
   return (
     <div className="sm-scheduled-deliveries-card">
@@ -45,10 +13,15 @@ export default function ScheduledDeliveriesCard({
           </svg>
           <h3 className="sm-subcard-title">Scheduled Deliveries</h3>
         </div>
-        <span className="sm-runs-count-meta">{deliveries.length} active runs scheduled</span>
+        <span className="sm-runs-count-meta">
+          {deliveries.length} run{deliveries.length === 1 ? '' : 's'} scheduled
+        </span>
       </div>
 
       <div className="sm-scheduled-list">
+        {deliveries.length === 0 && (
+          <p className="sm-empty-note">No deliveries scheduled. Orders show here once dispatch assigns them to a trip.</p>
+        )}
         {deliveries.map((del) => (
           <div key={del.id} className="sm-scheduled-item-row">
             <div className="sm-item-left-block">

@@ -1,23 +1,28 @@
-export default function OrdersStatCards() {
-  const stats = [
-    { label: 'Total Orders', count: 86, dotColor: '#3b82f6' },
-    { label: 'Pending Planning', count: 24, dotColor: '#f59e0b' },
-    { label: 'Planned', count: 41, dotColor: '#22c55e' },
-    { label: 'In Loading', count: 9, dotColor: '#3b82f6' },
-    { label: 'Deferred', count: 7, dotColor: '#64748b' },
-    { label: 'Exceptions', count: 5, dotColor: '#ef4444' },
+export default function OrdersStatCards({ stats = {}, activeStatus = 'all', onSelectStatus }) {
+  const cards = [
+    { key: 'all', label: 'Total Orders', count: stats.total, dotColor: '#3b82f6' },
+    { key: 'pending', label: 'Pending Planning', count: stats.pending, dotColor: '#f59e0b' },
+    { key: 'planned', label: 'Planned', count: stats.planned, dotColor: '#22c55e' },
+    { key: 'loading', label: 'In Loading', count: stats.loading, dotColor: '#3b82f6' },
+    { key: 'deferred', label: 'Deferred', count: stats.deferred, dotColor: '#64748b' },
+    { key: 'exception', label: 'Exceptions', count: stats.exception, dotColor: '#ef4444' },
   ]
 
   return (
     <div className="orders-stats-row">
-      {stats.map((s) => (
-        <div key={s.label} className="order-mini-stat-card">
+      {cards.map((s) => (
+        <button
+          key={s.label}
+          type="button"
+          className={`order-mini-stat-card ${activeStatus === s.key ? 'stat-active' : ''}`}
+          onClick={() => onSelectStatus?.(s.key)}
+        >
           <span className="order-mini-label">{s.label}</span>
           <div className="order-mini-value-row">
-            <span className="order-mini-number">{s.count}</span>
+            <span className="order-mini-number">{s.count ?? '–'}</span>
             <span className="order-mini-dot" style={{ backgroundColor: s.dotColor }} />
           </div>
-        </div>
+        </button>
       ))}
     </div>
   )

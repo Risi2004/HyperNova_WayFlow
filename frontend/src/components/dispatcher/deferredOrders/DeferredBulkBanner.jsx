@@ -1,40 +1,29 @@
 import { useNavigate } from 'react-router-dom'
+import { formatShortDate } from '../../../utils/orderFormat'
 
-export default function DeferredBulkBanner({
-  selectedCount = 3,
-  onSelectAll,
-  allSelected = true,
-}) {
+export default function DeferredBulkBanner({ selectedCount, onClear, plannerDate }) {
   const navigate = useNavigate()
 
   return (
     <div className="deferred-selection-banner">
       <div className="selection-banner-left">
-        <label className="selection-checkbox-wrap">
-          <input
-            type="checkbox"
-            checked={selectedCount > 0}
-            onChange={onSelectAll}
-            className="deferred-custom-checkbox"
-          />
-          <span className="selection-text-count bold">
-            {selectedCount} orders selected
-          </span>
-        </label>
-        <span className="selection-instruction-note">
-          Review in Delivery Planner before assigning
+        <span className="selection-text-count bold">
+          {selectedCount} order{selectedCount === 1 ? '' : 's'} selected
         </span>
+        <span className="selection-instruction-note">
+          Deferred orders are planned again on their next run{plannerDate ? ` (${formatShortDate(plannerDate)})` : ''}. Assign them in the Delivery Planner.
+        </span>
+        <button type="button" className="btn-clear-deferred-filters" onClick={onClear}>
+          Clear selection
+        </button>
       </div>
 
       <button
         type="button"
         className="btn-review-selected-planner"
-        onClick={() => navigate('/dispatcher/delivery-planner')}
+        onClick={() => navigate(plannerDate ? `/dispatcher/delivery-planner?date=${plannerDate}` : '/dispatcher/delivery-planner')}
       >
-        <span>Review Selected in Planner</span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
+        <span>Open Planner{plannerDate ? ` for ${formatShortDate(plannerDate)}` : ''}</span>
       </button>
     </div>
   )

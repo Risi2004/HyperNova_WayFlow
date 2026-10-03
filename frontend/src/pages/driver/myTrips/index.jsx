@@ -1,100 +1,20 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DriverNavbar from '../../../components/driver/DriverNavbar'
+import DriverSyncBanner from '../../../components/driver/DriverSyncBanner'
 import MyTripsHeader from '../../../components/driver/myTrips/MyTripsHeader'
 import MyTripsFilterBar from '../../../components/driver/myTrips/MyTripsFilterBar'
 import CurrentAssignedTripHero from '../../../components/driver/myTrips/CurrentAssignedTripHero'
 import UpcomingTripsCards from '../../../components/driver/myTrips/UpcomingTripsCards'
 import CompletedTripsTable from '../../../components/driver/myTrips/CompletedTripsTable'
+import { getMyTrips } from '../../../services/driverData'
+import { OUTBOX_EVENT } from '../../../services/offline/outbox'
+import { formatDate, formatShortDate, formatTime } from '../../../utils/orderFormat'
+import { driverStatusOf, vehicleTypeLabel } from '../../../utils/tripFormat'
 import './MyTrips.css'
 
-const CURRENT_TRIP_DATA = {
-  tripId: 'TR-024',
-  vehicle: 'WP-REF-007 (Refrigerated Truck)',
-  route: 'Peliyagoda HQ → Colombo South Outlet',
-  departureTime: 'Today, 06:00 AM',
-  completedStops: 4,
-  totalStops: 8,
-  status: 'In Progress',
-  nextStopNumber: '05',
-  nextStopName: 'WayFlow Fresh — Colombo 04',
-  nextStopArrival: '10:42 AM',
-}
-
-const UPCOMING_TRIPS_DATA = [
-  {
-    id: 'TR-025',
-    timeText: 'Tomorrow, 05:30 AM',
-    vehicle: 'WP-VAN-004 • Delivery Van',
-    route: 'Peliyagoda → Negombo',
-    stopsCount: 6,
-    status: 'Scheduled',
-  },
-  {
-    id: 'TR-026',
-    timeText: '28 Sep, 07:00 AM',
-    vehicle: 'WP-DRY-019 • Dry-box Truck',
-    route: 'Kandy → Central Region',
-    stopsCount: 7,
-    status: 'Scheduled',
-  },
-  {
-    id: 'TR-027',
-    timeText: '29 Sep, 06:00 AM',
-    vehicle: 'WP-REF-011 • Refrigerated',
-    route: 'Peliyagoda → Galle Coastal',
-    stopsCount: 5,
-    status: 'Scheduled',
-  },
-]
-
-const COMPLETED_TRIPS_DATA = [
-  {
-    id: 'TR-023',
-    date: '26 Sep 2026',
-    vehicle: 'WP-LOR-012',
-    routePath: 'Colombo North Outlet Loop',
-    departure: '05:45 AM',
-    stops: '8/8',
-    status: 'Completed',
-  },
-  {
-    id: 'TR-022',
-    date: '26 Sep 2026',
-    vehicle: 'WP-REF-007',
-    routePath: 'Colombo CBD Metro',
-    departure: '06:00 AM',
-    stops: '6/6',
-    status: 'Completed',
-  },
-  {
-    id: 'TR-021',
-    date: '25 Sep 2026',
-    vehicle: 'WP-VAN-004',
-    routePath: 'Negombo Delivery Hub',
-    departure: '06:30 AM',
-    stops: '7/7',
-    status: 'Completed',
-  },
-  {
-    id: 'TR-020',
-    date: '25 Sep 2026',
-    vehicle: 'WP-DRY-019',
-    routePath: 'Mall Outlets Distribution',
-    departure: '07:00 AM',
-    stops: '5/5',
-    status: 'Completed',
-  },
-  {
-    id: 'TR-019',
-    date: '24 Sep 2026',
-    vehicle: 'WP-REF-011',
-    routePath: 'Galle Coastal Fast Track',
-    departure: '06:15 AM',
-    stops: '8/8',
-    status: 'Completed',
-  },
-]
+const PAGE = 8
+const shift = (date, days) => new Date(Date.parse(`${date}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10)
 
 export default function MyTrips() {
   const navigate = useNavigate()
@@ -103,73 +23,63 @@ export default function MyTrips() {
   const [dateFilter, setDateFilter] = useState('All Dates')
   const [statusFilter, setStatusFilter] = useState('All Statuses')
   const [vehicleFilter, setVehicleFilter] = useState('All Vehicles')
-  const [toastMessage, setToastMessage] = useState('')
+  const [page, setPage] = useState(1)
+  const [data, setData] = useState(null)
+  const [error, setError] = useState(null)
+  const [version, setVersion] = useState(0)
 
-  // Show temporary toast feedback
-  const triggerToast = (msg) => {
-    setToastMessage(msg)
-    setTimeout(() => setToastMessage(''), 4000)
-  }
+  useEffect(() => {
+    const bump = () => setVersion((v) => v + 1)
+    window.addEventListener(OUTBOX_EVENT, bump)
+    window.addEventListener('online', bump)
+    return () => {
+      window.removeEventListener(OUTBOX_EVENT, bump)
+      window.removeEventListener('online', bump)
+    }
+  }, [])
 
-  // Clear all filters
-  const handleClearFilters = () => {
-    setActiveFilterPill('All')
-    setSearchQuery('')
-    setDateFilter('All Dates')
-    setStatusFilter('All Statuses')
-    setVehicleFilter('All Vehicles')
-  }
+  useEffect(() => {
+    let active = true
+    getMyTrips()
+      .then((res) => {
+        if (!active) return
+        setData(res)
+        setError(null)
+      })
+      .catch((err) => active && setError(err.message))
+    return () => {
+      active = false
+    }
+  }, [version])
 
-  // Filter completed trips based on query and dropdowns
-  const filteredCompletedTrips = useMemo(() => {
-    return COMPLETED_TRIPS_DATA.filter((trip) => {
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase()
-        const matchesId = trip.id.toLowerCase().includes(q)
-        const matchesVehicle = trip.vehicle.toLowerCase().includes(q)
-        const matchesRoute = trip.routePath.toLowerCase().includes(q)
-        if (!matchesId && !matchesVehicle && !matchesRoute) return false
-      }
-
-      if (vehicleFilter !== 'All Vehicles' && !trip.vehicle.includes(vehicleFilter)) {
-        return false
-      }
-
-      if (statusFilter !== 'All Statuses' && statusFilter !== 'Completed') {
-        return false
-      }
-
+  const today = data?.today
+  const filtered = useMemo(() => {
+    if (!data) return []
+    const q = searchQuery.trim().toLowerCase()
+    return data.trips.filter((t) => {
+      if (q && ![t.trip_id, t.vehicle_id, t.district, t.depot].some((s) => s.toLowerCase().includes(q))) return false
+      if (vehicleFilter !== 'All Vehicles' && t.vehicle_id !== vehicleFilter) return false
+      if (statusFilter !== 'All Statuses' && driverStatusOf(t) !== statusFilter && !(statusFilter === 'Scheduled' && ['planned', 'loading', 'loaded'].includes(t.status))) return false
+      if (dateFilter === 'Today' && t.delivery_date !== today) return false
+      if (dateFilter === 'Tomorrow' && t.delivery_date !== shift(today, 1)) return false
+      if (dateFilter === 'Past 7 Days' && (t.delivery_date < shift(today, -7) || t.delivery_date > today)) return false
       return true
     })
-  }, [searchQuery, vehicleFilter, statusFilter])
+  }, [data, today, searchQuery, vehicleFilter, statusFilter, dateFilter])
 
-  // Filter upcoming trips
-  const filteredUpcomingTrips = useMemo(() => {
-    return UPCOMING_TRIPS_DATA.filter((trip) => {
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase()
-        const matchesId = trip.id.toLowerCase().includes(q)
-        const matchesVehicle = trip.vehicle.toLowerCase().includes(q)
-        const matchesRoute = trip.route.toLowerCase().includes(q)
-        if (!matchesId && !matchesVehicle && !matchesRoute) return false
-      }
+  const current = filtered.find((t) => ['dispatched', 'in_progress'].includes(t.status) && t.delivery_date >= shift(today || '2000-01-01', -1)) ||
+    filtered.filter((t) => t.status !== 'completed' && t.delivery_date >= (today || '')).sort((a, b) => a.delivery_date.localeCompare(b.delivery_date) || a.trip_number - b.trip_number)[0]
+  const upcoming = filtered
+    .filter((t) => t !== current && t.status !== 'completed' && t.delivery_date >= (today || ''))
+    .sort((a, b) => a.delivery_date.localeCompare(b.delivery_date) || a.trip_number - b.trip_number)
+  const completed = filtered.filter((t) => t.status === 'completed' || (t !== current && t.delivery_date < (today || '')))
+  const totalPages = Math.max(1, Math.ceil(completed.length / PAGE))
+  const shownCompleted = completed.slice((page - 1) * PAGE, page * PAGE)
 
-      if (vehicleFilter !== 'All Vehicles' && !trip.vehicle.includes(vehicleFilter)) {
-        return false
-      }
-
-      if (statusFilter !== 'All Statuses' && statusFilter !== 'Scheduled') {
-        return false
-      }
-
-      return true
-    })
-  }, [searchQuery, vehicleFilter, statusFilter])
-
-  // Determine section visibility based on pill
   const showCurrent = activeFilterPill === 'All' || activeFilterPill === 'Current'
   const showUpcoming = activeFilterPill === 'All' || activeFilterPill === 'Upcoming'
   const showCompleted = activeFilterPill === 'All' || activeFilterPill === 'Completed'
+  const when = (t) => `${t.delivery_date === today ? 'Today' : t.delivery_date === shift(today, 1) ? 'Tomorrow' : formatShortDate(t.delivery_date)}, ${formatTime(t.planned_departure_time)}`
 
   return (
     <div className="my-trips-page-container">
@@ -178,27 +88,16 @@ export default function MyTrips() {
 
       {/* Main Page Content */}
       <main className="my-trips-main-content">
+        <DriverSyncBanner compact cachedAt={data?.fromCache ? data.cachedAt : null} />
+
         {/* Header & Filter Pills */}
         <MyTripsHeader
           activeFilter={activeFilterPill}
           onFilterChange={setActiveFilterPill}
-          counts={{
-            all: 12,
-            current: 1,
-            upcoming: 3,
-            completed: 8,
-          }}
+          counts={{ all: filtered.length, current: current ? 1 : 0, upcoming: upcoming.length, completed: completed.length }}
         />
 
-        {/* Action Feedback Banner */}
-        {toastMessage && (
-          <div className="driver-toast-banner" role="status">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-            <span>{toastMessage}</span>
-          </div>
-        )}
+        {error && <p className="driver-page-state error">{error}</p>}
 
         {/* Search & Select Filter Bar */}
         <MyTripsFilterBar
@@ -210,36 +109,67 @@ export default function MyTrips() {
           onStatusChange={setStatusFilter}
           vehicleFilter={vehicleFilter}
           onVehicleChange={setVehicleFilter}
-          onClearFilters={handleClearFilters}
+          vehicleOptions={[...new Set((data?.trips || []).map((t) => t.vehicle_id))]}
+          onClearFilters={() => {
+            setActiveFilterPill('All')
+            setSearchQuery('')
+            setDateFilter('All Dates')
+            setStatusFilter('All Statuses')
+            setVehicleFilter('All Vehicles')
+          }}
         />
 
-        {/* Current Assigned Trip Hero Card */}
-        {showCurrent && (
+        {showCurrent && current && (
           <CurrentAssignedTripHero
-            trip={CURRENT_TRIP_DATA}
+            trip={{
+              tripId: current.trip_id,
+              vehicle: `${current.vehicle_id} (${vehicleTypeLabel(current)})`,
+              route: `${current.depot} → ${current.district} (${current.brand})`,
+              departureTime: when(current),
+              completedStops: current.completed_stops,
+              totalStops: current.stops,
+              status: driverStatusOf(current),
+              nextStopNumber: String(Math.min(current.completed_stops + 1, current.stops)).padStart(2, '0'),
+              nextStopName: `${current.district} outlets`,
+              nextStopArrival: formatTime(current.first_arrival),
+            }}
             onContinueChecklist={() => navigate('/driver/dashboard')}
-            onViewStopDetails={() => navigate(`/driver/my-trips/${CURRENT_TRIP_DATA.tripId}`)}
+            onViewStopDetails={() => navigate(`/driver/my-trips/${current.trip_id}`)}
           />
         )}
+        {showCurrent && !current && data && <p className="driver-page-state">No current trip.</p>}
 
-        {/* Upcoming Scheduled Trips (3-Card Grid) */}
         {showUpcoming && (
           <UpcomingTripsCards
-            trips={filteredUpcomingTrips}
-            onViewRouteDetails={(trip) => navigate(`/driver/my-trips/${trip.id}`)}
+            trips={upcoming.map((t) => ({
+              id: t.trip_id,
+              timeText: when(t),
+              vehicle: `${t.vehicle_id} • ${vehicleTypeLabel(t)}`,
+              route: `${t.depot} → ${t.district}`,
+              stopsCount: t.stops,
+              status: driverStatusOf(t),
+            }))}
+            onViewRouteDetails={(t) => navigate(`/driver/my-trips/${t.id}`)}
           />
         )}
 
-        {/* Completed Trips Log (Table) */}
         {showCompleted && (
           <CompletedTripsTable
-            trips={filteredCompletedTrips}
-            currentPage={1}
-            totalPages={2}
-            totalTrips={8}
-            onPrev={() => triggerToast('Navigating to previous page of completed trips...')}
-            onNext={() => triggerToast('Navigating to next page of completed trips...')}
-            onViewTrip={(trip) => navigate(`/driver/my-trips/${trip.id}`)}
+            trips={shownCompleted.map((t) => ({
+              id: t.trip_id,
+              date: formatDate(t.delivery_date),
+              vehicle: t.vehicle_id,
+              routePath: `${t.depot} → ${t.district}`,
+              departure: formatTime(t.planned_departure_time),
+              stops: `${t.completed_stops}/${t.stops}`,
+              status: t.status === 'completed' ? 'Completed' : driverStatusOf(t),
+            }))}
+            currentPage={page}
+            totalPages={totalPages}
+            totalTrips={completed.length}
+            onPrev={() => setPage((p) => Math.max(1, p - 1))}
+            onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+            onViewTrip={(t) => navigate(`/driver/my-trips/${t.id}`)}
           />
         )}
       </main>

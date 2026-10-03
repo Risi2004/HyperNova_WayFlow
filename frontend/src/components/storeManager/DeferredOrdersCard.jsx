@@ -1,22 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 
 export default function DeferredOrdersCard({
-  deferredList = [
-    {
-      id: 'ORD-1032',
-      items: '24 Items',
-      origDate: 'Sep 28',
-      newDate: 'Sep 29',
-      reason: 'Vehicle capacity unavailable',
-    },
-    {
-      id: 'ORD-1027',
-      items: '16 Items',
-      origDate: 'Sep 28',
-      newDate: 'Sep 30',
-      reason: 'Delivery capacity constraint',
-    },
-  ],
+  deferredList = [],
 }) {
   const navigate = useNavigate()
 
@@ -31,7 +16,7 @@ export default function DeferredOrdersCard({
           </svg>
           <h3 className="sm-subcard-title">Deferred Orders</h3>
         </div>
-        <span className="sm-notice-tag-red">NOTICE</span>
+        {deferredList.length > 0 && <span className="sm-notice-tag-red">NOTICE</span>}
       </div>
 
       <p className="sm-deferred-card-subtitle">
@@ -39,6 +24,7 @@ export default function DeferredOrdersCard({
       </p>
 
       <div className="sm-deferred-items-stack">
+        {deferredList.length === 0 && <p className="sm-empty-note">No deferred orders. Every order is on its requested run.</p>}
         {deferredList.map((item) => (
           <div key={item.id} className="sm-deferred-item-block">
             <div className="sm-deferred-head-row">
@@ -67,7 +53,7 @@ export default function DeferredOrdersCard({
       <button
         type="button"
         className="btn-view-deferred-outline"
-        onClick={() => navigate('/store-manager/orders')}
+        onClick={() => navigate('/store-manager/my-orders')}
       >
         View Deferred Orders ({deferredList.length})
       </button>

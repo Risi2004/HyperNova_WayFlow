@@ -1,18 +1,20 @@
+import { useCurrentUser, initialsOf, firstNameOf, greetingFor, longDateLabel } from '../../hooks/useCurrentUser'
 export default function DriverSubheader({
-  driverName = 'Kasun',
-  dateText = 'Sunday, 27 September 2026',
+  driverName,
+  dateText,
   isOnline = true,
   onNotificationClick,
 }) {
+  const user = useCurrentUser()
   return (
     <div className="driver-subheader-row">
       {/* Title & Greeting */}
       <div className="driver-subheader-left">
         <h1 className="driver-dashboard-title">Driver Dashboard</h1>
         <p className="driver-dashboard-greeting">
-          <span className="driver-greeting-highlight">Good morning, {driverName}</span>
+          <span className="driver-greeting-highlight">{greetingFor()}, {driverName || firstNameOf(user?.name)}</span>
           <span className="driver-greeting-bullet">•</span>
-          <span>{dateText}</span>
+          <span>{dateText || longDateLabel()}</span>
         </p>
       </div>
 
@@ -36,8 +38,8 @@ export default function DriverSubheader({
           <span className="bell-badge-indicator" />
         </button>
 
-        <div className="driver-mini-avatar" title="Kasun Perera">
-          KP
+        <div className="driver-mini-avatar" title={user?.name}>
+          {initialsOf(user?.name)}
         </div>
       </div>
     </div>

@@ -18,7 +18,7 @@ export default function VehicleLoadCard() {
         </div>
         <div className="vehicle-banner-meta">
           <div className="vehicle-reg-number">WP-CB-4521</div>
-          <div className="vehicle-sub-desc">Refrigerated Truck Â· Driver: K. Perera</div>
+          <div className="vehicle-sub-desc">Refrigerated Truck · Driver: K. Perera</div>
         </div>
       </div>
 
@@ -45,19 +45,19 @@ export default function VehicleLoadCard() {
           <div className="util-progress-track">
             <div className="util-progress-fill fill-blue" style={{ width: '61%' }}></div>
           </div>
-          <span className="util-remaining-note text-green">1,950 kg remaining Â· within capacity</span>
+          <span className="util-remaining-note text-green">1,950 kg remaining · within capacity</span>
         </div>
 
         {/* Volume */}
         <div className="utilization-bar-item">
           <div className="util-bar-labels">
             <span className="util-metric-name">Volume utilization</span>
-            <span className="util-metric-values">21.4 / 28 mÂ³</span>
+            <span className="util-metric-values">21.4 / 28 m³</span>
           </div>
           <div className="util-progress-track">
             <div className="util-progress-fill fill-blue" style={{ width: '76.4%' }}></div>
           </div>
-          <span className="util-remaining-note text-green">6.6 mÂ³ remaining Â· within capacity</span>
+          <span className="util-remaining-note text-green">6.6 m³ remaining · within capacity</span>
         </div>
 
         {/* Fuel Quota */}

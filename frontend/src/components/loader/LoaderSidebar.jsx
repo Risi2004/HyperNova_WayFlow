@@ -7,8 +7,10 @@ import historyIcon from '../../assets/icons/date.svg'
 import settingsIcon from '../../assets/icons/settings.svg'
 import { authService } from '../../services/authService'
 import './LoaderSidebar.css'
+import { useCurrentUser, initialsOf } from '../../hooks/useCurrentUser'
 
 export default function LoaderSidebar({ activeItem = 'Dashboard' }) {
+  const user = useCurrentUser()
   const navigate = useNavigate()
   const location = useLocation()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
@@ -89,10 +91,10 @@ export default function LoaderSidebar({ activeItem = 'Dashboard' }) {
 
             <div className="loader-user-card" style={{ margin: '12px 14px' }}>
               <div className="loader-user-left">
-                <div className="loader-avatar">JD</div>
+                <div className="loader-avatar">{initialsOf(user?.name)}</div>
                 <div className="loader-user-meta">
-                  <span className="loader-user-name">Jordan Davis</span>
-                  <span className="loader-user-role">Loader • Peliyagoda DC</span>
+                  <span className="loader-user-name">{user?.name}</span>
+                  <span className="loader-user-role">{user?.role} • {user?.facility}</span>
                 </div>
               </div>
             </div>
@@ -144,10 +146,10 @@ export default function LoaderSidebar({ activeItem = 'Dashboard' }) {
           {/* User Card */}
           <div className="loader-user-card" title="Loader Profile">
             <div className="loader-user-left">
-              <div className="loader-avatar">JD</div>
+              <div className="loader-avatar">{initialsOf(user?.name)}</div>
               <div className="loader-user-meta">
-                <span className="loader-user-name">Jordan Davis</span>
-                <span className="loader-user-role">Loader • Peliyagoda DC</span>
+                <span className="loader-user-name">{user?.name}</span>
+                <span className="loader-user-role">{user?.role} • {user?.facility}</span>
               </div>
             </div>
             <span className="loader-user-arrow">

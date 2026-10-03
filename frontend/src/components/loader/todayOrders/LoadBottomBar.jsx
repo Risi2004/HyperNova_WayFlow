@@ -1,10 +1,14 @@
 import { useNavigate } from 'react-router-dom'
 
 export default function LoadBottomBar({
-  loadId = 'LD-025',
-  status = 'LOADING',
-  loadedCount = 3,
-  totalCount = 5,
+  loadId,
+  status,
+  statusType = 'loading',
+  loadedCount = 0,
+  totalCount = 0,
+  actionLabel,
+  actionDisabled = false,
+  canEdit = true,
   onReportIssue,
   onContinueLoading,
 }) {
@@ -16,7 +20,7 @@ export default function LoadBottomBar({
         {/* Left: Load status info */}
         <div className="bottom-bar-left">
           <span className="bottom-status-prefix">{loadId} Status:</span>
-          <span className="bottom-status-pill badge-loading">{status}</span>
+          <span className={`bottom-status-pill badge-${statusType}`}>{status}</span>
           <span className="bottom-loaded-fraction">
             {loadedCount} / {totalCount} Loaded
           </span>
@@ -31,20 +35,25 @@ export default function LoadBottomBar({
           >
             ← Back to Today's Loads
           </button>
-          <button
-            type="button"
-            className="btn-bottom-report"
-            onClick={onReportIssue}
-          >
-            Report Loading Issue
-          </button>
-          <button
-            type="button"
-            className="btn-bottom-continue"
-            onClick={onContinueLoading}
-          >
-            Continue Loading
-          </button>
+          {canEdit && (
+            <button
+              type="button"
+              className="btn-bottom-report"
+              onClick={onReportIssue}
+            >
+              Report Loading Issue
+            </button>
+          )}
+          {actionLabel && (
+            <button
+              type="button"
+              className="btn-bottom-continue"
+              onClick={onContinueLoading}
+              disabled={actionDisabled}
+            >
+              {actionLabel}
+            </button>
+          )}
         </div>
       </div>
     </div>

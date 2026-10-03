@@ -12,8 +12,10 @@ import deliveryHistoryIcon from '../../../assets/icons/delivery-history.svg'
 import settingsIcon from '../../../assets/icons/settings.svg'
 import { authService } from '../../../services/authService'
 import './Sidebar.css'
+import { useCurrentUser, initialsOf } from '../../../hooks/useCurrentUser'
 
 export default function Sidebar({ activeItem = 'Dashboard' }) {
+  const user = useCurrentUser()
   const navigate = useNavigate()
   const location = useLocation()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
@@ -99,10 +101,10 @@ export default function Sidebar({ activeItem = 'Dashboard' }) {
 
             <div className="sidebar-user-card" style={{ margin: '12px 14px' }}>
               <div className="sidebar-user-left">
-                <div className="sidebar-avatar">JD</div>
+                <div className="sidebar-avatar">{initialsOf(user?.name)}</div>
                 <div className="sidebar-user-meta">
-                  <span className="sidebar-user-name">Jordan Davis</span>
-                  <span className="sidebar-user-role">Dispatcher • West Hub</span>
+                  <span className="sidebar-user-name">{user?.name}</span>
+                  <span className="sidebar-user-role">{user?.role} • {user?.facility}</span>
                 </div>
               </div>
             </div>
@@ -151,10 +153,10 @@ export default function Sidebar({ activeItem = 'Dashboard' }) {
           {/* User Card */}
           <div className="sidebar-user-card" title="Switch dispatcher profile">
             <div className="sidebar-user-left">
-              <div className="sidebar-avatar">JD</div>
+              <div className="sidebar-avatar">{initialsOf(user?.name)}</div>
               <div className="sidebar-user-meta">
-                <span className="sidebar-user-name">Jordan Davis</span>
-                <span className="sidebar-user-role">Dispatcher • West Hub</span>
+                <span className="sidebar-user-name">{user?.name}</span>
+                <span className="sidebar-user-role">{user?.role} • {user?.facility}</span>
               </div>
             </div>
             <span className="sidebar-user-arrow">

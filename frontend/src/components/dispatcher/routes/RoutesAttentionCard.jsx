@@ -3,12 +3,12 @@ export default function RoutesAttentionCard({ onViewRoute }) {
     {
       id: 'RTE-2026-042',
       alertTitle: 'Delayed by 18 minutes',
-      subtext: 'Current stop Waypoint Fresh â€“ Colombo 05 â€¢ Reason: Traffic delay',
+      subtext: 'Current stop Waypoint Fresh – Colombo 05 • Reason: Traffic delay',
     },
     {
       id: 'RTE-2026-044',
       alertTitle: 'Loading issue',
-      subtext: '1 item reported short â€¢ Reason: Loading shortfall',
+      subtext: '1 item reported short • Reason: Loading shortfall',
     },
   ]
 

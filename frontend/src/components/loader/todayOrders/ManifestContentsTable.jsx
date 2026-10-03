@@ -1,67 +1,5 @@
-export default function ManifestContentsTable({
-  items = [
-    {
-      outlet: 'Colombo 03',
-      orderId: 'ORD-1042',
-      product: 'Fresh Milk 1L',
-      quantity: '120 units',
-      temp: 'CHILLED',
-      tempType: 'chilled',
-      status: 'LOADED',
-      statusType: 'loaded',
-    },
-    {
-      outlet: 'Colombo 03',
-      orderId: 'ORD-1043',
-      product: 'Butter 250g',
-      quantity: '80 units',
-      temp: 'CHILLED',
-      tempType: 'chilled',
-      status: 'LOADED',
-      statusType: 'loaded',
-    },
-    {
-      outlet: 'Bambalapitiya',
-      orderId: 'ORD-1048',
-      product: 'Yogurt Cups',
-      quantity: '80 units',
-      temp: 'CHILLED',
-      tempType: 'chilled',
-      status: 'LOADED',
-      statusType: 'loaded',
-    },
-    {
-      outlet: 'Wellawatte',
-      orderId: 'ORD-1051',
-      product: 'Rice 5kg',
-      quantity: '60 units',
-      temp: 'AMBIENT',
-      tempType: 'ambient',
-      status: 'PENDING',
-      statusType: 'pending',
-    },
-    {
-      outlet: 'Dehiwala',
-      orderId: 'ORD-1057',
-      product: 'Frozen Chicken',
-      quantity: '40 units',
-      temp: 'FROZEN',
-      tempType: 'frozen',
-      status: 'PENDING',
-      statusType: 'pending',
-    },
-    {
-      outlet: 'Mount Lavinia',
-      orderId: 'ORD-1061',
-      product: 'Fresh Vegetables',
-      quantity: '90 units',
-      temp: 'CHILLED',
-      tempType: 'chilled',
-      status: 'PENDING',
-      statusType: 'pending',
-    },
-  ],
-}) {
+// Rows are order items; the first row of each order carries the loader's check for that order.
+export default function ManifestContentsTable({ items = [], canEdit = false, busyOrderId = null, onLoaded, onShort }) {
   return (
     <div className="loader-detail-card manifest-contents-card">
       <div className="detail-card-header">
@@ -77,6 +15,7 @@ export default function ManifestContentsTable({
             <tr>
               <th>OUTLET</th>
               <th>ORDER ID</th>
+              {canEdit && <th>CHECK</th>}
               <th>PRODUCT / ITEM</th>
               <th>QUANTITY</th>
               <th>TEMP</th>
@@ -85,11 +24,28 @@ export default function ManifestContentsTable({
           </thead>
           <tbody>
             {items.map((row) => (
-              <tr key={row.orderId} className="manifest-row">
-                <td className="td-manifest-outlet">{row.outlet}</td>
+              <tr key={row.key} className={`manifest-row ${row.firstOfOrder ? 'manifest-order-start' : ''}`}>
+                <td className="td-manifest-outlet">{row.firstOfOrder ? row.outlet : ''}</td>
                 <td className="td-manifest-order">
-                  <span className="manifest-order-link">{row.orderId}</span>
+                  {row.firstOfOrder && <span className="manifest-order-link">{row.orderId}</span>}
                 </td>
+                {canEdit && (
+                  <td className="td-manifest-check">
+                    {row.firstOfOrder && !row.checked && (
+                      <div className="manifest-check-actions">
+                        <button
+                          type="button"
+                          className="btn-manifest-loaded"
+                          disabled={busyOrderId === row.orderId}
+                          onClick={() => onLoaded(row.orderId)}
+                        >
+                          ✓ Loaded
+                        </button>
+                        <button type="button" className="btn-manifest-short" onClick={() => onShort(row.orderId)}>
+                          Short
+                        </button>
+                      </div>
+                    )}
                 <td className="td-manifest-product">{row.product}</td>
                 <td className="td-manifest-qty">{row.quantity}</td>
                 <td className="td-manifest-temp">
@@ -98,10 +54,14 @@ export default function ManifestContentsTable({
                   </span>
                 </td>
                 <td className="td-manifest-status">
-                  <span className={`manifest-status-badge status-${row.statusType}`}>
-                    {row.status}
-                  </span>
+                  {row.firstOfOrder && (
+                    <span className={`manifest-status-badge status-${row.statusType}`}>
+                      {row.status}
+                    </span>
+                  )}
                 </td>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

@@ -117,11 +117,11 @@ export default function FleetFilterBar({
           </div>
 
           <div className="quick-filter-tag-group">
-            <span className="quick-tag-text">NO TRIP â€¢ TRIP 1 â€¢ TRIP 2</span>
+            <span className="quick-tag-text">NO TRIP • TRIP 1 • TRIP 2</span>
           </div>
 
           <div className="quick-filter-tag-group">
-            <span className="quick-tag-text">HEALTHY â€¢ LOW â€¢ CRITICAL</span>
+            <span className="quick-tag-text">HEALTHY • LOW • CRITICAL</span>
           </div>
         </div>
 

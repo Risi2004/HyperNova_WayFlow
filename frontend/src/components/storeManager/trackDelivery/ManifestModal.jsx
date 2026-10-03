@@ -1,46 +1,36 @@
-export default function ManifestModal({
-  isOpen,
-  onClose,
-  orderId = 'ORD-1042',
-  tripId = 'TR-024',
-}) {
-  if (!isOpen) return null
+import { formatKg } from '../../../utils/orderFormat'
 
-  const items = [
-    { name: 'Fresh Farm Milk 1L', category: 'Chilled (+4°C)', qty: '24 Crates', weight: '240 kg' },
-    { name: 'Yogurt Assorted 120g', category: 'Chilled (+4°C)', qty: '18 Crates', weight: '90 kg' },
-    { name: 'Mineral Water 500ml', category: 'Ambient', qty: '40 Cases', weight: '200 kg' },
-    { name: 'Savory Snack Packs', category: 'Ambient', qty: '25 Cases', weight: '110 kg' },
-  ]
+export default function ManifestModal({ isOpen, onClose, order, plan, items, outletName }) {
+  if (!isOpen) return null
 
   return (
     <div className="td-modal-overlay" onClick={onClose}>
-      <div className="td-modal-box" onClick={(e) => e.stopPropagation()}>
+      <div className="td-modal-box" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <div className="td-modal-header">
           <div className="td-modal-title-col">
-            <h3 className="td-modal-title">Order Manifest — {orderId}</h3>
-            <span className="td-modal-sub">Assigned Trip: {tripId} &bull; Delivery Unit WP-REF-007</span>
+            <h3 className="td-modal-title">Order Manifest — {order.order_id}</h3>
+            <span className="td-modal-sub">{plan ? `Trip ${plan.trip_id} • ${plan.vehicle_id}` : 'Not on a trip yet'}</span>
           </div>
-          <button type="button" className="btn-td-modal-close" onClick={onClose}>✕</button>
+          <button type="button" className="btn-td-modal-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
 
         <div className="td-modal-content">
           <div className="td-manifest-meta-grid">
             <div>
               <span className="label">Destination:</span>
-              <span className="val">Colombo 05 Store (OUT043)</span>
+              <span className="val">{outletName} ({order.outlet_id})</span>
             </div>
             <div>
-              <span className="label">Receiving Bay:</span>
-              <span className="val">Bay 02 Dock Ramp</span>
+              <span className="label">Temperature:</span>
+              <span className="val">{order.temp_requirement === 'chilled' ? 'Chilled' : 'Ambient'}</span>
             </div>
             <div>
-              <span className="label">Total Units:</span>
-              <span className="val">107 Units (4 Product Lines)</span>
+              <span className="label">Total units:</span>
+              <span className="val">{order.total_units} ({order.sku_count} lines)</span>
             </div>
             <div>
-              <span className="label">Estimated Gross Weight:</span>
-              <span className="val">~640 kg</span>
+              <span className="label">Gross weight:</span>
+              <span className="val">{formatKg(order.total_weight_kg)}</span>
             </div>
           </div>
 
@@ -54,12 +44,12 @@ export default function ManifestModal({
               </tr>
             </thead>
             <tbody>
-              {items.map((it, i) => (
-                <tr key={i}>
-                  <td><strong>{it.name}</strong></td>
-                  <td><span className={`cat-pill ${it.category.includes('Chilled') ? 'chilled' : 'ambient'}`}>{it.category}</span></td>
-                  <td>{it.qty}</td>
-                  <td>{it.weight}</td>
+              {items.map((it) => (
+                <tr key={it.item_id}>
+                  <td><strong>{it.product_name}</strong></td>
+                  <td><span className={`cat-pill ${it.temp_requirement === 'chilled' ? 'chilled' : 'ambient'}`}>{it.temp_requirement === 'chilled' ? 'Chilled' : 'Ambient'}</span></td>
+                  <td>{it.quantity} {it.unit.toLowerCase()}{it.quantity === 1 ? '' : 's'}</td>
+                  <td>{formatKg(it.total_weight_kg)}</td>
                 </tr>
               ))}
             </tbody>

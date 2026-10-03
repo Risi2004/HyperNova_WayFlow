@@ -1106,3 +1106,98 @@
     padding: 16px;
   }
 }
+
+/* --------------------------------------------------------
+   Live order states
+-------------------------------------------------------- */
+.order-status-pill-amber.tone-green {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.order-status-pill-amber.tone-blue {
+  background: #dbeafe;
+  color: #1e40af;
+  border-color: #bfdbfe;
+}
+
+.order-status-pill-amber.tone-red {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.order-details-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e3a8a;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.order-details-notice.tone-success {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.order-details-notice.tone-error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.order-details-notice button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.req-quad-box.box-neutral {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.req-icon-wrap.icon-neutral {
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+.req-badge.badge-optional {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.window-status-badge.badge-on-track {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.window-status-badge.badge-neutral {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.assignment-val {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.timeline-date {
+  font-size: 0.66rem;
+  color: #94a3b8;
+}
+
+.order-details-content button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

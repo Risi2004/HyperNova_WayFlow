@@ -1,24 +1,22 @@
+import { useEffect, useState } from 'react'
+import { useCurrentUser, initialsOf } from '../../../hooks/useCurrentUser'
+import { apiRequest } from '../../../services/apiClient'
+import { dispatchStatusOf, formatTimestamp } from '../../../utils/orderFormat'
+
+// The signed-in dispatcher's identity and their most recent order decisions.
 export default function SecurityProfileCard({ settings, onChange }) {
-  const auditLogs = [
-    {
-      action: 'Updated Routing Engine Max Shift to 8.5 Hours',
-      user: 'Jordan Davis',
-      ip: '192.168.10.45 (West Hub LAN)',
-      time: 'Today at 07:15 AM',
-    },
-    {
-      action: 'Authorized Emergency Driver Override for TR-024',
-      user: 'Jordan Davis',
-      ip: '192.168.10.45 (West Hub LAN)',
-      time: 'Today at 06:40 AM',
-    },
-    {
-      action: 'Rotated Telematics GPS Stream API Token',
-      user: 'System Admin',
-      ip: '10.0.4.12 (Peliyagoda Server)',
-      time: 'Yesterday at 22:30 PM',
-    },
-  ]
+  const user = useCurrentUser()
+  const [auditLogs, setAuditLogs] = useState(null)
+
+  useEffect(() => {
+    let active = true
+    apiRequest('/auth/activity')
+      .then((res) => active && setAuditLogs(res.events))
+      .catch(() => active && setAuditLogs([]))
+    return () => {
+      active = false
+    }
+  }, [])
 
   return (
     <div className="settings-section-card">
@@ -34,14 +32,14 @@ export default function SecurityProfileCard({ settings, onChange }) {
 
       {/* User Identity Card */}
       <div className="profile-identity-strip">
-        <div className="profile-avatar-large">JD</div>
+        <div className="profile-avatar-large">{initialsOf(user?.name)}</div>
         <div className="profile-info-block">
           <div className="profile-name-row">
-            <span className="profile-fullname bold">Jordan Davis</span>
-            <span className="profile-role-tag">Senior Operations Dispatcher</span>
+            <span className="profile-fullname bold">{user?.name}</span>
+            <span className="profile-role-tag">{user?.role}</span>
           </div>
-          <span className="profile-email">jordan.davis@waypoint.lk</span>
-          <span className="profile-hub-location">Assigned: Peliyagoda West DC Â· ID: DISP-0042</span>
+          <span className="profile-email">{user?.email}</span>
+          <span className="profile-hub-location">Assigned: {user?.facility} · ID: {user?.id}</span>
         </div>
       </div>
 
@@ -92,19 +90,27 @@ export default function SecurityProfileCard({ settings, onChange }) {
 
       {/* Security Audit Trail */}
       <div className="audit-trail-container">
-        <span className="audit-trail-title bold">Recent Dispatcher Audit Trail</span>
+        <span className="audit-trail-title bold">Your Recent Order Decisions</span>
         <div className="audit-list">
-          {auditLogs.map((log, idx) => (
-            <div key={idx} className="audit-entry-row">
-              <div className="audit-dot"></div>
-              <div className="audit-content">
-                <span className="audit-action bold">{log.action}</span>
-                <span className="audit-meta">
-                  By {log.user} Â· {log.ip} Â· {log.time}
-                </span>
+          {auditLogs === null && <span className="audit-meta">Loading activity…</span>}
+          {auditLogs?.length === 0 && <span className="audit-meta">No order decisions recorded yet.</span>}
+          {auditLogs?.map((log, idx) => {
+            const ts = formatTimestamp(log.created_at)
+            const action = log.from_status === log.to_status && log.to_status !== 'deferred'
+              ? log.note || 'Order updated'
+              : `${log.order_id} → ${dispatchStatusOf(log.to_status).label}`
+            return (
+              <div key={idx} className="audit-entry-row">
+                <div className="audit-dot"></div>
+                <div className="audit-content">
+                  <span className="audit-action bold">{action}</span>
+                  <span className="audit-meta">
+                    {log.order_id} · {ts.date} at {ts.time}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>

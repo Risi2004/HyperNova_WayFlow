@@ -11,10 +11,14 @@ const authRoutes = require('./routes/authRoutes')
 const userRoutes = require('./routes/userRoutes')
 const referenceRoutes = require('./routes/referenceRoutes')
 const productRoutes = require('./routes/productRoutes')
+const orderRoutes = require('./routes/orderRoutes')
+const planRoutes = require('./routes/planRoutes')
+const tripRoutes = require('./routes/tripRoutes')
+const issueRoutes = require('./routes/issueRoutes')
 
 // Middleware
 app.use(cors())
-app.use(express.json())
+app.use(express.json({ limit: '6mb' }))
 
 // Mount API Routes (supporting both /api/* and root /* for flexible frontend deployment URLs)
 app.use('/api/auth', authRoutes)
@@ -28,6 +32,18 @@ app.use('/reference', referenceRoutes)
 
 app.use('/api/products', productRoutes)
 app.use('/products', productRoutes)
+
+app.use('/api/orders', orderRoutes)
+app.use('/orders', orderRoutes)
+
+app.use('/api/plans', planRoutes)
+app.use('/plans', planRoutes)
+
+app.use('/api/trips', tripRoutes)
+app.use('/trips', tripRoutes)
+
+app.use('/api/issues', issueRoutes)
+app.use('/issues', issueRoutes)
 
 // Root Route
 app.get('/', (req, res) => {
@@ -65,6 +81,10 @@ app.get('/api/db-summary', async (req, res) => {
       'order_deferrals',
       'delivery_records',
       'receipt_confirmations',
+      'order_status_events',
+      'order_intake_closures',
+      'delivery_plans',
+      'vehicle_availability',
     ]
     const counts = await Promise.all(
       tables.map(async (t) => {
@@ -122,6 +142,19 @@ app.use((req, res) => {
     error: `Route not found: ${req.method} ${req.originalUrl}`,
     hint: 'Supported endpoints start with /api/... or /auth/..., /users/..., /products/..., /reference/...',
   })
+})
+
+// JSON errors (malformed bodies, oversized uploads) instead of Express's default HTML page
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err)
+  const status = err.status || err.statusCode || 500
+  const message = err.type === 'entity.parse.failed'
+    ? 'Request body is not valid JSON.'
+    : err.type === 'entity.too.large'
+      ? 'Upload is too large. Use a smaller photo.'
+      : status >= 500 ? 'Internal server error.' : err.message
+  if (status >= 500) console.error(err)
+  res.status(status).json({ error: message })
 })
 
 // Start Server

@@ -95,7 +95,7 @@ export default function OrderHistoryMetricsCards({
         </div>
         <div className="oh-metric-value">{metrics.cancelled}</div>
         <div className="oh-metric-subtext">
-          <span className="oh-tag-pill-stockout">Stock Out</span> Supplier halted
+          <span className="oh-tag-pill-stockout">Withdrawn</span> Cancelled before dispatch
         </div>
       </div>
     </div>

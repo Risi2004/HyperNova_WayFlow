@@ -4,7 +4,8 @@ export default function DeliveredItemsTable({
   onUpdateCondition,
   onSetAllGood,
 }) {
-  const verifiedCount = items.filter((it) => it.condition === 'Good').length
+  const verifiedCount = items.filter((it) => it.condition === 'Good' && it.deliveredQty === it.orderedQty).length
+  const flagged = items.length - verifiedCount
 
   const totalOrdered = items.reduce((acc, it) => acc + it.orderedQty, 0)
   const totalReceived = items.reduce((acc, it) => acc + it.deliveredQty, 0)
@@ -16,7 +17,7 @@ export default function DeliveredItemsTable({
         <div className="cr-table-title-col">
           <div className="cr-title-row">
             <h3 className="cr-table-title">Delivered Items</h3>
-            <span className="cr-verified-badge">{verifiedCount} of {items.length} Verified</span>
+            <span className="cr-verified-badge">{verifiedCount} of {items.length} complete &amp; good</span>
           </div>
           <p className="cr-table-subtitle">
             Review the delivered quantities and condition before confirming receipt.
@@ -93,7 +94,8 @@ export default function DeliveredItemsTable({
                       type="button"
                       className="btn-cr-stepper"
                       onClick={() => onUpdateDeliveredQty(item.id, -1)}
-                      disabled={item.deliveredQty <= 0}
+                      disabled={item.condition === 'Missing' || item.deliveredQty <= 0}
+                      aria-label={`One less ${item.name}`}
                     >
                       −
                     </button>
@@ -102,6 +104,8 @@ export default function DeliveredItemsTable({
                       type="button"
                       className="btn-cr-stepper"
                       onClick={() => onUpdateDeliveredQty(item.id, 1)}
+                      disabled={item.condition === 'Missing' || item.deliveredQty >= item.orderedQty}
+                      aria-label={`One more ${item.name}`}
                     >
                       +
                     </button>
@@ -137,8 +141,8 @@ export default function DeliveredItemsTable({
 
                 {/* Line Status */}
                 <td className="td-status text-right">
-                  <span className={`cr-line-status ${item.condition === 'Good' ? 'ready' : 'flagged'}`}>
-                    {item.condition === 'Good' ? 'Ready' : item.condition}
+                  <span className={`cr-line-status ${item.condition === 'Good' && item.deliveredQty === item.orderedQty ? 'ready' : 'flagged'}`}>
+                    {item.condition !== 'Good' ? item.condition : item.deliveredQty < item.orderedQty ? `${item.orderedQty - item.deliveredQty} short` : 'OK'}
                   </span>
                 </td>
               </tr>
@@ -150,19 +154,13 @@ export default function DeliveredItemsTable({
       {/* Bottom Totals Footer */}
       <div className="cr-table-footer-bar">
         <div className="cr-footer-stats-left">
-          <span>Total Ordered: <strong>{totalOrdered} Units</strong></span>
+          <span>Total Ordered: <strong>{totalOrdered} units</strong></span>
           <span className="sep">&bull;</span>
-          <span>Total Received: <strong>{totalReceived} Units</strong></span>
-          <span className="sep">&bull;</span>
-          <span>Pallet Footprint: <strong>~1.2 Euro Pallets</strong></span>
+          <span>Total Received: <strong>{totalReceived} units</strong></span>
         </div>
 
         <div className="cr-footer-verified-right">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-            <polyline points="22 4 12 14.01 9 11.01" />
-          </svg>
-          <span>All Items Scanned &amp; Count Verified</span>
+          <span>{flagged ? `${flagged} line${flagged === 1 ? '' : 's'} will be reported to dispatch` : 'Everything arrived in good condition'}</span>
         </div>
       </div>
     </div>

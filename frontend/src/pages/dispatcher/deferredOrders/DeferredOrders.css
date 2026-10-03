@@ -757,3 +757,22 @@
     align-items: stretch;
   }
 }
+
+.deferred-page-state {
+  margin: 0 0 12px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 14px;
+}
+
+.deferred-page-state.error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.filter-select-label .filter-select-input {
+  display: block;
+  margin-top: 4px;
+}

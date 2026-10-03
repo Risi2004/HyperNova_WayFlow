@@ -1,4 +1,14 @@
-export default function AssignedOutletCard() {
+import { formatWindow } from '../../../utils/orderFormat'
+
+const DOCK_LABELS = { rear_dock: 'Rear loading dock', street: 'Curbside unloading', mall_bay: 'Shared mall loading bay' }
+const ACCESS_LABELS = {
+  normal: 'Any vehicle can access',
+  van_only: 'Van-only access — trucks cannot reach this outlet',
+  mall_dock: 'Mall access window applies',
+}
+
+export default function AssignedOutletCard({ outlet, manager, cutoffHour = 16 }) {
+  const cutoffLabel = `${cutoffHour > 12 ? cutoffHour - 12 : cutoffHour}:00 ${cutoffHour >= 12 ? 'PM' : 'AM'}`
   return (
     <div className="co-card co-outlet-card">
       {/* Top Title Bar */}
@@ -21,12 +31,12 @@ export default function AssignedOutletCard() {
       {/* Outlet Basic Info */}
       <div className="co-outlet-main-info">
         <div className="co-outlet-heading-block">
-          <h3 className="co-outlet-name">Colombo 05 Store</h3>
-          <span className="co-outlet-sub">Store ID: OUT043 • Tier 1 Supermarket</span>
+          <h3 className="co-outlet-name">Waypoint {outlet.brand} – {outlet.district}</h3>
+          <span className="co-outlet-sub">Store ID: {outlet.outlet_id} • {outlet.district} District</span>
         </div>
         <div className="co-outlet-manager-tag">
           <span className="co-manager-label">Manager:</span>
-          <span className="co-manager-name">Sarah Perera</span>
+          <span className="co-manager-name">{manager?.name}</span>
         </div>
       </div>
 
@@ -41,9 +51,9 @@ export default function AssignedOutletCard() {
             </svg>
           </div>
           <div className="co-meta-text-col">
-            <span className="co-meta-label">DELIVERY ADDRESS</span>
-            <span className="co-meta-value">142 Galle Road, Colombo 05</span>
-            <span className="co-meta-sub">Colombo District, Western Province</span>
+            <span className="co-meta-label">UNLOADING &amp; ACCESS</span>
+            <span className="co-meta-value">{DOCK_LABELS[outlet.dock_type] || outlet.dock_type}</span>
+            <span className="co-meta-sub">{ACCESS_LABELS[outlet.parking_constraint] || outlet.parking_constraint}</span>
           </div>
         </div>
 
@@ -56,8 +66,10 @@ export default function AssignedOutletCard() {
           </div>
           <div className="co-meta-text-col">
             <span className="co-meta-label">ASSIGNED FULFILLMENT HUB</span>
-            <span className="co-meta-value link-blue">Peliyagoda Distribution Center</span>
-            <span className="co-meta-sub">Central Multi-Temperature Cold Hub</span>
+            <span className="co-meta-value link-blue">
+              {outlet.depot === 'Kandy' ? 'Kandy Regional Hub' : 'Peliyagoda Distribution Center'}
+            </span>
+            <span className="co-meta-sub">Serves {outlet.district} outlets</span>
           </div>
         </div>
 
@@ -71,8 +83,10 @@ export default function AssignedOutletCard() {
           </div>
           <div className="co-meta-text-col">
             <span className="co-meta-label">STANDARD WINDOW</span>
-            <span className="co-meta-value">10:30 AM – 11:00 AM</span>
-            <span className="co-meta-sub">Bay 2 Ramp Unloading Allocated</span>
+            <span className="co-meta-value">{formatWindow(outlet.window_open, outlet.window_close)}</span>
+            <span className="co-meta-sub">
+              {outlet.mall_window ? `Mall access window ${outlet.mall_window}` : 'Outlet receiving window'}
+            </span>
           </div>
         </div>
 
@@ -88,8 +102,8 @@ export default function AssignedOutletCard() {
           </div>
           <div className="co-meta-text-col">
             <span className="co-meta-label">CONSOLIDATION CUTOFF</span>
-            <span className="co-meta-value">18:00 PM Daily</span>
-            <span className="co-meta-sub">For guaranteed next-morning departure</span>
+            <span className="co-meta-value">{cutoffLabel} on the day before delivery</span>
+            <span className="co-meta-sub">Later orders move to the next run</span>
           </div>
         </div>
       </div>
@@ -104,7 +118,7 @@ export default function AssignedOutletCard() {
           </svg>
         </div>
         <p className="co-notice-text">
-          Orders submitted in this session are automatically routed to Peliyagoda DC logistics bay for multi-zone load assembly.
+          Submitted orders go to the {outlet.depot} dispatcher. You will see when your order is confirmed, scheduled or deferred in My Orders.
         </p>
       </div>
     </div>
