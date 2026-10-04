@@ -19,8 +19,9 @@ Built for Tech-Triathlon 2026 (Hackathon phase).
 
 | | URL |
 | --- | --- |
-| Web app | _add the Vercel URL_ |
-| API health | _add the Render URL_`/api/health` |
+| Web app | [https://way-flow.vercel.app](https://way-flow.vercel.app/) |
+| API base | [https://wayflow.onrender.com](https://wayflow.onrender.com) |
+| API health | [https://wayflow.onrender.com/api/health](https://wayflow.onrender.com/api/health) |
 
 ## Seeded accounts
 
