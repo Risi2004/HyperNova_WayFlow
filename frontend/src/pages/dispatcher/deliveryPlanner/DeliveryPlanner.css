@@ -19,10 +19,11 @@
 }
 
 .planner-content {
-  padding: 24px 32px 60px;
-  max-width: 1560px;
+  padding: 20px 24px 60px;
+  max-width: 1600px;
   margin: 0 auto;
   width: 100%;
+  box-sizing: border-box;
 }
 
 /* ========================================================
@@ -182,7 +183,7 @@
    ======================================================== */
 .planner-stats-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 24px;
 }
@@ -216,10 +217,18 @@
    ======================================================== */
 .planner-three-col-workspace {
   display: grid;
-  grid-template-columns: 310px 1fr 330px;
+  grid-template-columns: 280px minmax(0, 1fr) 300px;
   gap: 16px;
   align-items: flex-start;
   margin-bottom: 28px;
+  min-width: 0;
+  width: 100%;
+}
+
+.orders-plan-column,
+.todays-plan-column,
+.route-details-column {
+  min-width: 0;
 }
 
 .column-title {
@@ -676,6 +685,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
 }
 
 .route-card-top-bar {
@@ -982,12 +992,23 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-width: 0;
+  gap: 10px;
 }
 
 .stop-card-left {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.stop-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .stop-number-badge {
@@ -1352,6 +1373,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
 }
 
 /* Vehicle Header */
@@ -2001,27 +2023,47 @@
 /* ========================================================
    Responsive Media Queries
    ======================================================== */
-@media (max-width: 1380px) {
+@media (max-width: 1400px) {
+  .planner-content {
+    padding: 16px 16px 60px;
+  }
   .planner-three-col-workspace {
-    grid-template-columns: 280px 1fr 300px;
+    grid-template-columns: 260px minmax(0, 1fr) 280px;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 1240px) {
+  .planner-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .planner-three-col-workspace {
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 16px;
+  }
+  .orders-plan-column {
+    grid-row: span 2;
+  }
+  .route-details-column {
+    grid-column: 2;
   }
   .unscheduled-cards-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 900px) {
   .planner-stats-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
   .planner-three-col-workspace {
     grid-template-columns: 1fr;
   }
-}
-
-@media (max-width: 768px) {
-  .planner-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .orders-plan-column {
+    grid-row: auto;
+  }
+  .route-details-column {
+    grid-column: auto;
   }
   .unscheduled-cards-grid {
     grid-template-columns: 1fr;
@@ -2118,6 +2160,8 @@
   overflow-x: auto;
   padding: 2px 2px 10px;
   margin-bottom: 8px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .route-chip {
