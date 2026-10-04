@@ -7,7 +7,9 @@ const {
   OrderStatusError,
   assertTransition,
   recordEvent,
+  recordEvents,
   transitionOrder,
+  transitionOrders,
 } = require('../services/orderStatus')
 const {
   CUTOFF_HOUR,
@@ -18,6 +20,8 @@ const {
   intakeStatus,
   deliveryOptions,
   confirmDueOrders,
+  ensureOrdersConfirmed,
+  invalidateConfirmCache,
 } = require('../services/orderSchedule')
 
 const router = express.Router()
@@ -177,16 +181,21 @@ async function nextOrderId(db) {
 }
 
 async function insertItems(db, orderId, items) {
-  for (const it of items) {
-    await db.query(
-      `INSERT INTO order_items (
-         order_id, product_code, product_name, sku, unit, temp_requirement, quantity_cases,
-         weight_per_case_kg, volume_per_case_m3, total_item_weight_kg, total_item_volume_m3)
-       VALUES ($1, $2, $3, $2, $4, $5, $6, $7, $8, $9, $10)`,
-      [orderId, it.product_code, it.product_name, it.unit, it.temp_requirement, it.quantity,
-        it.weight_per_unit, it.volume_per_unit, it.total_weight, it.total_volume]
-    )
-  }
+  if (!items.length) return
+  // One multi-row INSERT; WITH ORDINALITY keeps item_id in cart order.
+  await db.query(
+    `INSERT INTO order_items (
+       order_id, product_code, product_name, sku, unit, temp_requirement, quantity_cases,
+       weight_per_case_kg, volume_per_case_m3, total_item_weight_kg, total_item_volume_m3)
+     SELECT $1, i.code, i.name, i.code, i.unit, i.temp, i.qty, i.w, i.v, i.tw, i.tv
+     FROM unnest($2::text[], $3::text[], $4::text[], $5::text[], $6::int[],
+                 $7::numeric[], $8::numeric[], $9::numeric[], $10::numeric[])
+          WITH ORDINALITY AS i(code, name, unit, temp, qty, w, v, tw, tv, n)
+     ORDER BY i.n`,
+    [orderId, items.map((it) => it.product_code), items.map((it) => it.product_name), items.map((it) => it.unit),
+      items.map((it) => it.temp_requirement), items.map((it) => it.quantity), items.map((it) => it.weight_per_unit),
+      items.map((it) => it.volume_per_unit), items.map((it) => it.total_weight), items.map((it) => it.total_volume)]
+  )
 }
 
 async function writeOrderRow(db, { orderId, ctx, userId, deliveryDate, cutoffAt, status, temp, items, window, body, groupId, isNew }) {
@@ -270,8 +279,7 @@ const ORDER_LIST_SELECT = `
 // GET /api/orders/schedule — outlet profile, next orderable delivery dates and cutoff.
 router.get('/schedule', requireRole(STORE_MANAGER), async (req, res) => {
   try {
-    const ctx = await loadStoreContext(req.user.userId)
-    const options = await deliveryOptions(sql, 12)
+    const [ctx, options] = await Promise.all([loadStoreContext(req.user.userId), deliveryOptions(sql, 12)])
     res.json({
       outlet: {
         outlet_id: ctx.outlet_id,
@@ -328,9 +336,13 @@ router.post('/', requireRole(STORE_MANAGER), async (req, res) => {
 
   try {
     const ctx = await loadStoreContext(userId)
-    const items = await resolveItems(body.items || [], ctx.brand)
-    const window = resolveWindow(ctx, body.window_open, body.window_close)
     const deliveryDate = /^\d{4}-\d{2}-\d{2}$/.test(body.delivery_date || '') ? body.delivery_date : null
+    // The intake check doesn't depend on the items, so it runs alongside their catalog lookup.
+    const [items, intakeCheck] = await Promise.all([
+      resolveItems(body.items || [], ctx.brand),
+      submit && deliveryDate ? intakeStatus(sql, deliveryDate) : null,
+    ])
+    const window = resolveWindow(ctx, body.window_open, body.window_close)
 
     if (!submit) {
       const draftDate = deliveryDate || addDays(toColomboParts(now()).date, 1)
@@ -352,7 +364,7 @@ router.post('/', requireRole(STORE_MANAGER), async (req, res) => {
     if (!deliveryDate) throw httpError(400, 'Choose a delivery date.')
     if (items.length === 0) throw httpError(400, 'Add at least one product before submitting.')
 
-    const intake = await intakeStatus(sql, deliveryDate)
+    const intake = intakeCheck
     if (!intake.open) {
       const options = await deliveryOptions(sql, 1)
       throw httpError(422, intake.reason, { next_available_date: options[0]?.date || null })
@@ -384,6 +396,7 @@ router.post('/', requireRole(STORE_MANAGER), async (req, res) => {
       }
       return results
     })
+    invalidateConfirmCache()
 
     const ids = created.map((o) => o.order_id).join(' and ')
     res.status(201).json({
@@ -404,16 +417,19 @@ router.post('/', requireRole(STORE_MANAGER), async (req, res) => {
 // ?include_cancelled=true adds withdrawn / cancelled orders (Order History).
 router.get('/mine', requireRole(STORE_MANAGER), async (req, res) => {
   try {
-    const ctx = await loadStoreContext(req.user.userId)
-    await confirmDueOrders(sql)
+    await ensureOrdersConfirmed(sql)
     const hidden = req.query.include_cancelled === 'true' ? ['draft'] : ['draft', 'cancelled']
-    const orders = await sql.query(
-      `${ORDER_LIST_SELECT}
-       WHERE o.outlet_id = $1 AND o.status <> ALL($2)
-       ORDER BY o.created_at DESC
-       LIMIT 500`,
-      [ctx.outlet_id, hidden]
-    )
+    // The list selects by the user's outlet directly, so it runs alongside the outlet check.
+    const [ctx, orders] = await Promise.all([
+      loadStoreContext(req.user.userId),
+      sql.query(
+        `${ORDER_LIST_SELECT}
+         WHERE o.outlet_id = (SELECT outlet_id FROM users WHERE user_id = $1) AND o.status <> ALL($2)
+         ORDER BY o.created_at DESC
+         LIMIT 500`,
+        [req.user.userId, hidden]
+      ),
+    ])
     res.json({ outlet_id: ctx.outlet_id, orders })
   } catch (err) {
     sendError(res, err, 'Failed to load outlet orders')
@@ -429,7 +445,7 @@ router.get('/', requireRole(...PLANNING_ROLES), async (req, res) => {
   const pageSize = Math.min(100, Math.max(5, parseInt(req.query.pageSize, 10) || 20))
 
   try {
-    await confirmDueOrders(sql)
+    await ensureOrdersConfirmed(sql)
 
     // Base scope (drives stat cards): date, brand, depot. Status/other filters narrow the table.
     const scope = [`o.status NOT IN ('draft')`]
@@ -442,24 +458,6 @@ router.get('/', requireRole(...PLANNING_ROLES), async (req, res) => {
     if (brand && brand !== 'all') add('LOWER(o.brand) = ?', brand.toLowerCase())
     if (depot && depot !== 'all') add('LOWER(o.depot) = ?', depot.toLowerCase())
     const scopeParams = [...params]
-
-    const statsRows = await sql.query(
-      `SELECT o.status, COUNT(*)::int AS count FROM orders o WHERE ${scope.join(' AND ')} GROUP BY o.status`,
-      scopeParams
-    )
-    const byStatus = Object.fromEntries(statsRows.map((r) => [r.status, r.count]))
-    const sumOf = (list) => list.reduce((n, s) => n + (byStatus[s] || 0), 0)
-    const stats = {
-      total: statsRows.reduce((n, r) => n + (r.status === 'cancelled' ? 0 : r.count), 0),
-      awaiting_cutoff: byStatus.submitted || 0,
-      pending: sumOf(STATUS_GROUPS.pending),
-      planned: sumOf(STATUS_GROUPS.planned),
-      loading: sumOf(STATUS_GROUPS.loading),
-      deferred: sumOf(STATUS_GROUPS.deferred),
-      in_transit: sumOf(STATUS_GROUPS.in_transit),
-      completed: sumOf(STATUS_GROUPS.completed),
-      exception: sumOf(STATUS_GROUPS.exception),
-    }
 
     const where = [...scope]
     if (status && status !== 'all' && STATUS_GROUPS[status]) {
@@ -488,36 +486,55 @@ router.get('/', requireRole(...PLANNING_ROLES), async (req, res) => {
     }
 
     const whereSql = where.join(' AND ')
-    const [{ total }] = await sql.query(
-      `SELECT COUNT(*)::int AS total FROM orders o JOIN outlets ol ON ol.outlet_id = o.outlet_id WHERE ${whereSql}`,
-      params
-    )
-    const orders = await sql.query(
-      `${ORDER_LIST_SELECT}
-       WHERE ${whereSql}
-       ORDER BY o.created_at DESC, o.order_id DESC
-       LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`,
-      params
-    )
+    // The five queries are independent, so they run concurrently.
+    const [statsRows, [{ total }], orders, dates, attention] = await Promise.all([
+      sql.query(
+        `SELECT o.status, COUNT(*)::int AS count FROM orders o WHERE ${scope.join(' AND ')} GROUP BY o.status`,
+        scopeParams
+      ),
+      sql.query(
+        `SELECT COUNT(*)::int AS total FROM orders o JOIN outlets ol ON ol.outlet_id = o.outlet_id WHERE ${whereSql}`,
+        params
+      ),
+      sql.query(
+        `${ORDER_LIST_SELECT}
+         WHERE ${whereSql}
+         ORDER BY o.created_at DESC, o.order_id DESC
+         LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`,
+        params
+      ),
+      sql.query(
+        `SELECT DISTINCT target_delivery_date AS date FROM orders
+         WHERE status <> 'draft' ORDER BY target_delivery_date DESC LIMIT 21`
+      ),
+      // Orders that need a dispatcher decision: repeat deferrals first (the same outlet must not be
+      // skipped run after run), then exceptions, then urgent orders not yet planned.
+      sql.query(
+        `${ORDER_LIST_SELECT}
+         WHERE ${scope.join(' AND ')}
+           AND (o.status IN ('deferred', 'shortfall', 'failed', 'disputed')
+                OR (o.priority = 'urgent' AND o.status IN ('submitted', 'confirmed')))
+         ORDER BY CASE WHEN o.status = 'deferred' THEN 0
+                       WHEN o.status IN ('shortfall', 'failed', 'disputed') THEN 1 ELSE 2 END,
+                  d.consecutive_deferral_count DESC NULLS LAST, o.target_delivery_date
+         LIMIT 5`,
+        scopeParams
+      ),
+    ])
 
-    const dates = await sql.query(
-      `SELECT DISTINCT target_delivery_date AS date FROM orders
-       WHERE status <> 'draft' ORDER BY target_delivery_date DESC LIMIT 21`
-    )
-
-    // Orders that need a dispatcher decision: repeat deferrals first (the same outlet must not be
-    // skipped run after run), then exceptions, then urgent orders not yet planned.
-    const attention = await sql.query(
-      `${ORDER_LIST_SELECT}
-       WHERE ${scope.join(' AND ')}
-         AND (o.status IN ('deferred', 'shortfall', 'failed', 'disputed')
-              OR (o.priority = 'urgent' AND o.status IN ('submitted', 'confirmed')))
-       ORDER BY CASE WHEN o.status = 'deferred' THEN 0
-                     WHEN o.status IN ('shortfall', 'failed', 'disputed') THEN 1 ELSE 2 END,
-                d.consecutive_deferral_count DESC NULLS LAST, o.target_delivery_date
-       LIMIT 5`,
-      scopeParams
-    )
+    const byStatus = Object.fromEntries(statsRows.map((r) => [r.status, r.count]))
+    const sumOf = (list) => list.reduce((n, s) => n + (byStatus[s] || 0), 0)
+    const stats = {
+      total: statsRows.reduce((n, r) => n + (r.status === 'cancelled' ? 0 : r.count), 0),
+      awaiting_cutoff: byStatus.submitted || 0,
+      pending: sumOf(STATUS_GROUPS.pending),
+      planned: sumOf(STATUS_GROUPS.planned),
+      loading: sumOf(STATUS_GROUPS.loading),
+      deferred: sumOf(STATUS_GROUPS.deferred),
+      in_transit: sumOf(STATUS_GROUPS.in_transit),
+      completed: sumOf(STATUS_GROUPS.completed),
+      exception: sumOf(STATUS_GROUPS.exception),
+    }
 
     res.json({
       orders,
@@ -534,30 +551,40 @@ router.get('/', requireRole(...PLANNING_ROLES), async (req, res) => {
 // GET /api/orders/intake — intake state for the next few delivery dates.
 router.get('/intake', requireRole(...PLANNING_ROLES), async (req, res) => {
   try {
-    await confirmDueOrders(sql)
     const today = toColomboParts(now()).date
-    const upcoming = await sql.query(
-      `SELECT c.date FROM operating_calendar c
-       WHERE c.date > $1 AND c.is_operating = true ORDER BY c.date LIMIT 3`,
-      [today]
-    )
+    const [, upcoming] = await Promise.all([
+      ensureOrdersConfirmed(sql),
+      sql.query(
+        `SELECT c.date FROM operating_calendar c
+         WHERE c.date > $1 AND c.is_operating = true ORDER BY c.date LIMIT 3`,
+        [today]
+      ),
+    ])
     // Calendar may not cover the horizon; fall back to the next Mon–Sat days.
     const dates = upcoming.map((r) => r.date)
     for (let d = addDays(today, 1); dates.length < 3; d = addDays(d, 1)) {
       if (!dates.includes(d) && new Date(`${d}T00:00:00Z`).getUTCDay() !== 0) dates.push(d)
     }
 
-    const result = []
-    for (const date of dates.slice(0, 3)) {
-      const status = await intakeStatus(sql, date)
-      const [counts] = await sql.query(
-        `SELECT COUNT(*) FILTER (WHERE status = 'submitted')::int AS submitted,
+    const picked = dates.slice(0, 3)
+    const [statuses, countRows] = await Promise.all([
+      Promise.all(picked.map((date) => intakeStatus(sql, date))),
+      sql.query(
+        `SELECT target_delivery_date AS date,
+                COUNT(*) FILTER (WHERE status = 'submitted')::int AS submitted,
                 COUNT(*) FILTER (WHERE status = 'confirmed')::int AS confirmed
-         FROM orders WHERE target_delivery_date = $1`,
-        [date]
-      )
-      result.push({ date, open: status.open, closed_by_dispatcher: status.closed, cutoff_at: status.cutoffAt, ...counts })
-    }
+         FROM orders WHERE target_delivery_date = ANY($1::date[]) GROUP BY target_delivery_date`,
+        [picked]
+      ),
+    ])
+    const countsByDate = new Map(countRows.map(({ date, ...counts }) => [date, counts]))
+    const result = picked.map((date, i) => ({
+      date,
+      open: statuses[i].open,
+      closed_by_dispatcher: statuses[i].closed,
+      cutoff_at: statuses[i].cutoffAt,
+      ...(countsByDate.get(date) || { submitted: 0, confirmed: 0 }),
+    }))
     res.json({ dates: result })
   } catch (err) {
     sendError(res, err, 'Failed to load intake status')
@@ -589,6 +616,7 @@ router.post('/intake/close', requireRole(...PLANNING_ROLES), async (req, res) =>
       )
       return count
     })
+    invalidateConfirmCache()
     res.json({
       success: true,
       confirmed,
@@ -613,9 +641,7 @@ router.patch('/priority', requireRole(...PLANNING_ROLES), async (req, res) => {
          RETURNING order_id, status`,
         [priority, orderIds]
       )
-      for (const r of rows) {
-        await recordEvent(tx, { orderId: r.order_id, from: r.status, to: r.status, actor: actorOf(req), note: `Priority set to ${priority}` })
-      }
+      await recordEvents(tx, rows.map((r) => ({ orderId: r.order_id, from: r.status, to: r.status, actor: actorOf(req), note: `Priority set to ${priority}` })))
       return rows.length
     })
     res.json({ success: true, updated, message: `${updated} order(s) marked ${priority}.` })
@@ -636,15 +662,20 @@ router.post('/defer', requireRole(...PLANNING_ROLES), async (req, res) => {
   try {
     const results = await withTransaction(async (tx) => {
       const out = []
-      for (const orderId of orderIds) {
-        const [order] = await tx.query(
-          `SELECT o.order_id, o.outlet_id, o.status, o.target_delivery_date,
-                  (SELECT COUNT(*)::int FROM trip_stops ts WHERE ts.order_id = o.order_id) AS on_trip,
-                  (SELECT COUNT(*)::int FROM order_deferrals od WHERE od.order_id = o.order_id) AS prior,
-                  (SELECT MAX(next_scheduled_date) FROM order_deferrals od WHERE od.order_id = o.order_id) AS last_next
-           FROM orders o WHERE o.order_id = $1 FOR UPDATE`,
-          [orderId]
-        )
+      const ids = [...new Set(orderIds)]
+      const locked = await tx.query(
+        `SELECT o.order_id, o.outlet_id, o.status, o.target_delivery_date,
+                (SELECT COUNT(*)::int FROM trip_stops ts WHERE ts.order_id = o.order_id) AS on_trip,
+                (SELECT COUNT(*)::int FROM order_deferrals od WHERE od.order_id = o.order_id) AS prior,
+                (SELECT MAX(next_scheduled_date) FROM order_deferrals od WHERE od.order_id = o.order_id) AS last_next
+         FROM orders o WHERE o.order_id = ANY($1) ORDER BY o.order_id FOR UPDATE`,
+        [ids]
+      )
+      const byId = new Map(locked.map((o) => [o.order_id, o]))
+      const deferrals = []
+      const notes = new Map()
+      for (const orderId of ids) {
+        const order = byId.get(orderId)
         if (!order) throw httpError(404, `Order ${orderId} not found.`)
         if (order.status === 'submitted') {
           throw httpError(409, `${orderId} is still awaiting the order cutoff. Close intake for its date first.`)
@@ -660,15 +691,22 @@ router.post('/defer', requireRole(...PLANNING_ROLES), async (req, res) => {
         const count = order.prior + 1
         const text = explanation?.trim() || DEFERRAL_REASONS[reason]
 
-        await tx.query(
-          `INSERT INTO order_deferrals (order_id, outlet_id, planning_date, deferral_reason, explanation,
-             consecutive_deferral_count, next_scheduled_date, decided_by_user_id)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-          [orderId, order.outlet_id, planningDate, reason, text, count, nextDate, req.user.userId]
-        )
-        await transitionOrder(tx, orderId, 'deferred', actorOf(req), `${DEFERRAL_REASONS[reason]} — moved to ${nextDate}. ${text !== DEFERRAL_REASONS[reason] ? text : ''}`.trim())
+        deferrals.push({ orderId, outletId: order.outlet_id, planningDate, count, nextDate })
+        notes.set(orderId, `${DEFERRAL_REASONS[reason]} — moved to ${nextDate}. ${text !== DEFERRAL_REASONS[reason] ? text : ''}`.trim())
         out.push({ order_id: orderId, next_scheduled_date: nextDate, consecutive_deferral_count: count })
       }
+      const text = explanation?.trim() || DEFERRAL_REASONS[reason]
+      await tx.query(
+        `INSERT INTO order_deferrals (order_id, outlet_id, planning_date, deferral_reason, explanation,
+           consecutive_deferral_count, next_scheduled_date, decided_by_user_id)
+         SELECT d.order_id, d.outlet_id, d.planning_date, $5, $6, d.count, d.next_date, $7
+         FROM unnest($1::text[], $2::text[], $3::date[], $4::int[], $8::date[])
+              WITH ORDINALITY AS d(order_id, outlet_id, planning_date, count, next_date, n)
+         ORDER BY d.n`,
+        [deferrals.map((d) => d.orderId), deferrals.map((d) => d.outletId), deferrals.map((d) => d.planningDate),
+          deferrals.map((d) => d.count), reason, text, req.user.userId, deferrals.map((d) => d.nextDate)]
+      )
+      await transitionOrders(tx, ids, 'deferred', actorOf(req), (id) => notes.get(id))
       return out
     })
     const repeat = results.filter((r) => r.consecutive_deferral_count > 1).length
@@ -715,104 +753,105 @@ router.post('/:id/cancel', requireRole(STORE_MANAGER, ...PLANNING_ROLES), async 
 router.get('/:id', requireRole(STORE_MANAGER, ...PLANNING_ROLES), async (req, res) => {
   const orderId = req.params.id
   try {
-    await confirmDueOrders(sql)
-    const [order] = await sql.query(`${ORDER_LIST_SELECT} WHERE o.order_id = $1`, [orderId])
+    const isStore = isRole(req, STORE_MANAGER)
+    await ensureOrdersConfirmed(sql)
+
+    // Every query keys on the order id, so the order row, the outlet check and the details are
+    // fetched concurrently; nothing is sent until the order is found and the caller may see it.
+    const [[order], ctx, [outlet], items, events, deferrals, [plan], [creator], related, [delivery], [receipt], [loading], issues, tripProgress, [trip]] = await Promise.all([
+      sql.query(`${ORDER_LIST_SELECT} WHERE o.order_id = $1`, [orderId]),
+      isStore ? loadStoreContext(req.user.userId) : null,
+      sql.query(
+        `SELECT o.*, u.full_name AS manager_name, u.phone AS manager_phone
+         FROM outlets o
+         LEFT JOIN LATERAL (
+           SELECT full_name, phone FROM users WHERE outlet_id = o.outlet_id AND role = 'Store Manager'
+           ORDER BY created_at LIMIT 1
+         ) u ON true
+         WHERE o.outlet_id = (SELECT outlet_id FROM orders WHERE order_id = $1)`,
+        [orderId]
+      ),
+      sql.query(
+        `SELECT item_id, COALESCE(product_code, sku) AS product_code, product_name, COALESCE(unit, 'Case') AS unit,
+                temp_requirement, quantity_cases AS quantity,
+                weight_per_case_kg AS weight_per_unit, volume_per_case_m3 AS volume_per_unit,
+                total_item_weight_kg AS total_weight_kg, total_item_volume_m3 AS total_volume_m3
+         FROM order_items WHERE order_id = $1 ORDER BY item_id`,
+        [orderId]
+      ),
+      sql.query(
+        `SELECT e.event_id, e.from_status, e.to_status, e.actor_role, e.note, e.created_at, u.full_name AS actor_name
+         FROM order_status_events e LEFT JOIN users u ON u.user_id = e.actor_user_id
+         WHERE e.order_id = $1 ORDER BY e.created_at, e.event_id`,
+        [orderId]
+      ),
+      sql.query(
+        `SELECT d.deferral_reason, d.explanation, d.planning_date, d.next_scheduled_date,
+                d.consecutive_deferral_count, d.created_at, u.full_name AS decided_by
+         FROM order_deferrals d LEFT JOIN users u ON u.user_id = d.decided_by_user_id
+         WHERE d.order_id = $1 ORDER BY d.created_at`,
+        [orderId]
+      ),
+      sql.query(
+        `SELECT t.trip_id, t.vehicle_id, t.trip_number, t.status AS trip_status, t.planned_departure_time,
+                v.type AS vehicle_type, v.temp AS vehicle_temp, v.weight_cap_kg, v.volume_cap_m3,
+                du.full_name AS driver_name, du.phone AS driver_phone, t.dispatched_at, ts.stop_sequence, ts.loading_sequence,
+                ts.planned_arrival_time, ts.status AS stop_status
+         FROM trip_stops ts
+         JOIN trips t ON t.trip_id = ts.trip_id
+         JOIN vehicles v ON v.vehicle_id = t.vehicle_id
+         LEFT JOIN users du ON du.user_id = COALESCE(t.driver_user_id, (SELECT dv.user_id FROM users dv WHERE dv.assigned_vehicle_id = t.vehicle_id AND dv.role = 'Driver' ORDER BY dv.created_at LIMIT 1))
+         WHERE ts.order_id = $1`,
+        [orderId]
+      ),
+      sql.query(
+        `SELECT u.full_name, u.role FROM orders o JOIN users u ON u.user_id = o.created_by_user_id WHERE o.order_id = $1`,
+        [orderId]
+      ),
+      sql.query(
+        `SELECT order_id, temp_requirement, status FROM orders
+         WHERE order_group_id = (SELECT order_group_id FROM orders WHERE order_id = $1) AND order_id <> $1`,
+        [orderId]
+      ),
+      sql.query(
+        `SELECT outcome, actual_arrival_time, actual_departure_time, handling_duration_min, is_late, lateness_minutes,
+                received_by_name, driver_notes, recorded_offline, synced_at, proof_photo_data AS proof_photo
+         FROM delivery_records WHERE order_id = $1`,
+        [orderId]
+      ),
+      sql.query(
+        `SELECT r.receipt_status, r.received_cases, r.damaged_cases, r.missing_cases, r.temp_check_celsius,
+                r.manager_notes, r.line_details, r.confirmed_at, u.full_name AS confirmed_by
+         FROM receipt_confirmations r LEFT JOIN users u ON u.user_id = r.manager_user_id WHERE r.order_id = $1`,
+        [orderId]
+      ),
+      sql.query(
+        `SELECT shortfall_flag, shortfall_units, shortfall_reason, issue_type, item_name, notes, verified_at
+         FROM loading_verifications WHERE order_id = $1 ORDER BY verified_at DESC LIMIT 1`,
+        [orderId]
+      ),
+      sql.query(
+        `SELECT i.issue_id, i.reported_by_role, i.issue_category, i.severity, i.description, i.resolution_status,
+                i.resolution_notes, i.reported_at, u.full_name AS reported_by
+         FROM operational_issues i LEFT JOIN users u ON u.user_id = i.reported_by_user_id
+         WHERE i.related_order_id = $1 ORDER BY i.reported_at DESC`,
+        [orderId]
+      ),
+      // Progress of the trip carrying this order — sequence and status only, no other outlets' details.
+      // Both are empty when the order is not on a trip.
+      sql.query(
+        `SELECT stop_sequence, status, planned_arrival_time, actual_arrival_time, (order_id = $1) AS is_this_order
+         FROM trip_stops WHERE trip_id = (SELECT trip_id FROM trip_stops WHERE order_id = $1) ORDER BY stop_sequence`,
+        [orderId]
+      ),
+      sql.query(
+        `SELECT status, dispatched_at, completed_at, delivery_date FROM trips
+         WHERE trip_id = (SELECT trip_id FROM trip_stops WHERE order_id = $1)`,
+        [orderId]
+      ),
+    ])
     if (!order) return res.status(404).json({ error: `Order ${orderId} not found.` })
-
-    if (isRole(req, STORE_MANAGER)) {
-      const ctx = await loadStoreContext(req.user.userId)
-      if (order.outlet_id !== ctx.outlet_id) return res.status(403).json({ error: 'This order belongs to another outlet.' })
-    }
-
-    const [outlet] = await sql.query(
-      `SELECT o.*, u.full_name AS manager_name, u.phone AS manager_phone
-       FROM outlets o
-       LEFT JOIN LATERAL (
-         SELECT full_name, phone FROM users WHERE outlet_id = o.outlet_id AND role = 'Store Manager'
-         ORDER BY created_at LIMIT 1
-       ) u ON true
-       WHERE o.outlet_id = $1`,
-      [order.outlet_id]
-    )
-    const items = await sql.query(
-      `SELECT item_id, COALESCE(product_code, sku) AS product_code, product_name, COALESCE(unit, 'Case') AS unit,
-              temp_requirement, quantity_cases AS quantity,
-              weight_per_case_kg AS weight_per_unit, volume_per_case_m3 AS volume_per_unit,
-              total_item_weight_kg AS total_weight_kg, total_item_volume_m3 AS total_volume_m3
-       FROM order_items WHERE order_id = $1 ORDER BY item_id`,
-      [orderId]
-    )
-    const events = await sql.query(
-      `SELECT e.event_id, e.from_status, e.to_status, e.actor_role, e.note, e.created_at, u.full_name AS actor_name
-       FROM order_status_events e LEFT JOIN users u ON u.user_id = e.actor_user_id
-       WHERE e.order_id = $1 ORDER BY e.created_at, e.event_id`,
-      [orderId]
-    )
-    const deferrals = await sql.query(
-      `SELECT d.deferral_reason, d.explanation, d.planning_date, d.next_scheduled_date,
-              d.consecutive_deferral_count, d.created_at, u.full_name AS decided_by
-       FROM order_deferrals d LEFT JOIN users u ON u.user_id = d.decided_by_user_id
-       WHERE d.order_id = $1 ORDER BY d.created_at`,
-      [orderId]
-    )
-    const [plan] = await sql.query(
-      `SELECT t.trip_id, t.vehicle_id, t.trip_number, t.status AS trip_status, t.planned_departure_time,
-              v.type AS vehicle_type, v.temp AS vehicle_temp, v.weight_cap_kg, v.volume_cap_m3,
-              du.full_name AS driver_name, du.phone AS driver_phone, t.dispatched_at, ts.stop_sequence, ts.loading_sequence,
-              ts.planned_arrival_time, ts.status AS stop_status
-       FROM trip_stops ts
-       JOIN trips t ON t.trip_id = ts.trip_id
-       JOIN vehicles v ON v.vehicle_id = t.vehicle_id
-       LEFT JOIN users du ON du.user_id = COALESCE(t.driver_user_id, (SELECT dv.user_id FROM users dv WHERE dv.assigned_vehicle_id = t.vehicle_id AND dv.role = 'Driver' ORDER BY dv.created_at LIMIT 1))
-       WHERE ts.order_id = $1`,
-      [orderId]
-    )
-    const [creator] = await sql.query(
-      `SELECT u.full_name, u.role FROM orders o JOIN users u ON u.user_id = o.created_by_user_id WHERE o.order_id = $1`,
-      [orderId]
-    )
-    const related = order.order_group_id
-      ? await sql.query(
-        `SELECT order_id, temp_requirement, status FROM orders WHERE order_group_id = $1 AND order_id <> $2`,
-        [order.order_group_id, orderId]
-      )
-      : []
-
-    const [delivery] = await sql.query(
-      `SELECT outcome, actual_arrival_time, actual_departure_time, handling_duration_min, is_late, lateness_minutes,
-              received_by_name, driver_notes, recorded_offline, synced_at, proof_photo_data AS proof_photo
-       FROM delivery_records WHERE order_id = $1`,
-      [orderId]
-    )
-    const [receipt] = await sql.query(
-      `SELECT r.receipt_status, r.received_cases, r.damaged_cases, r.missing_cases, r.temp_check_celsius,
-              r.manager_notes, r.line_details, r.confirmed_at, u.full_name AS confirmed_by
-       FROM receipt_confirmations r LEFT JOIN users u ON u.user_id = r.manager_user_id WHERE r.order_id = $1`,
-      [orderId]
-    )
-    const [loading] = await sql.query(
-      `SELECT shortfall_flag, shortfall_units, shortfall_reason, issue_type, item_name, notes, verified_at
-       FROM loading_verifications WHERE order_id = $1 ORDER BY verified_at DESC LIMIT 1`,
-      [orderId]
-    )
-    // Progress of the trip carrying this order — sequence and status only, no other outlets' details.
-    const tripProgress = plan
-      ? await sql.query(
-        `SELECT stop_sequence, status, planned_arrival_time, actual_arrival_time, (order_id = $2) AS is_this_order
-         FROM trip_stops WHERE trip_id = $1 ORDER BY stop_sequence`,
-        [plan.trip_id, orderId]
-      )
-      : []
-    const [trip] = plan
-      ? await sql.query('SELECT status, dispatched_at, completed_at, delivery_date FROM trips WHERE trip_id = $1', [plan.trip_id])
-      : []
-    const issues = await sql.query(
-      `SELECT i.issue_id, i.reported_by_role, i.issue_category, i.severity, i.description, i.resolution_status,
-              i.resolution_notes, i.reported_at, u.full_name AS reported_by
-       FROM operational_issues i LEFT JOIN users u ON u.user_id = i.reported_by_user_id
-       WHERE i.related_order_id = $1 ORDER BY i.reported_at DESC`,
-      [orderId]
-    )
+    if (isStore && order.outlet_id !== ctx.outlet_id) return res.status(403).json({ error: 'This order belongs to another outlet.' })
 
     res.json({
       order, outlet, items, events, deferrals, plan: plan || null, created_by: creator || null, related_orders: related,

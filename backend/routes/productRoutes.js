@@ -36,10 +36,8 @@ router.get('/', async (req, res) => {
 
     query += ` ORDER BY ${safeSort} ${safeOrder}`
 
-    const products = await sql.query(query, params)
-
-    // Summary statistics
-    const statsRes = await sql.query(`
+    // Products and summary statistics are independent, so both queries run at once.
+    const [products, statsRes] = await Promise.all([sql.query(query, params), sql.query(`
       SELECT 
         COUNT(*) as total,
         COUNT(CASE WHEN brand = 'Fresh' THEN 1 END) as fresh_count,
@@ -50,7 +48,7 @@ router.get('/', async (req, res) => {
         ROUND(AVG(weight_per_unit)::numeric, 2) as avg_weight,
         ROUND(AVG(volume_per_unit)::numeric, 4) as avg_volume
       FROM products
-    `)
+    `)])
 
     res.json({
       success: true,

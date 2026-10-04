@@ -361,6 +361,23 @@ const MIGRATIONS = [
   `CREATE INDEX IF NOT EXISTS idx_trips_driver ON trips (driver_user_id, delivery_date);`,
   `ALTER TABLE receipt_confirmations ADD COLUMN IF NOT EXISTS line_details JSONB;`,
   `CREATE INDEX IF NOT EXISTS idx_issues_open ON operational_issues (resolution_status, reported_at);`,
+  // Lookup indexes for the foreign keys and filters the order, trip and planner screens use
+  // (Postgres does not index foreign-key columns on its own).
+  `CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items (order_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_orders_status_cutoff ON orders (status, cutoff_time);`,
+  `CREATE INDEX IF NOT EXISTS idx_orders_status_target_date ON orders (status, target_delivery_date);`,
+  `CREATE INDEX IF NOT EXISTS idx_orders_created ON orders (created_at DESC, order_id DESC);`,
+  `CREATE INDEX IF NOT EXISTS idx_orders_creator_status ON orders (created_by_user_id, status);`,
+  `CREATE INDEX IF NOT EXISTS idx_orders_group ON orders (order_group_id) WHERE order_group_id IS NOT NULL;`,
+  `CREATE INDEX IF NOT EXISTS idx_trip_stops_trip_status ON trip_stops (trip_id, status);`,
+  `CREATE INDEX IF NOT EXISTS idx_trips_vehicle_date ON trips (vehicle_id, delivery_date);`,
+  `CREATE INDEX IF NOT EXISTS idx_trips_depot_date ON trips (depot, delivery_date);`,
+  `CREATE INDEX IF NOT EXISTS idx_loading_verifications_trip ON loading_verifications (trip_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_loading_verifications_order ON loading_verifications (order_id, verified_at);`,
+  `CREATE INDEX IF NOT EXISTS idx_operational_issues_trip ON operational_issues (related_trip_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_operational_issues_order ON operational_issues (related_order_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_users_assigned_vehicle ON users (assigned_vehicle_id, role, status);`,
+  `CREATE INDEX IF NOT EXISTS idx_users_outlet ON users (outlet_id, role);`,
   // Repair accounts unlinked by the old user-update bug: the facility label written at creation
   // ("Store OUT101 - …", "… Fleet Hub (VEH012)") still names the outlet / vehicle.
   `UPDATE users u SET outlet_id = substring(u.facility from 'Store (OUT[0-9]{3})')

@@ -2,7 +2,7 @@ const express = require('express')
 const { sql, withTransaction } = require('../db')
 const { verifyToken, requireRole } = require('../middleware/auth')
 const { DEFERRAL_REASONS } = require('../services/orderStatus')
-const { addDays, confirmDueOrders } = require('../services/orderSchedule')
+const { addDays, ensureOrdersConfirmed } = require('../services/orderSchedule')
 const { toTime } = require('../services/planner/engine')
 const {
   PlanError,
@@ -72,8 +72,14 @@ const stopView = (stop, order) => ({
 router.get('/:date', async (req, res) => {
   const { date } = req.params
   try {
-    await confirmDueOrders(sql)
-    const state = await loadState(sql, date)
+    await ensureOrdersConfirmed(sql)
+    const [state, [{ awaiting }]] = await Promise.all([
+      loadState(sql, date),
+      sql.query(
+        `SELECT COUNT(*)::int AS awaiting FROM orders WHERE target_delivery_date = $1 AND status = 'submitted'`,
+        [date]
+      ),
+    ])
     const reasons = state.plan?.unscheduled || {}
 
     const tripsByVehicle = new Map()
@@ -135,10 +141,6 @@ router.get('/:date', async (req, res) => {
       explanation: u.explanation,
     })).map(({ arrival, departure, handling_min, late, ...rest }) => rest)
 
-    const [{ awaiting }] = await sql.query(
-      `SELECT COUNT(*)::int AS awaiting FROM orders WHERE target_delivery_date = $1 AND status = 'submitted'`,
-      [date]
-    )
     const planned = vehicles.reduce((n, v) => n + v.trips.reduce((m, t) => m + t.stops.length, 0), 0)
 
     res.json({
