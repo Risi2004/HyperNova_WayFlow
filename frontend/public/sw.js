@@ -1,7 +1,15 @@
 // WayFlow service worker: keeps the app shell available without signal.
 // API data is not cached here — the driver screens keep their own copy in IndexedDB.
-const CACHE = 'wayflow-shell-v1'
-const SHELL = ['/', '/index.html']
+const CACHE = 'wayflow-shell-v2'
+const SHELL = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/favicon.png',
+  '/favicon.svg',
+  '/pwa-192x192.png',
+  '/pwa-512x512.png',
+]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting()))
