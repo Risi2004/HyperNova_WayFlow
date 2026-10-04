@@ -4,6 +4,7 @@ import depotIcon from '../../../assets/icons/depot.svg'
 import refrigeratedIcon from '../../../assets/icons/refrigerated.svg'
 import deleteIcon from '../../../assets/icons/delete.svg'
 import { formatDate, formatTime } from '../../../utils/orderFormat'
+import PlannerRouteMap from './PlannerRouteMap'
 
 const vehicleLabel = (v) => `${v.vehicle_id} - ${v.temp === 'reefer' ? 'Refrigerated' : 'Dry'} ${v.type === 'van' ? 'Van' : 'Truck'}`
 const hm = (min) => `${Math.floor(min / 60)}h ${String(min % 60).padStart(2, '0')}m`
@@ -19,40 +20,6 @@ const CHECKS = [
   ['access', 'Outlet access OK', 'Van-only outlet on a truck'],
 ]
 
-// Stop markers spread along a gentle curve for the route sketch.
-function FlowDiagram({ stops, depot }) {
-  const pts = stops.map((_, i) => {
-    const x = stops.length === 1 ? 330 : 150 + (i * 410) / (stops.length - 1)
-    return [Math.round(x), [50, 78, 66, 42, 70, 56][i % 6]]
-  })
-  const d = ['M60 95', ...pts.map(([x, y]) => `L${x} ${y}`)].join(' ')
-  return (
-    <div className="route-flow-diagram-container">
-      <svg className="route-flow-svg" viewBox="0 0 600 130" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M40 70 Q140 20 250 50 Q360 80 470 40 Q550 20 580 80 L580 120 L40 120 Z" fill="#f0fdf4" opacity="0.6" />
-        <path d="M300 80 Q400 40 500 70 Q580 100 600 80 L600 120 L300 120 Z" fill="#eff6ff" opacity="0.5" />
-        <path d={d} stroke="#2563eb" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-        <g transform="translate(60, 95)">
-          <circle r="12" fill="#1e293b" />
-          <rect x="-6" y="-6" width="12" height="12" rx="2" fill="#ffffff" />
-          <rect x="-4" y="-4" width="8" height="8" rx="1" fill="#1e293b" />
-        </g>
-        {pts.map(([x, y], i) => (
-          <g key={i} transform={`translate(${x}, ${y})`}>
-            <circle r="11" fill="#1d4ed8" stroke="#ffffff" strokeWidth="2.5" />
-            <text x="0" y="4" textAnchor="middle" fill="#ffffff" fontSize="10" fontWeight="bold">
-              {i + 1}
-            </text>
-          </g>
-        ))}
-      </svg>
-      <div className="flow-diagram-caption">
-        <span className="depot-key-legend">■ {depot} Depot</span>
-        <span className="caption-text">Numbered markers show stop order (tightest delivery window first)</span>
-      </div>
-    </div>
-  )
-}
 
 export default function TodaysPlanColumn({
   date,
@@ -385,7 +352,7 @@ export default function TodaysPlanColumn({
                 })}
               </div>
 
-              <FlowDiagram stops={trip.stops} depot={vehicle.depot} />
+              <PlannerRouteMap stops={trip.stops} depot={vehicle.depot} trip={trip} />
 
               {/* Trip Timing Metric Row */}
               <div className="trip-metrics-row">
