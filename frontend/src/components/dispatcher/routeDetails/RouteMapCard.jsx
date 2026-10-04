@@ -40,9 +40,16 @@ function createStopIcon(number, isCompleted = false) {
 function MapBoundsController({ coordinates }) {
   const map = useMap()
   useEffect(() => {
+    map.invalidateSize()
     if (coordinates && coordinates.length > 0) {
       const bounds = L.latLngBounds(coordinates)
       map.fitBounds(bounds, { padding: [25, 25], maxZoom: 13 })
+    }
+    const t1 = setTimeout(() => map.invalidateSize(), 150)
+    const t2 = setTimeout(() => map.invalidateSize(), 500)
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
     }
   }, [coordinates, map])
   return null

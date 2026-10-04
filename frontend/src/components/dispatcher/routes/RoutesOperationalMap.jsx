@@ -67,11 +67,13 @@ function MapBoundsController() {
       { padding: [35, 35], maxZoom: 13 }
     )
 
-    const timer = setTimeout(() => {
-      map.invalidateSize()
-    }, 200)
+    const t1 = setTimeout(() => map.invalidateSize(), 150)
+    const t2 = setTimeout(() => map.invalidateSize(), 500)
 
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+    }
   }, [map])
 
   return null

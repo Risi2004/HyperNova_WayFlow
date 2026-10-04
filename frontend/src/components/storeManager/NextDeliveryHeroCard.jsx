@@ -1,4 +1,5 @@
-import { MapContainer, TileLayer, Marker, Polyline, Popup, Circle } from 'react-leaflet'
+import { useEffect } from 'react'
+import { MapContainer, TileLayer, Marker, Polyline, Popup, Circle, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -51,6 +52,23 @@ const storeIcon = new L.DivIcon({
   iconSize: [30, 30],
   iconAnchor: [15, 15],
 })
+
+function MapFitController({ bounds }) {
+  const map = useMap()
+  useEffect(() => {
+    map.invalidateSize()
+    if (bounds && bounds.length > 0) {
+      map.fitBounds(bounds, { padding: [20, 20], maxZoom: 15 })
+    }
+    const t1 = setTimeout(() => map.invalidateSize(), 150)
+    const t2 = setTimeout(() => map.invalidateSize(), 500)
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+    }
+  }, [map, bounds])
+  return null
+}
 
 // Coordinates: truck at Havelock Road → store at Colombo 05
 const TRUCK_POS = [6.8990, 79.8580]   // Havelock Road junction
@@ -174,6 +192,7 @@ export default function NextDeliveryHeroCard({
               attributionControl={false}
               dragging={false}
             >
+              <MapFitController bounds={[TRUCK_POS, STORE_POS]} />
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
               {/* Route polyline */}

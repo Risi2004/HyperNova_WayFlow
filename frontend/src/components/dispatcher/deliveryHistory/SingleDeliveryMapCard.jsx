@@ -41,9 +41,16 @@ const outletDeliveredIcon = L.divIcon({
 function MapBoundsController({ points }) {
   const map = useMap()
   useEffect(() => {
+    map.invalidateSize()
     if (points && points.length > 0) {
       const bounds = L.latLngBounds(points)
       map.fitBounds(bounds, { padding: [35, 35], maxZoom: 14 })
+    }
+    const t1 = setTimeout(() => map.invalidateSize(), 150)
+    const t2 = setTimeout(() => map.invalidateSize(), 500)
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
     }
   }, [points, map])
   return null
