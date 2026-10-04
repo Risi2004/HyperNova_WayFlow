@@ -15,9 +15,18 @@ let sql = null
 if (databaseUrl) {
   try {
     // Works for both Neon (sslmode=require in the URL) and a plain Postgres container (Docker Compose).
+    // Opening a TLS connection to a remote database costs well over a second, so connections are
+    // kept open instead of being dropped after pg's default 10 s idle timeout. `min` connections
+    // are never closed for idleness; TCP keep-alive stops load balancers silently dropping them.
+    const max = Number(process.env.DB_POOL_MAX || 20)
     pool = new Pool({
       connectionString: databaseUrl,
-      max: Number(process.env.DB_POOL_MAX || 10),
+      max,
+      min: Math.min(max, Number(process.env.DB_POOL_MIN || 10)),
+      idleTimeoutMillis: Number(process.env.DB_POOL_IDLE_MS || 300000),
+      connectionTimeoutMillis: 15000,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10000,
     })
     pool.on('error', (err) => console.error('Postgres pool error:', err.message))
 
@@ -51,6 +60,14 @@ async function withTransaction(fn) {
   }
 }
 
+// Opens the pool's minimum connections up front so the first requests don't each pay the
+// connection handshake.
+async function warmPool() {
+  if (!pool) return
+  const clients = await Promise.all(Array.from({ length: pool.options.min }, () => pool.connect()))
+  clients.forEach((c) => c.release())
+}
+
 async function testConnection() {
   if (!sql) {
     return {
@@ -78,5 +95,6 @@ module.exports = {
   sql,
   pool,
   withTransaction,
+  warmPool,
   testConnection,
 }

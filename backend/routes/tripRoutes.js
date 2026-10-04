@@ -1,7 +1,7 @@
 const express = require('express')
 const { sql, withTransaction } = require('../db')
 const { verifyToken, requireRole } = require('../middleware/auth')
-const { transitionOrder } = require('../services/orderStatus')
+const { transitionOrder, transitionOrders } = require('../services/orderStatus')
 const { toColomboParts, now } = require('../services/orderSchedule')
 
 // Trips after the plan is published: loaders verify and load them, drivers run them.
@@ -55,10 +55,13 @@ async function depotOf(req) {
 
 // Loads a trip and checks the caller may act on it.
 async function loadTrip(db, req, tripId, { forUpdate = false } = {}) {
-  const [trip] = await db.query(`SELECT * FROM trips WHERE trip_id = $1 ${forUpdate ? 'FOR UPDATE' : ''}`, [tripId])
+  const isDriver = isRole(req, 'Driver')
+  const [[trip], [u]] = await Promise.all([
+    db.query(`SELECT * FROM trips WHERE trip_id = $1 ${forUpdate ? 'FOR UPDATE' : ''}`, [tripId]),
+    isDriver ? db.query('SELECT assigned_vehicle_id FROM users WHERE user_id = $1', [req.user.userId]) : [],
+  ])
   if (!trip || trip.status === 'draft') throw httpError(404, `Trip ${tripId} not found.`)
-  if (isRole(req, 'Driver')) {
-    const [u] = await db.query('SELECT assigned_vehicle_id FROM users WHERE user_id = $1', [req.user.userId])
+  if (isDriver) {
     if (trip.driver_user_id !== req.user.userId && trip.vehicle_id !== u?.assigned_vehicle_id) {
       throw httpError(403, 'This trip is assigned to another driver.')
     }
@@ -96,20 +99,25 @@ router.get('/', requireRole(...OPS), async (req, res) => {
   try {
     const depot = await depotOf(req)
     const today = toColomboParts(now()).date
-    const dates = await sql.query(
-      `SELECT DISTINCT delivery_date AS date FROM trips
-       WHERE status <> 'draft' AND ($1::text IS NULL OR depot = $1) AND delivery_date >= ($2::date - 7)
-       ORDER BY delivery_date LIMIT 14`,
-      [depot, today]
-    )
-    const dateList = dates.map((d) => d.date)
-    const date = req.query.date || dateList.find((d) => d >= today) || dateList[dateList.length - 1] || today
-    const trips = await sql.query(
+    const tripsFor = (date) => sql.query(
       `${TRIP_LIST_SELECT}
        WHERE t.status <> 'draft' AND t.delivery_date = $1 AND ($2::text IS NULL OR t.depot = $2)
        ORDER BY t.planned_departure_time, t.vehicle_id, t.trip_number`,
       [date, depot]
     )
+    // With an explicit date the trip list doesn't depend on the date list, so both run at once.
+    const [dates, requestedTrips] = await Promise.all([
+      sql.query(
+        `SELECT DISTINCT delivery_date AS date FROM trips
+         WHERE status <> 'draft' AND ($1::text IS NULL OR depot = $1) AND delivery_date >= ($2::date - 7)
+         ORDER BY delivery_date LIMIT 14`,
+        [depot, today]
+      ),
+      req.query.date ? tripsFor(req.query.date) : null,
+    ])
+    const dateList = dates.map((d) => d.date)
+    const date = req.query.date || dateList.find((d) => d >= today) || dateList[dateList.length - 1] || today
+    const trips = requestedTrips || await tripsFor(date)
 
     const metrics = {
       active: trips.filter((t) => t.status === 'dispatched' || (t.completed_stops > 0 && t.completed_stops < t.stops)).length,
@@ -130,14 +138,17 @@ router.get('/', requireRole(...OPS), async (req, res) => {
 // GET /api/trips/mine — the signed-in driver's trips (by assignment or by their vehicle).
 router.get('/mine', requireRole('Driver'), async (req, res) => {
   try {
-    const [u] = await sql.query('SELECT assigned_vehicle_id FROM users WHERE user_id = $1', [req.user.userId])
-    const trips = await sql.query(
-      `${TRIP_LIST_SELECT}
-       WHERE t.status <> 'draft' AND (t.driver_user_id = $1 OR t.vehicle_id = $2)
-       ORDER BY t.delivery_date DESC, t.trip_number
-       LIMIT 60`,
-      [req.user.userId, u?.assigned_vehicle_id || null]
-    )
+    const [[u], trips] = await Promise.all([
+      sql.query('SELECT assigned_vehicle_id FROM users WHERE user_id = $1', [req.user.userId]),
+      sql.query(
+        `${TRIP_LIST_SELECT}
+         WHERE t.status <> 'draft'
+           AND (t.driver_user_id = $1 OR t.vehicle_id = (SELECT assigned_vehicle_id FROM users WHERE user_id = $1))
+         ORDER BY t.delivery_date DESC, t.trip_number
+         LIMIT 60`,
+        [req.user.userId]
+      ),
+    ])
     res.json({ vehicle_id: u?.assigned_vehicle_id || null, today: toColomboParts(now()).date, trips })
   } catch (err) {
     sendError(res, err, 'Failed to load your trips')
@@ -147,9 +158,12 @@ router.get('/mine', requireRole('Driver'), async (req, res) => {
 // GET /api/trips/:tripId — trip with stops, items, loading checks, delivery records and issues.
 router.get('/:tripId', async (req, res) => {
   try {
-    const trip = await loadTrip(sql, req, req.params.tripId)
-    const [summary] = await sql.query(`${TRIP_LIST_SELECT} WHERE t.trip_id = $1`, [trip.trip_id])
-    const stops = await sql.query(
+    const tripId = req.params.tripId
+    // The access check runs alongside the reads; nothing is sent unless it passes.
+    const [, [summary], stops, items, issues] = await Promise.all([
+      loadTrip(sql, req, tripId),
+      sql.query(`${TRIP_LIST_SELECT} WHERE t.trip_id = $1`, [tripId]),
+      sql.query(
       `SELECT s.stop_id, s.order_id, s.stop_sequence, s.loading_sequence, s.to_outlet_id AS outlet_id,
               s.distance_km, s.planned_arrival_time, s.planned_departure_time, s.planned_handling_min,
               s.actual_arrival_time, s.actual_departure_time, s.status AS stop_status,
@@ -171,21 +185,22 @@ router.get('/:tripId', async (req, res) => {
        LEFT JOIN delivery_records dr ON dr.order_id = s.order_id
        WHERE s.trip_id = $1
        ORDER BY s.stop_sequence`,
-      [trip.trip_id]
-    )
-    const items = await sql.query(
-      `SELECT order_id, item_id, COALESCE(product_code, sku) AS product_code, product_name, COALESCE(unit, 'Case') AS unit,
-              temp_requirement, quantity_cases AS quantity
-       FROM order_items WHERE order_id = ANY($1) ORDER BY order_id, item_id`,
-      [stops.map((s) => s.order_id)]
-    )
-    const issues = await sql.query(
-      `SELECT i.issue_id, i.reported_by_role, i.related_order_id, i.issue_category, i.severity, i.impact,
-              i.description, i.resolution_status, i.reported_at, u.full_name AS reported_by
-       FROM operational_issues i LEFT JOIN users u ON u.user_id = i.reported_by_user_id
-       WHERE i.related_trip_id = $1 ORDER BY i.reported_at DESC`,
-      [trip.trip_id]
-    )
+        [tripId]
+      ),
+      sql.query(
+        `SELECT order_id, item_id, COALESCE(product_code, sku) AS product_code, product_name, COALESCE(unit, 'Case') AS unit,
+                temp_requirement, quantity_cases AS quantity
+         FROM order_items WHERE order_id IN (SELECT order_id FROM trip_stops WHERE trip_id = $1) ORDER BY order_id, item_id`,
+        [tripId]
+      ),
+      sql.query(
+        `SELECT i.issue_id, i.reported_by_role, i.related_order_id, i.issue_category, i.severity, i.impact,
+                i.description, i.resolution_status, i.reported_at, u.full_name AS reported_by
+         FROM operational_issues i LEFT JOIN users u ON u.user_id = i.reported_by_user_id
+         WHERE i.related_trip_id = $1 ORDER BY i.reported_at DESC`,
+        [tripId]
+      ),
+    ])
     res.json({
       trip: summary,
       stops: stops.map((s) => ({ ...s, items: items.filter((i) => i.order_id === s.order_id) })),
@@ -207,7 +222,7 @@ async function beginLoading(tx, trip, actor) {
      WHERE s.trip_id = $1 AND o.status = 'planned'`,
     [trip.trip_id]
   )
-  for (const o of orders) await transitionOrder(tx, o.order_id, 'loading', actor, `Loading started on ${trip.vehicle_id}`)
+  await transitionOrders(tx, orders.map((o) => o.order_id), 'loading', actor, `Loading started on ${trip.vehicle_id}`)
 }
 
 // POST /api/trips/:tripId/loading/verify — mark one order loaded, or loaded short with details.
@@ -272,14 +287,15 @@ router.post('/:tripId/loading/complete', requireRole('Loader', 'Dispatcher', 'Ad
       const pending = rows.filter((r) => !r.verification_id)
       if (pending.length) throw httpError(409, `Check every order before completing: ${pending.map((r) => r.order_id).join(', ')} not yet loaded.`)
       await beginLoading(tx, trip, actorOf(req))
-      let shorts = 0
-      for (const r of rows) {
-        const [o] = await tx.query('SELECT status FROM orders WHERE order_id = $1', [r.order_id])
-        if (o.status !== 'loading') continue
-        if (r.shortfall_flag) shorts++
-        await transitionOrder(tx, r.order_id, r.shortfall_flag ? 'shortfall' : 'loaded', actorOf(req),
-          r.shortfall_flag ? 'Loaded short — see the loading issue' : `Loaded on ${trip.vehicle_id}`)
-      }
+      // Status re-read after beginLoading, which may just have moved orders into 'loading'.
+      const current = await tx.query('SELECT order_id, status FROM orders WHERE order_id = ANY($1)', [rows.map((r) => r.order_id)])
+      const statusOf = new Map(current.map((o) => [o.order_id, o.status]))
+      const inLoading = rows.filter((r) => statusOf.get(r.order_id) === 'loading')
+      const shortIds = inLoading.filter((r) => r.shortfall_flag).map((r) => r.order_id)
+      const loadedIds = inLoading.filter((r) => !r.shortfall_flag).map((r) => r.order_id)
+      const shorts = shortIds.length
+      await transitionOrders(tx, shortIds, 'shortfall', actorOf(req), 'Loaded short — see the loading issue')
+      await transitionOrders(tx, loadedIds, 'loaded', actorOf(req), `Loaded on ${trip.vehicle_id}`)
       await tx.query(`UPDATE trips SET status = 'loaded', loading_completed_at = NOW() WHERE trip_id = $1`, [trip.trip_id])
       return { orders: rows.length, shorts }
     })
@@ -302,14 +318,11 @@ async function startTrip(tx, trip, actor, at) {
     `SELECT o.order_id, o.status FROM trip_stops s JOIN orders o ON o.order_id = s.order_id WHERE s.trip_id = $1`,
     [trip.trip_id]
   )
-  for (const o of orders) {
-    if (o.status === 'shortfall') {
-      await transitionOrder(tx, o.order_id, 'loaded', actor, 'Departing with the reported shortfall')
-      await transitionOrder(tx, o.order_id, 'dispatched', actor, `Departed on ${trip.vehicle_id} (short-loaded)`)
-    } else if (o.status === 'loaded') {
-      await transitionOrder(tx, o.order_id, 'dispatched', actor, `Departed on ${trip.vehicle_id}`)
-    }
-  }
+  const shortIds = new Set(orders.filter((o) => o.status === 'shortfall').map((o) => o.order_id))
+  const departing = orders.filter((o) => o.status === 'shortfall' || o.status === 'loaded').map((o) => o.order_id)
+  await transitionOrders(tx, [...shortIds], 'loaded', actor, 'Departing with the reported shortfall')
+  await transitionOrders(tx, departing, 'dispatched', actor, (id) =>
+    shortIds.has(id) ? `Departed on ${trip.vehicle_id} (short-loaded)` : `Departed on ${trip.vehicle_id}`)
   await tx.query(`UPDATE trips SET status = 'dispatched', dispatched_at = $2 WHERE trip_id = $1`, [trip.trip_id, at ? new Date(at) : now()])
   return true
 }

@@ -48,11 +48,15 @@ async function loadOperatingMap(db, fromDate, toDate) {
 }
 
 // Cutoff for a delivery date: 16:00 on the last operating day before it.
-async function cutoffFor(db, deliveryDate) {
-  const isOperating = await loadOperatingMap(db, addDays(deliveryDate, -14), deliveryDate)
+// isOperating must cover the 14 days before deliveryDate.
+function cutoffFrom(isOperating, deliveryDate) {
   let day = addDays(deliveryDate, -1)
   for (let i = 0; i < 14 && !isOperating(day); i++) day = addDays(day, -1)
   return colomboInstant(day, CUTOFF_HOUR)
+}
+
+async function cutoffFor(db, deliveryDate) {
+  return cutoffFrom(await loadOperatingMap(db, addDays(deliveryDate, -14), deliveryDate), deliveryDate)
 }
 
 async function closedDates(db, fromDate, toDate) {
@@ -66,9 +70,12 @@ async function closedDates(db, fromDate, toDate) {
 // Describes whether a store may still order for deliveryDate.
 async function intakeStatus(db, deliveryDate) {
   const today = toColomboParts(now()).date
-  const isOperating = await loadOperatingMap(db, deliveryDate, deliveryDate)
-  const cutoffAt = await cutoffFor(db, deliveryDate)
-  const closed = (await closedDates(db, deliveryDate, deliveryDate)).has(deliveryDate)
+  const [isOperating, closedSet] = await Promise.all([
+    loadOperatingMap(db, addDays(deliveryDate, -14), deliveryDate),
+    closedDates(db, deliveryDate, deliveryDate),
+  ])
+  const cutoffAt = cutoffFrom(isOperating, deliveryDate)
+  const closed = closedSet.has(deliveryDate)
 
   let reason = null
   if (deliveryDate <= today) reason = 'Delivery date must be after today.'
@@ -83,13 +90,16 @@ async function intakeStatus(db, deliveryDate) {
 async function deliveryOptions(db, count = 3) {
   const today = toColomboParts(now()).date
   const horizon = addDays(today, 21)
-  const isOperating = await loadOperatingMap(db, today, horizon)
-  const closed = await closedDates(db, today, horizon)
+  // One calendar read covers every candidate day and the 14 days before it (for its cutoff).
+  const [isOperating, closed] = await Promise.all([
+    loadOperatingMap(db, addDays(today, -14), horizon),
+    closedDates(db, today, horizon),
+  ])
   const options = []
 
   for (let day = addDays(today, 1); day <= horizon && options.length < count; day = addDays(day, 1)) {
     if (!isOperating(day) || closed.has(day)) continue
-    const cutoffAt = await cutoffFor(db, day)
+    const cutoffAt = cutoffFrom(isOperating, day)
     if (now() < cutoffAt) options.push({ date: day, cutoffAt })
   }
   return options
@@ -115,6 +125,57 @@ async function confirmDueOrders(db) {
   return rows.length
 }
 
+// Read paths call this instead of confirmDueOrders. Re-running the UPDATE on every request
+// costs a database round trip each time, so the result is reused until either the earliest
+// remaining cutoff passes or CONFIRM_RECHECK_MS elapses (which also picks up intake closures
+// made by another server instance). Concurrent callers share one in-flight run.
+const CONFIRM_RECHECK_MS = 15000
+let confirmCache = { checkedAt: 0, nextDueAt: null, inFlight: null }
+
+function invalidateConfirmCache() {
+  confirmCache = { checkedAt: 0, nextDueAt: null, inFlight: null }
+}
+
+async function ensureOrdersConfirmed(db) {
+  const c = confirmCache
+  if (c.inFlight) return c.inFlight
+  const current = now().getTime()
+  const fresh = Date.now() - c.checkedAt < CONFIRM_RECHECK_MS
+  if (fresh && (c.nextDueAt === null || current < c.nextDueAt)) return 0
+
+  const run = (async () => {
+    const at = now()
+    const [row] = await db.query(
+      `WITH due AS (
+         UPDATE orders SET status = 'confirmed', updated_at = NOW()
+         WHERE status = 'submitted'
+           AND (cutoff_time <= $1
+                OR target_delivery_date IN (SELECT delivery_date FROM order_intake_closures))
+         RETURNING order_id
+       ), logged AS (
+         INSERT INTO order_status_events (order_id, from_status, to_status, actor_role, note)
+         SELECT order_id, 'submitted', 'confirmed', 'System', 'Order intake closed — order confirmed for planning'
+         FROM due
+         RETURNING order_id
+       )
+       SELECT (SELECT COUNT(*) FROM logged)::int AS confirmed,
+              (SELECT MIN(cutoff_time) FROM orders WHERE status = 'submitted' AND cutoff_time > $1) AS next_due`,
+      [at]
+    )
+    if (confirmCache === c) {
+      c.checkedAt = Date.now()
+      c.nextDueAt = row.next_due ? new Date(row.next_due).getTime() : null
+    }
+    return row.confirmed
+  })()
+  c.inFlight = run
+  try {
+    return await run
+  } finally {
+    c.inFlight = null
+  }
+}
+
 module.exports = {
   CUTOFF_HOUR,
   now,
@@ -124,4 +185,6 @@ module.exports = {
   intakeStatus,
   deliveryOptions,
   confirmDueOrders,
+  ensureOrdersConfirmed,
+  invalidateConfirmCache,
 }

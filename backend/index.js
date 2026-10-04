@@ -1,7 +1,7 @@
 require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
-const { sql, testConnection } = require('./db')
+const { sql, warmPool, testConnection } = require('./db')
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -167,6 +167,7 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
   const dbStatus = await testConnection()
   if (dbStatus.connected) {
     console.log(`\x1b[32m✔ Successfully connected to Neon PostgreSQL database!\x1b[0m\n`)
+    warmPool().catch((err) => console.error('Failed to warm the database pool:', err.message))
   } else {
     console.log(`\x1b[33mℹ️  Neon DB not connected yet: ${dbStatus.error || dbStatus.message}\x1b[0m`)
     console.log(`   Paste your connection string into backend/.env (DATABASE_URL=...)\n`)

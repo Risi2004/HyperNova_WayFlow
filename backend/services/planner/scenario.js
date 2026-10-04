@@ -4,7 +4,7 @@
 // the fleet in the workshop, and carries over a few orders deferred on the previous run — so the
 // planner has to make (and explain) deferral decisions. Deterministic for a given date.
 
-const { recordEvent } = require('../orderStatus')
+const { recordEvents } = require('../orderStatus')
 const { cutoffFor, addDays } = require('../orderSchedule')
 
 const SCENARIO_TAG = 'PEAK-DAY SCENARIO'
@@ -67,39 +67,68 @@ function buildItems(rand, pool, target, by) {
   })
 }
 
-async function createOrder(db, { orderId, outlet, date, cutoffAt, status, temp, items, managerId, note }) {
-  const totals = items.reduce(
-    (t, it) => ({ units: t.units + it.quantity, w: t.w + it.quantity * it.w, v: t.v + it.quantity * it.v }),
-    { units: 0, w: 0, v: 0 }
-  )
-  const placed = new Date(new Date(cutoffAt).getTime() - 6 * 3600000) // placed on the morning before cutoff
+// Orders are staged in memory and written in bulk by writeOrders: a scenario creates 100+
+// orders, and one round trip per row made loading it take minutes against a remote database.
+function stageOrder(staged, order) {
+  staged.push(order)
+  return order
+}
+
+async function writeOrders(db, staged, year) {
+  if (!staged.length) return
+  // Order numbers in staging order, as one nextval() per order would have given them.
+  const seqs = (await db.query(`SELECT nextval('order_number_seq') AS seq FROM generate_series(1, $1)`, [staged.length]))
+    .map((r) => Number(r.seq))
+    .sort((a, b) => a - b)
+  staged.forEach((o, i) => { o.orderId = `ORD-${year}-${String(seqs[i]).padStart(5, '0')}` })
+
+  const orderRows = staged.map(({ orderId, outlet, date, cutoffAt, status, temp, items, managerId, note }) => {
+    const totals = items.reduce(
+      (t, it) => ({ units: t.units + it.quantity, w: t.w + it.quantity * it.w, v: t.v + it.quantity * it.v }),
+      { units: 0, w: 0, v: 0 }
+    )
+    const placed = new Date(new Date(cutoffAt).getTime() - 6 * 3600000) // placed on the morning before cutoff
+    return [orderId, outlet.outlet_id, outlet.brand, outlet.district, outlet.depot, placed.toISOString().slice(0, 10), date,
+      new Date(cutoffAt).toISOString(), status, temp, totals.units, Math.round(totals.w * 100) / 100, Math.round(totals.v * 1000) / 1000,
+      outlet.window_open_time, outlet.window_close_time, note, managerId, placed.toISOString()]
+  })
+  const col = (rows, i) => rows.map((r) => r[i])
   await db.query(
     `INSERT INTO orders (order_id, outlet_id, brand, district, depot, order_date, target_delivery_date, cutoff_time,
        placed_before_cutoff, status, temp_requirement, total_units, total_weight_kg, total_volume_m3,
        requested_window_open, requested_window_close, order_notes, created_by_user_id, priority, outlet_reference,
        created_at, submitted_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true,$9,$10,$11,$12,$13,$14,$15,$16,$17,'normal',$18,$19,$19)`,
-    [orderId, outlet.outlet_id, outlet.brand, outlet.district, outlet.depot, placed.toISOString().slice(0, 10), date,
-      cutoffAt, status, temp, totals.units, Math.round(totals.w * 100) / 100, Math.round(totals.v * 1000) / 1000,
-      outlet.window_open_time, outlet.window_close_time, note, managerId, SCENARIO_TAG, placed]
+     SELECT r.order_id, r.outlet_id, r.brand, r.district, r.depot, r.order_date, r.target, r.cutoff,
+            true, r.status, r.temp, r.units, r.w, r.v, r.open, r.close, r.note, r.manager, 'normal', $19, r.placed, r.placed
+     FROM unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::date[], $7::date[], $8::timestamptz[],
+                 $9::text[], $10::text[], $11::int[], $12::numeric[], $13::numeric[], $14::time[], $15::time[],
+                 $16::text[], $17::text[], $18::timestamptz[])
+          WITH ORDINALITY AS r(order_id, outlet_id, brand, district, depot, order_date, target, cutoff, status, temp,
+                               units, w, v, open, close, note, manager, placed, n)
+     ORDER BY r.n`,
+    [...Array.from({ length: 18 }, (_, i) => col(orderRows, i)), SCENARIO_TAG]
   )
-  for (const it of items) {
+
+  const itemRows = staged.flatMap(({ orderId, items }) => items.map((it) => [orderId, it.product_code, it.product_name, it.unit,
+    it.temp, it.quantity, it.w, it.v, Math.round(it.quantity * it.w * 100) / 100, Math.round(it.quantity * it.v * 1000) / 1000]))
+  if (itemRows.length) {
     await db.query(
       `INSERT INTO order_items (order_id, product_code, product_name, sku, unit, temp_requirement, quantity_cases,
          weight_per_case_kg, volume_per_case_m3, total_item_weight_kg, total_item_volume_m3)
-       VALUES ($1,$2,$3,$2,$4,$5,$6,$7,$8,$9,$10)`,
-      [orderId, it.product_code, it.product_name, it.unit, it.temp, it.quantity, it.w, it.v,
-        Math.round(it.quantity * it.w * 100) / 100, Math.round(it.quantity * it.v * 1000) / 1000]
+       SELECT i.order_id, i.code, i.name, i.code, i.unit, i.temp, i.qty, i.w, i.v, i.tw, i.tv
+       FROM unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::int[],
+                   $7::numeric[], $8::numeric[], $9::numeric[], $10::numeric[])
+            WITH ORDINALITY AS i(order_id, code, name, unit, temp, qty, w, v, tw, tv, n)
+       ORDER BY i.n`,
+      Array.from({ length: 10 }, (_, i) => col(itemRows, i))
     )
   }
-  const actor = { userId: managerId, role: managerId ? 'Store Manager' : 'System' }
-  await recordEvent(db, { orderId, to: 'submitted', actor, note: 'Order placed (peak-day scenario)' })
-  await recordEvent(db, { orderId, from: 'submitted', to: 'confirmed', actor: { role: 'System' }, note: 'Order intake closed — order confirmed for planning' })
-}
 
-async function nextOrderId(db, year) {
-  const [{ seq }] = await db.query(`SELECT nextval('order_number_seq') AS seq`)
-  return `ORD-${year}-${String(seq).padStart(5, '0')}`
+  await recordEvents(db, staged.flatMap(({ orderId, managerId, extraEvents = [] }) => [
+    { orderId, to: 'submitted', actor: { userId: managerId, role: managerId ? 'Store Manager' : 'System' }, note: 'Order placed (peak-day scenario)' },
+    { orderId, from: 'submitted', to: 'confirmed', actor: { role: 'System' }, note: 'Order intake closed — order confirmed for planning' },
+    ...extraEvents.map((e) => ({ orderId, ...e })),
+  ]))
 }
 
 // Replaces any earlier scenario for the date and generates a fresh one.
@@ -129,14 +158,13 @@ async function generatePeakDay(db, date, { actorUserId = null } = {}) {
   }
 
   await db.query('DELETE FROM vehicle_availability WHERE date = $1', [date])
-  for (const [vid, reason] of WORKSHOP) {
-    await db.query(
-      `INSERT INTO vehicle_availability (vehicle_id, date, status, reason)
-       SELECT $1::varchar, $2::date, 'in_workshop', $3::text
-       WHERE EXISTS (SELECT 1 FROM vehicles WHERE vehicle_id = $1::varchar)`,
-      [vid, date, reason]
-    )
-  }
+  await db.query(
+    `INSERT INTO vehicle_availability (vehicle_id, date, status, reason)
+     SELECT w.vehicle_id, $1::date, 'in_workshop', w.reason
+     FROM unnest($2::varchar[], $3::text[]) AS w(vehicle_id, reason)
+     WHERE EXISTS (SELECT 1 FROM vehicles v WHERE v.vehicle_id = w.vehicle_id)`,
+    [date, WORKSHOP.map(([vid]) => vid), WORKSHOP.map(([, reason]) => reason)]
+  )
 
   const outlets = await db.query('SELECT * FROM outlets ORDER BY outlet_id')
   const products = await db.query('SELECT * FROM products')
@@ -154,9 +182,10 @@ async function generatePeakDay(db, date, { actorUserId = null } = {}) {
 
   const rand = rng(`wayflow-peak-${date}`)
   const year = date.slice(0, 4)
-  const cutoffAt = await cutoffFor(db, date)
+  const [cutoffAt, prevCutoff] = await Promise.all([cutoffFor(db, date), cutoffFor(db, prevDate)])
   const festival = 1.25 // festival one week away: Fresh demand is rising
   let created = 0
+  const staged = []
 
   for (const outlet of outlets) {
     const plans = []
@@ -170,8 +199,8 @@ async function generatePeakDay(db, date, { actorUserId = null } = {}) {
     }
     for (const p of plans) {
       const items = buildItems(rand, pools[`${outlet.brand}|${p.temp}`], p.target, p.by)
-      await createOrder(db, {
-        orderId: await nextOrderId(db, year), outlet, date, cutoffAt, status: 'confirmed', temp: p.temp, items,
+      stageOrder(staged, {
+        outlet, date, cutoffAt, status: 'confirmed', temp: p.temp, items,
         managerId: managerOf.get(outlet.outlet_id) || null, note: 'Festival-week replenishment',
       })
       created++
@@ -181,24 +210,33 @@ async function generatePeakDay(db, date, { actorUserId = null } = {}) {
   // Orders deferred on the previous run: they come back first under the fairness rule.
   const carried = outlets.filter((o) => o.brand === 'Fresh' && o.depot === 'Peliyagoda').slice(0, 3)
     .concat(outlets.filter((o) => o.brand === 'Style' && o.depot === 'Peliyagoda').slice(0, 1))
-  const prevCutoff = await cutoffFor(db, prevDate)
+  const carriedOrders = []
   for (const outlet of carried) {
     const temp = outlet.brand === 'Fresh' ? 'chilled' : 'ambient'
-    const orderId = await nextOrderId(db, year)
     const items = buildItems(rand, pools[`${outlet.brand}|${temp}`], outlet.brand === 'Fresh' ? 320 : 7, outlet.brand === 'Fresh' ? 'weight' : 'volume')
-    await createOrder(db, { orderId, outlet, date: prevDate, cutoffAt: prevCutoff, status: 'deferred', temp, items, managerId: managerOf.get(outlet.outlet_id) || null, note: 'Carried over from the previous run' })
     const reason = temp === 'chilled' ? 'no_reefer_available' : 'capacity_exceeded'
     const explanation = temp === 'chilled'
       ? 'All refrigerated vehicles at Peliyagoda were committed to earlier Fresh runs.'
       : 'Style volume exceeded the remaining truck capacity on the previous run.'
+    carriedOrders.push(stageOrder(staged, {
+      outlet, date: prevDate, cutoffAt: prevCutoff, status: 'deferred', temp, items, managerId: managerOf.get(outlet.outlet_id) || null,
+      note: 'Carried over from the previous run', reason, explanation,
+      extraEvents: [{ from: 'confirmed', to: 'deferred', actor: { userId: actorUserId, role: 'Dispatcher' }, note: `${explanation} Moved to ${date}.` }],
+    }))
+    created++
+  }
+
+  await writeOrders(db, staged, year)
+  if (carriedOrders.length) {
     await db.query(
       `INSERT INTO order_deferrals (order_id, outlet_id, planning_date, deferral_reason, explanation,
          consecutive_deferral_count, next_scheduled_date, decided_by_user_id)
-       VALUES ($1,$2,$3,$4,$5,1,$6,$7)`,
-      [orderId, outlet.outlet_id, prevDate, reason, explanation, date, actorUserId]
+       SELECT d.order_id, d.outlet_id, $1, d.reason, d.explanation, 1, $2, $3
+       FROM unnest($4::text[], $5::text[], $6::text[], $7::text[]) WITH ORDINALITY AS d(order_id, outlet_id, reason, explanation, n)
+       ORDER BY d.n`,
+      [prevDate, date, actorUserId, carriedOrders.map((o) => o.orderId), carriedOrders.map((o) => o.outlet.outlet_id),
+        carriedOrders.map((o) => o.reason), carriedOrders.map((o) => o.explanation)]
     )
-    await recordEvent(db, { orderId, from: 'confirmed', to: 'deferred', actor: { userId: actorUserId, role: 'Dispatcher' }, note: `${explanation} Moved to ${date}.` })
-    created++
   }
 
   return { date, created, carried_over: carried.length, in_workshop: WORKSHOP.length }

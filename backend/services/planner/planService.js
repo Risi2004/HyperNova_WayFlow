@@ -6,7 +6,7 @@
 // order — so every decision leaves a traceable record.
 
 const { allocate, validateVehicleDay, checklist, kindOf, toMin, toTime } = require('./engine')
-const { DEFERRAL_REASONS, transitionOrder, OrderStatusError } = require('../orderStatus')
+const { DEFERRAL_REASONS, transitionOrders, OrderStatusError } = require('../orderStatus')
 const { addDays } = require('../orderSchedule')
 
 class PlanError extends Error {
@@ -31,8 +31,10 @@ function weekStart(dateStr) {
 // ---------------------------------------------------------------------------------------------
 
 async function loadContext(db) {
-  const travelRows = await db.query('SELECT * FROM district_travel')
-  const allowanceRows = await db.query('SELECT * FROM service_allowance')
+  const [travelRows, allowanceRows] = await Promise.all([
+    db.query('SELECT * FROM district_travel'),
+    db.query('SELECT * FROM service_allowance'),
+  ])
   const travel = {}
   for (const r of travelRows) {
     travel[`${r.depot}|${r.district}`] = {
@@ -146,14 +148,20 @@ async function loadPlanRow(db, date) {
   return plan || null
 }
 
-// Current trips for the date as engine trip objects (draft and published).
-async function loadTrips(db, date, ordersById) {
-  const trips = await db.query('SELECT * FROM trips WHERE delivery_date = $1 ORDER BY vehicle_id, trip_number', [date])
-  const stops = await db.query(
-    `SELECT ts.* FROM trip_stops ts JOIN trips t ON t.trip_id = ts.trip_id
-     WHERE t.delivery_date = $1 ORDER BY ts.trip_id, ts.stop_sequence`,
-    [date]
-  )
+// Current trips and stops for the date (draft and published).
+function loadTripRows(db, date) {
+  return Promise.all([
+    db.query('SELECT * FROM trips WHERE delivery_date = $1 ORDER BY vehicle_id, trip_number', [date]),
+    db.query(
+      `SELECT ts.* FROM trip_stops ts JOIN trips t ON t.trip_id = ts.trip_id
+       WHERE t.delivery_date = $1 ORDER BY ts.trip_id, ts.stop_sequence`,
+      [date]
+    ),
+  ])
+}
+
+// Trip rows as engine trip objects.
+function buildTrips(trips, stops, ordersById) {
   return trips.map((t) => ({
     trip_id: t.trip_id,
     status: t.status,
@@ -167,22 +175,22 @@ async function loadTrips(db, date, ordersById) {
 }
 
 async function loadState(db, date) {
-  // Sequential: `db` may be a single transaction client.
-  const ctx = await loadContext(db)
-  const vehicles = await loadVehicles(db, date)
-  const candidates = await loadCandidateOrders(db, date)
-  const plan = await loadPlanRow(db, date)
+  // The reads are independent, so they are issued together. On the shared pool they run in
+  // parallel; on a transaction client pg queues them, which is still correct.
+  const [ctx, vehicles, candidates, plan, [tripRows, stopRows]] = await Promise.all([
+    loadContext(db),
+    loadVehicles(db, date),
+    loadCandidateOrders(db, date),
+    loadPlanRow(db, date),
+    loadTripRows(db, date),
+  ])
   // Orders already on this date's trips may have moved past 'confirmed' (published plans).
-  const onTrips = await db.query(
-    `SELECT o.order_id FROM orders o JOIN trip_stops ts ON ts.order_id = o.order_id
-     JOIN trips t ON t.trip_id = ts.trip_id WHERE t.delivery_date = $1`,
-    [date]
-  )
-  const missing = onTrips.map((r) => r.order_id).filter((id) => !candidates.some((c) => c.order_id === id))
+  const candidateIds = new Set(candidates.map((c) => c.order_id))
+  const missing = [...new Set(stopRows.map((s) => s.order_id))].filter((id) => !candidateIds.has(id))
   const extra = missing.length ? await loadOrdersByIds(db, missing) : []
   const orders = [...candidates, ...extra]
   const ordersById = new Map(orders.map((o) => [o.order_id, o]))
-  const trips = await loadTrips(db, date, ordersById)
+  const trips = buildTrips(tripRows, stopRows, ordersById)
   return { ctx, vehicles, orders, ordersById, trips, plan }
 }
 
@@ -227,34 +235,57 @@ async function saveDraft(db, date, { vehicles, ctx, trips, unscheduled, userId }
   await db.query(`DELETE FROM trip_stops WHERE trip_id IN (SELECT trip_id FROM trips WHERE delivery_date = $1 AND status = 'draft')`, [date])
   await db.query(`DELETE FROM trips WHERE delivery_date = $1 AND status = 'draft'`, [date])
 
+  // Rows are collected first and written with one INSERT per table.
+  const tripRows = []
+  const stopRows = []
   for (const [vid, list] of byVehicle) {
     const vehicle = vehicleById.get(vid)
     const res = validateVehicleDay(vehicle, list, ctx)
     for (const [i, { trip, schedule }] of res.schedules.entries()) {
       const tripId = tripIdFor(date, vid, i + 1)
       const travel = ctx.travel[`${vehicle.depot}|${trip.district}`] || { out_km: 0, inter_km: 0, out_min: 0, inter_min: 0 }
-      await db.query(
-        `INSERT INTO trips (trip_id, delivery_date, vehicle_id, trip_number, depot, brand, district, driver_user_id,
-           planned_departure_time, planned_return_time, total_planned_distance_km, total_planned_duration_min,
-           total_weight_kg, total_volume_m3, status, planned_fuel_l, budget_minutes)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'draft',$15,$16)`,
-        [tripId, date, vid, i + 1, vehicle.depot, trip.brand, trip.district, vehicle.driver_user_id || null,
-          toTime(schedule.start), toTime(Math.min(schedule.returnAt, 23 * 60 + 59)), schedule.distanceKm,
-          Math.round(schedule.returnAt - schedule.start), schedule.weight, schedule.volume,
-          Math.round(schedule.fuelL * 100) / 100, schedule.minutes]
-      )
+      tripRows.push([tripId, vid, i + 1, vehicle.depot, trip.brand, trip.district, vehicle.driver_user_id || null,
+        toTime(schedule.start), toTime(Math.min(schedule.returnAt, 23 * 60 + 59)), schedule.distanceKm,
+        Math.round(schedule.returnAt - schedule.start), schedule.weight, schedule.volume,
+        Math.round(schedule.fuelL * 100) / 100, schedule.minutes])
       const n = schedule.stops.length
       for (const [k, stop] of schedule.stops.entries()) {
-        await db.query(
-          `INSERT INTO trip_stops (trip_id, order_id, stop_sequence, loading_sequence, from_point, to_outlet_id,
-             distance_km, planned_travel_min, planned_arrival_time, planned_departure_time, planned_handling_min, status)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'scheduled')`,
-          [tripId, stop.order_id, k + 1, n - k, k === 0 ? 'DEPOT' : schedule.stops[k - 1].outlet_id, stop.outlet_id,
-            k === 0 ? travel.out_km : travel.inter_km, k === 0 ? travel.out_min : travel.inter_min,
-            toTime(stop.planned_arrival_min), toTime(stop.planned_departure_min), stop.handling_min]
-        )
+        stopRows.push([tripId, stop.order_id, k + 1, n - k, k === 0 ? 'DEPOT' : schedule.stops[k - 1].outlet_id, stop.outlet_id,
+          k === 0 ? travel.out_km : travel.inter_km, k === 0 ? travel.out_min : travel.inter_min,
+          toTime(stop.planned_arrival_min), toTime(stop.planned_departure_min), stop.handling_min])
       }
     }
+  }
+  const column = (rows, i) => rows.map((r) => r[i])
+
+  if (tripRows.length) {
+    await db.query(
+      `INSERT INTO trips (trip_id, delivery_date, vehicle_id, trip_number, depot, brand, district, driver_user_id,
+         planned_departure_time, planned_return_time, total_planned_distance_km, total_planned_duration_min,
+         total_weight_kg, total_volume_m3, status, planned_fuel_l, budget_minutes)
+       SELECT r.trip_id, $1, r.vehicle_id, r.trip_number, r.depot, r.brand, r.district, r.driver_user_id,
+              r.dep, r.ret, r.km, r.duration, r.weight, r.volume, 'draft', r.fuel, r.budget
+       FROM unnest($2::text[], $3::text[], $4::int[], $5::text[], $6::text[], $7::text[], $8::text[],
+                   $9::time[], $10::time[], $11::numeric[], $12::int[], $13::numeric[], $14::numeric[],
+                   $15::numeric[], $16::int[])
+            AS r(trip_id, vehicle_id, trip_number, depot, brand, district, driver_user_id,
+                 dep, ret, km, duration, weight, volume, fuel, budget)`,
+      [date, ...Array.from({ length: 15 }, (_, i) => column(tripRows, i))]
+    )
+  }
+  if (stopRows.length) {
+    await db.query(
+      `INSERT INTO trip_stops (trip_id, order_id, stop_sequence, loading_sequence, from_point, to_outlet_id,
+         distance_km, planned_travel_min, planned_arrival_time, planned_departure_time, planned_handling_min, status)
+       SELECT s.trip_id, s.order_id, s.seq, s.load_seq, s.from_point, s.to_outlet_id,
+              s.km, s.travel_min, s.arr, s.dep, s.handling, 'scheduled'
+       FROM unnest($1::text[], $2::text[], $3::int[], $4::int[], $5::text[], $6::text[],
+                   $7::numeric[], $8::int[], $9::time[], $10::time[], $11::int[])
+            WITH ORDINALITY AS s(trip_id, order_id, seq, load_seq, from_point, to_outlet_id,
+                                 km, travel_min, arr, dep, handling, n)
+       ORDER BY s.n`,
+      Array.from({ length: 11 }, (_, i) => column(stopRows, i))
+    )
   }
 
   const reasons = {}
@@ -385,27 +416,47 @@ async function publishPlan(db, date, actor, nextOperatingDay) {
   const unscheduled = unscheduledOf(state, state.plan?.unscheduled || {})
   const nextDate = await nextOperatingDay(date)
 
-  let planned = 0
+  // Set-based writes: a handful of statements however many orders the plan holds.
+  await db.query(`UPDATE trips SET status = 'planned' WHERE trip_id = ANY($1)`, [drafts.map((t) => t.trip_id)])
+  const plannedNotes = new Map()
   for (const t of drafts) {
-    await db.query(`UPDATE trips SET status = 'planned' WHERE trip_id = $1`, [t.trip_id])
     for (const o of t.orders) {
-      if (['confirmed', 'deferred'].includes(o.status)) {
-        await transitionOrder(db, o.order_id, 'planned', actor, `Planned on ${t.trip_id} (${t.vehicle_id})`)
-        planned++
-      }
+      if (['confirmed', 'deferred'].includes(o.status)) plannedNotes.set(o.order_id, `Planned on ${t.trip_id} (${t.vehicle_id})`)
     }
   }
+  await transitionOrders(db, [...plannedNotes.keys()], 'planned', actor, (id) => plannedNotes.get(id))
+  const planned = plannedNotes.size
 
-  for (const u of unscheduled) {
-    const reason = DEFERRAL_REASONS[u.reason] ? u.reason : 'capacity_exceeded'
-    const [{ prior }] = await db.query('SELECT COUNT(*)::int AS prior FROM order_deferrals WHERE order_id = $1', [u.order.order_id])
+  if (unscheduled.length) {
+    const ids = unscheduled.map((u) => u.order.order_id)
+    const priorRows = await db.query(
+      'SELECT order_id, COUNT(*)::int AS prior FROM order_deferrals WHERE order_id = ANY($1) GROUP BY order_id',
+      [ids]
+    )
+    const priorById = new Map(priorRows.map((r) => [r.order_id, r.prior]))
+    const rows = unscheduled.map((u) => {
+      const reason = DEFERRAL_REASONS[u.reason] ? u.reason : 'capacity_exceeded'
+      return {
+        orderId: u.order.order_id,
+        outletId: u.order.outlet_id,
+        reason,
+        explanation: u.explanation,
+        count: (priorById.get(u.order.order_id) || 0) + 1,
+        note: `${DEFERRAL_REASONS[reason]} — moved to ${nextDate}. ${u.explanation}`,
+      }
+    })
     await db.query(
       `INSERT INTO order_deferrals (order_id, outlet_id, planning_date, deferral_reason, explanation,
          consecutive_deferral_count, next_scheduled_date, decided_by_user_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [u.order.order_id, u.order.outlet_id, date, reason, u.explanation, prior + 1, nextDate, actor.userId]
+       SELECT d.order_id, d.outlet_id, $1, d.reason, d.explanation, d.count, $2, $3
+       FROM unnest($4::text[], $5::text[], $6::text[], $7::text[], $8::int[])
+            WITH ORDINALITY AS d(order_id, outlet_id, reason, explanation, count, n)
+       ORDER BY d.n`,
+      [date, nextDate, actor.userId, rows.map((r) => r.orderId), rows.map((r) => r.outletId),
+        rows.map((r) => r.reason), rows.map((r) => r.explanation), rows.map((r) => r.count)]
     )
-    await transitionOrder(db, u.order.order_id, 'deferred', actor, `${DEFERRAL_REASONS[reason]} — moved to ${nextDate}. ${u.explanation}`)
+    const notes = new Map(rows.map((r) => [r.orderId, r.note]))
+    await transitionOrders(db, ids, 'deferred', actor, (id) => notes.get(id))
   }
 
   await db.query(
